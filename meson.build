@@ -5,7 +5,8 @@ project(
     #'cpp_std=c++20',
     'warning_level=3'
   ],
-  version: '0.0.1'
+  version: '0.0.1',
+  license: 'MIT'
 )
 
 # Use this until meson supports C++23 (gcc is anyways the only supported compiler)
