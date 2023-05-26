@@ -1,0 +1,11 @@
+option('jpeg', type: 'feature', value: 'auto')
+option('png',  type: 'feature', value: 'auto')
+option('avif', type: 'feature', value: 'auto')
+option('exr',  type: 'feature', value: 'auto')
+option('ppm',  type: 'boolean', value: 'true')
+option('webp', type: 'feature', value: 'auto')
+option('gif',  type: 'feature', value: 'auto')
+option('jxl',  type: 'feature', value: 'auto')
+
+option('install_as_subproject', type: 'boolean', value: true,
+  description: 'Install if this is a subproject')

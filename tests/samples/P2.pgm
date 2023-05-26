@@ -1,0 +1,11 @@
+P2   # gray scale image, ascii encoded
+6 7  # width height
+16   # maximum brightness
+
+16 16 16 16 16 16
+16  0 00 00 00 16 # a comment
+16  0 16 16 16 16
+16  0 00 00 16 16
+16  0 16 16 16 16
+16  0 16 16 16 16
+16 16 16 16 16 16 # last row
