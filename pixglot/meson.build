@@ -88,6 +88,7 @@ endif
 pixglot_lib = library(
   'pixglot',
   sources,
+  cpp_args:            cppargs,
   dependencies:        dependencies,
   install:             install_project,
   include_directories: ['include', '.']

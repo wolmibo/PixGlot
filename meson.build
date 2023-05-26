@@ -9,7 +9,7 @@ project(
 )
 
 # Use this until meson supports C++23 (gcc is anyways the only supported compiler)
-add_global_arguments('-std=c++2b', language: 'cpp')
+cppargs = ['-std=c++2b']
 
 subdir('pixglot')
 
