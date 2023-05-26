@@ -13,4 +13,6 @@ cppargs = ['-std=c++2b']
 
 subdir('pixglot')
 
-subdir('tests')
+if get_option('tests')
+  subdir('tests')
+endif

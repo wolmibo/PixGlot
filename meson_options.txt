@@ -9,3 +9,6 @@ option('jxl',  type: 'feature', value: 'auto')
 
 option('install_as_subproject', type: 'boolean', value: true,
   description: 'Install if this is a subproject')
+
+option('tests', type: 'boolean', value: true,
+  description: 'Build the unit tests')
