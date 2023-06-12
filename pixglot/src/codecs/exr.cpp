@@ -1,5 +1,7 @@
 #include "../decoder.hpp"
+#include "ImfPixelType.h"
 #include "pixglot/frame.hpp"
+#include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <set>
@@ -97,6 +99,65 @@ namespace {
   };
 
   using exr_frame = std::pair<std::string, std::variant<exr_image_frame, const Channel*>>;
+
+
+
+  [[nodiscard]] data_format convert_data_format(PixelType ptype) {
+    switch (ptype) {
+      case PixelType::HALF:  return data_format::f16;
+      case PixelType::UINT:  return data_format::u32;
+      default:               return data_format::f32;
+    }
+  }
+
+
+
+  void update_data_format(std::optional<data_format>& df, const Channel* c) {
+    if (c == nullptr) {
+      return;
+    }
+    auto new_df = convert_data_format(c->type);
+
+    if (!df) {
+      df = new_df;
+    } else if (*df != new_df) {
+      df = data_format::f32;
+    }
+  }
+
+
+
+  [[nodiscard]] data_format determine_data_format(const exr_frame& frame) {
+    if (const auto* f = std::get_if<exr_image_frame>(&frame.second)) {
+      std::optional<data_format> df;
+      update_data_format(df, f->red);
+      update_data_format(df, f->green);
+      update_data_format(df, f->blue);
+      update_data_format(df, f->alpha);
+
+      if (df) {
+        return *df;
+      }
+    } else {
+      if (const auto* channel = std::get<const Channel*>(frame.second)) {
+        return convert_data_format(channel->type);
+      }
+    }
+
+    return data_format::f32;
+  }
+
+
+
+  [[nodiscard]] color_channels determine_color_channels(const exr_frame& frame) {
+    if (const auto* f = std::get_if<exr_image_frame>(&frame.second)) {
+      if (f->alpha == nullptr) {
+        return color_channels::rgb;
+      }
+      return color_channels::rgba;
+    }
+    return color_channels::gray;
+  }
 
 
 
