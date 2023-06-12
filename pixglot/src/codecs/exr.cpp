@@ -1,17 +1,17 @@
 #include "../decoder.hpp"
-#include "ImfPixelType.h"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <set>
 #include <span>
+#include <variant>
 
 #include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfLineOrder.h>
+#include <OpenEXR/ImfPixelType.h>
 #include <OpenEXR/ImfRgbaFile.h>
-#include <variant>
 
 using namespace pixglot;
 
