@@ -1,12 +1,15 @@
 #include "../decoder.hpp"
-#include "ImfLineOrder.h"
 #include "pixglot/frame.hpp"
 #include "pixglot/utils/cast.hpp"
 
+#include <set>
 #include <span>
 
 #include <OpenEXR/ImfArray.h>
+#include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfLineOrder.h>
 #include <OpenEXR/ImfRgbaFile.h>
+#include <variant>
 
 using namespace pixglot;
 
@@ -74,6 +77,73 @@ namespace {
   [[nodiscard]] size_t stride_in_pixels(const pixel_buffer& pixels) {
     return pixels.stride() / pixels.format().size();
   }
+
+
+
+
+
+  struct exr_image_frame {
+    const Channel* red  {nullptr};
+    const Channel* green{nullptr};
+    const Channel* blue {nullptr};
+    const Channel* alpha{nullptr};
+
+    void set_channel(std::string_view name, const Channel* c) {
+      if      (name == "R") { red   = c; }
+      else if (name == "G") { green = c; }
+      else if (name == "B") { blue  = c; }
+      else if (name == "A") { alpha = c; }
+    }
+  };
+
+  using exr_frame = std::pair<std::string, std::variant<exr_image_frame, const Channel*>>;
+
+
+
+  [[nodiscard]] bool is_data_channel(std::string_view name) {
+    return name != "R" && name != "G" && name != "B" && name != "A";
+  }
+
+
+
+  [[nodiscard]] std::vector<exr_frame> exr_determine_frames(RgbaInputFile& file) {
+    const auto& channels = file.header().channels();
+
+    std::set<std::string> layer_names;
+    channels.layers(layer_names);
+
+    std::vector<exr_frame> list;
+    for (const auto& layer: layer_names) {
+      ChannelList::ConstIterator layer_begin;
+      ChannelList::ConstIterator layer_end;
+      channels.channelsInLayer(layer, layer_begin, layer_end);
+
+      for (auto it = layer_begin; it != layer_end; ++it) {
+        if (is_data_channel(it.name())) {
+          list.emplace_back(layer + it.name(), &it.channel());
+        } else {
+          auto c = std::ranges::find_if(list, [&layer](const auto& pair) {
+              return pair.first == layer &&
+                std::holds_alternative<exr_image_frame>(pair.second);
+          });
+
+          if (c == list.end()) {
+            list.emplace_back(layer, exr_image_frame{});
+            c = list.end() - 1;
+          }
+
+          auto& frame = std::get<exr_image_frame>(c->second);
+          frame.set_channel(it.name(), &it.channel());
+        }
+      }
+    }
+
+    return list;
+  }
+
+
+
+
 
 
 
