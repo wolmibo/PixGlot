@@ -1,4 +1,5 @@
 #include "../decoder.hpp"
+#include "ImfLineOrder.h"
 #include "pixglot/frame.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -108,7 +109,22 @@ namespace {
 
         input_.setFrameBuffer(utils::interpret_as<Rgba>(buffer.data()).data(),
                                 1, stride_in_pixels(buffer));
-        input_.readPixels(data_window.min.y, data_window.max.y);
+
+
+
+        if (input_.lineOrder() == Imf_3_1::INCREASING_Y) {
+          for (auto y = data_window.min.y; y <= data_window.max.y; ++y) {
+            input_.readPixels(y, y);
+            progress(y - data_window.min.y + 1, height);
+          }
+        } else {
+          for (auto y = data_window.max.y; y >= data_window.min.y; ++y) {
+            input_.readPixels(y, y);
+            progress(data_window.max.y - y + 1, height);
+          }
+        }
+
+
 
         append_frame(frame {
           .pixels      = std::move(buffer),
