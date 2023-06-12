@@ -214,9 +214,9 @@ namespace {
   class exr_decoder : public decoder {
     public:
       explicit exr_decoder(decoder&& parent) :
-        decoder(std::move(parent)),
+        decoder{std::move(parent)},
         reader_{input()},
-        input_{reader_}
+        input_ {reader_}
       {}
 
 
@@ -245,7 +245,7 @@ namespace {
 
 
 
-        if (input_.lineOrder() == Imf_3_1::INCREASING_Y) {
+        if (input_.lineOrder() == LineOrder::INCREASING_Y) {
           for (auto y = data_window.min.y; y <= data_window.max.y; ++y) {
             input_.readPixels(y, y);
             progress(y - data_window.min.y + 1, height);
