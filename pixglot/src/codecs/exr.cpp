@@ -199,6 +199,8 @@ namespace {
       }
     }
 
+    std::ranges::sort(list, {}, &exr_frame::first);
+
     return list;
   }
 
