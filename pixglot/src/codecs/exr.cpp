@@ -3,8 +3,8 @@
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
-#include <set>
 #include <span>
+#include <string_view>
 #include <variant>
 
 #include <OpenEXR/ImfArray.h>
@@ -85,7 +85,7 @@ namespace {
     const Channel* blue {nullptr};
     const Channel* alpha{nullptr};
 
-    void set_channel(std::string_view name, const Channel* c) {
+    void set_channel(const std::string_view name, const Channel* c) {
       if      (name == "R") { red   = c; }
       else if (name == "G") { green = c; }
       else if (name == "B") { blue  = c; }
@@ -185,35 +185,43 @@ namespace {
 
 
 
+  [[nodiscard]] std::string_view channel_name(std::string_view full_name) {
+    auto ipos = full_name.rfind('.');
+    if (ipos == std::string_view::npos) {
+      return full_name;
+    }
+
+    return full_name.substr(ipos + 1);
+  }
+
+
+
   [[nodiscard]] std::vector<exr_frame> exr_determine_frames(InputFile& file) {
+    std::vector<exr_frame> list;
+
     const auto& channels = file.header().channels();
 
-    std::set<std::string> layer_names;
-    channels.layers(layer_names);
+    for (auto it = channels.begin(); it != channels.end(); ++it) {
+      auto cname = channel_name(it.name());
+      if (is_data_channel(channel_name(cname))) {
+        list.emplace_back(it.name(), &it.channel());
 
-    std::vector<exr_frame> list;
-    for (const auto& layer: layer_names) {
-      ChannelList::ConstIterator layer_begin;
-      ChannelList::ConstIterator layer_end;
-      channels.channelsInLayer(layer, layer_begin, layer_end);
+      } else {
+        std::string lut_name = it.name();
+        lut_name.back() = 'R';
 
-      for (auto it = layer_begin; it != layer_end; ++it) {
-        if (is_data_channel(it.name())) {
-          list.emplace_back(layer + it.name(), &it.channel());
-        } else {
-          auto c = std::ranges::find_if(list, [&layer](const auto& pair) {
-              return pair.first == layer &&
-                std::holds_alternative<exr_image_frame>(pair.second);
-          });
+        auto c = std::ranges::find_if(list, [&lut_name](const auto& pair) {
+            return pair.first == lut_name &&
+              std::holds_alternative<exr_image_frame>(pair.second);
+        });
 
-          if (c == list.end()) {
-            list.emplace_back(layer, exr_image_frame{});
-            c = list.end() - 1;
-          }
-
-          auto& frame = std::get<exr_image_frame>(c->second);
-          frame.set_channel(it.name(), &it.channel());
+        if (c == list.end()) {
+          list.emplace_back(std::move(lut_name), exr_image_frame{});
+          c = list.end() - 1;
         }
+
+        auto& frame = std::get<exr_image_frame>(c->second);
+        frame.set_channel(cname, &it.channel());
       }
     }
 
@@ -299,15 +307,15 @@ namespace {
             throw decode_error{codec::exr, "cannot load image without rgb channels"};
           }
 
-          frame_buffer.insert((frame_source.first + ".R").c_str(),
-                              create_slice(buffer, 0, 0.f));
-          frame_buffer.insert((frame_source.first + ".G").c_str(),
-                              create_slice(buffer, 1, 0.f));
-          frame_buffer.insert((frame_source.first + ".B").c_str(),
-                              create_slice(buffer, 2, 0.f));
+          std::string cname = frame_source.first;
+          cname.pop_back();
+
+          frame_buffer.insert((cname + 'R').c_str(), create_slice(buffer, 0, 0.f));
+          frame_buffer.insert((cname + 'G').c_str(), create_slice(buffer, 1, 0.f));
+          frame_buffer.insert((cname + 'B').c_str(), create_slice(buffer, 2, 0.f));
+
           if (has_alpha(buffer.format().channels)) {
-            frame_buffer.insert((frame_source.first + ".A").c_str(),
-                create_slice(buffer, 3, 1.f));
+            frame_buffer.insert((cname + 'A').c_str(), create_slice(buffer, 3, 1.f));
           }
         }
 
