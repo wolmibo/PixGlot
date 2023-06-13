@@ -9,9 +9,11 @@
 
 #include <OpenEXR/ImfArray.h>
 #include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfFrameBuffer.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfInputFile.h>
 #include <OpenEXR/ImfLineOrder.h>
 #include <OpenEXR/ImfPixelType.h>
-#include <OpenEXR/ImfRgbaFile.h>
 
 using namespace pixglot;
 
@@ -76,13 +78,6 @@ namespace {
 
 
 
-  [[nodiscard]] size_t stride_in_pixels(const pixel_buffer& pixels) {
-    return pixels.stride() / pixels.format().size();
-  }
-
-
-
-
 
   struct exr_image_frame {
     const Channel* red  {nullptr};
@@ -108,6 +103,20 @@ namespace {
       case PixelType::UINT:  return data_format::u32;
       default:               return data_format::f32;
     }
+  }
+
+
+
+  [[nodiscard]] PixelType convert_data_format(data_format df) {
+    switch (df) {
+      case data_format::f16: return PixelType::HALF;
+      case data_format::f32: return PixelType::FLOAT;
+      case data_format::u32: return PixelType::UINT;
+      default: break;
+    }
+
+    throw decode_error{codec::exr, "Cannot load exr channel as " +
+      to_string(df)};
   }
 
 
@@ -161,13 +170,22 @@ namespace {
 
 
 
+  [[nodiscard]] pixel_format determine_pixel_format(const exr_frame& frame) {
+    return pixel_format {
+      .format   = determine_data_format(frame),
+      .channels = determine_color_channels(frame)
+    };
+  }
+
+
+
   [[nodiscard]] bool is_data_channel(std::string_view name) {
     return name != "R" && name != "G" && name != "B" && name != "A";
   }
 
 
 
-  [[nodiscard]] std::vector<exr_frame> exr_determine_frames(RgbaInputFile& file) {
+  [[nodiscard]] std::vector<exr_frame> exr_determine_frames(InputFile& file) {
     const auto& channels = file.header().channels();
 
     std::set<std::string> layer_names;
@@ -206,6 +224,25 @@ namespace {
 
 
 
+  [[nodiscard]] Slice create_slice(pixel_buffer& buffer, size_t index, float fill) {
+    if (index >= n_channels(buffer.format().channels)) {
+      throw decode_error{codec::exr, "color channel index out of bounds"};
+    }
+
+    size_t offset{index * byte_size(buffer.format().format)};
+
+    return Slice{
+      convert_data_format(buffer.format().format),
+      utils::byte_pointer_cast<char>(buffer.data().subspan(offset).data()),
+      buffer.format().size(),
+      buffer.stride(),
+      1, 1,
+      fill
+    };
+  }
+
+
+
 
 
 
@@ -214,49 +251,70 @@ namespace {
   class exr_decoder : public decoder {
     public:
       explicit exr_decoder(decoder&& parent) :
-        decoder{std::move(parent)},
-        reader_{input()},
-        input_ {reader_}
+        decoder     {std::move(parent)},
+        reader_     {input()},
+        input_      {reader_},
+        data_window_{input_.header().dataWindow()},
+        width_      {static_cast<size_t>(data_window_.max.x - data_window_.min.x + 1)},
+        height_     {static_cast<size_t>(data_window_.max.y - data_window_.min.y + 1)}
       {}
 
 
 
       void decode() {
-        Box2i data_window = input_.dataWindow();
-
-        size_t width  = data_window.max.x - data_window.min.x + 1;
-        size_t height = data_window.max.y - data_window.min.y + 1;
-
-        constexpr pixel_format format{
-          .format   = data_format::f16,
-          .channels = color_channels::rgba
-        };
-
-        static_assert(format.size() == sizeof(Rgba),
-          "openexr: size of Imf::Rgba does not match rgba_f16");
-
-        static_assert(pixel_buffer::padding() % format.size() == 0,
-          "openexr: padding of pixel_buffer is incompatible");
-
-        pixel_buffer buffer{width, height, format};
-
-        input_.setFrameBuffer(utils::interpret_as<Rgba>(buffer.data()).data(),
-                                1, stride_in_pixels(buffer));
+        auto frame_sources = exr_determine_frames(input_);
+        frame_count_ = frame_sources.size();
+        frame_index_ = 0;
+        for (const auto& frame_source: frame_sources) {
+          decode_frame(frame_source);
+          frame_index_++;
+        }
+      }
 
 
 
-        if (input_.lineOrder() == LineOrder::INCREASING_Y) {
-          for (auto y = data_window.min.y; y <= data_window.max.y; ++y) {
-            input_.readPixels(y, y);
-            progress(y - data_window.min.y + 1, height);
-          }
+    private:
+      exr_reader reader_;
+      InputFile  input_;
+
+      Box2i      data_window_;
+      size_t     width_;
+      size_t     height_;
+
+      size_t     frame_index_{0};
+      size_t     frame_count_{1};
+
+
+
+      void decode_frame(const exr_frame& frame_source) {
+        pixel_buffer buffer{width_, height_, determine_pixel_format(frame_source)};
+
+        FrameBuffer frame_buffer;
+
+        if (std::holds_alternative<const Channel*>(frame_source.second)) {
+          frame_buffer.insert(frame_source.first.c_str(), create_slice(buffer, 0, 0.f));
+
         } else {
-          for (auto y = data_window.max.y; y >= data_window.min.y; ++y) {
-            input_.readPixels(y, y);
-            progress(data_window.max.y - y + 1, height);
+          if (!has_color(buffer.format().channels)) {
+            throw decode_error{codec::exr, "cannot load image without rgb channels"};
+          }
+
+          frame_buffer.insert((frame_source.first + ".R").c_str(),
+                              create_slice(buffer, 0, 0.f));
+          frame_buffer.insert((frame_source.first + ".G").c_str(),
+                              create_slice(buffer, 1, 0.f));
+          frame_buffer.insert((frame_source.first + ".B").c_str(),
+                              create_slice(buffer, 2, 0.f));
+          if (has_alpha(buffer.format().channels)) {
+            frame_buffer.insert((frame_source.first + ".A").c_str(),
+                create_slice(buffer, 3, 1.f));
           }
         }
 
+        input_.setFrameBuffer(frame_buffer);
+
+
+        transfer_pixels();
 
 
         append_frame(frame {
@@ -271,9 +329,19 @@ namespace {
 
 
 
-    private:
-      exr_reader    reader_;
-      RgbaInputFile input_;
+      void transfer_pixels() {
+        if (input_.header().lineOrder() == LineOrder::INCREASING_Y) {
+          for (auto y = data_window_.min.y; y <= data_window_.max.y; ++y) {
+            input_.readPixels(y, y);
+            progress(y - data_window_.min.y + 1, height_, frame_index_, frame_count_);
+          }
+        } else {
+          for (auto y = data_window_.max.y; y >= data_window_.min.y; ++y) {
+            input_.readPixels(y, y);
+            progress(data_window_.max.y - y + 1, height_, frame_index_, frame_count_);
+          }
+        }
+      }
   };
 }
 
