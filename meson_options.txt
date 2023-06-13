@@ -12,3 +12,6 @@ option('install_as_subproject', type: 'boolean', value: true,
 
 option('tests', type: 'boolean', value: true,
   description: 'Build the unit tests')
+
+option('examples', type: 'boolean', value: false,
+  description: 'Build the examples')
