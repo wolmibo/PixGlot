@@ -324,11 +324,13 @@ namespace {
 
         transfer_pixels();
 
+        auto alpha = has_alpha(buffer.format().channels) ?
+          alpha_mode::premultiplied : alpha_mode::none;
 
         append_frame(frame {
           .pixels      = std::move(buffer),
           .orientation = square_isometry::identity,
-          .alpha       = alpha_mode::straight,
+          .alpha       = alpha,
           .gamma       = gamma_linear,
           .endianess   = std::endian::native,
           .duration    = std::chrono::microseconds{0}
