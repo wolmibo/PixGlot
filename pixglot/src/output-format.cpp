@@ -1,8 +1,11 @@
 #include "pixglot/conversions.hpp"
+#include "pixglot/frame.hpp"
+#include "pixglot/gl-texture.hpp"
 #include "pixglot/image.hpp"
 #include "pixglot/output-format.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/pixel-storage.hpp"
+#include "pixglot/square-isometry.hpp"
 
 #include <algorithm>
 
@@ -151,20 +154,20 @@ namespace {
 
 
 
+
+
 void pixglot::make_format_compatible(
     frame&               f,
     const output_format& fmt,
     bool                 enforce
 ) {
+  make_compatible(f, fmt.target, enforce, convert_storage);
+
   make_compatible(f, fmt.gamma,       enforce, convert_gamma);
   make_compatible(f, fmt.orientation, enforce, convert_orientation);
 
-  make_compatible(f, fmt.target,      enforce, convert_storage);
-
-  if (f.pixels.storage_type() == pixel_target::pixel_buffer) {
-    // must be last since other conversions might convert to endian::native
-    make_compatible(f, fmt.endianess,   enforce, convert_endian);
-  }
+  // must be last since other conversions might convert to endian::native
+  make_compatible(f, fmt.endianess,   enforce, convert_endian);
 }
 
 

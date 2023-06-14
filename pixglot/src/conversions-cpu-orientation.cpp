@@ -3,7 +3,6 @@
 #include "pixglot/utils/cast.hpp"
 
 #include <algorithm>
-#include <memory.h>
 #include <vector>
 
 using namespace pixglot;
@@ -172,9 +171,11 @@ namespace {
         throw orientation;
     }
   }
+}
 
 
 
+namespace pixglot::details {
   void apply_orientation(pixel_buffer& pixels, square_isometry orientation) {
     switch (orientation) {
       case square_isometry::identity:
@@ -199,50 +200,5 @@ namespace {
         transform_flips_xy(source, pixels, orientation);
       } break;
     }
-  }
-}
-
-
-
-
-void pixglot::convert_orientation(
-    pixel_buffer&   pixels,
-    square_isometry src,
-    square_isometry tgt
-) {
-  apply_orientation(pixels, inverse(tgt) * src);
-}
-
-
-
-void pixglot::convert_orientation(
-    gl_texture&     /*pixels*/,
-    square_isometry /*src*/,
-    square_isometry /*tgt*/
-) {
-}
-
-
-
-void pixglot::convert_orientation(
-    pixel_storage&  storage,
-    square_isometry src,
-    square_isometry tgt
-) {
-  storage.visit([src, tgt](auto& arg) { convert_orientation(arg, src, tgt); });
-}
-
-
-
-void pixglot::convert_orientation(frame& f, square_isometry tgt) {
-  convert_orientation(f.pixels, f.orientation, tgt);
-  f.orientation = tgt;
-}
-
-
-
-void pixglot::convert_orientation(image& img, square_isometry target) {
-  for (auto& f: img.frames) {
-    convert_orientation(f, target);
   }
 }
