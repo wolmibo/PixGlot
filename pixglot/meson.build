@@ -7,6 +7,7 @@ sources = [
   'src/decode.cpp',
   'src/gl-texture.cpp',
   'src/output-format.cpp',
+  'src/square-isometry.cpp',
   'src/strings.cpp',
 ]
 

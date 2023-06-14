@@ -4,6 +4,7 @@
 #ifndef PIXGLOT_SQUARE_ISOMETRY_HPP_INCLUDED
 #define PIXGLOT_SQUARE_ISOMETRY_HPP_INCLUDED
 
+#include <array>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -124,6 +125,10 @@ constexpr square_isometry& operator/=(square_isometry& lhs, square_isometry rhs)
   lhs = (lhs / rhs);
   return lhs;
 }
+
+
+
+[[nodiscard]] std::array<float, 16> square_isometry_to_mat4x4(square_isometry);
 
 }
 
