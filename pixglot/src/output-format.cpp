@@ -1,6 +1,7 @@
 #include "pixglot/conversions.hpp"
 #include "pixglot/image.hpp"
 #include "pixglot/output-format.hpp"
+#include "pixglot/pixel-format.hpp"
 #include "pixglot/pixel-storage.hpp"
 
 #include <algorithm>
@@ -90,20 +91,37 @@ namespace {
   ) {
     return has_color(cc) || !*expand || expand.level() == preference_level::whatever;
   }
+
+
+
+  [[nodiscard]] bool add_alpha_satisfied_by(preference<bool> add, color_channels cc) {
+    return has_alpha(cc) || !*add || add.level() != preference_level::require;
+  }
+
+
+
+  [[nodiscard]] bool add_alpha_preference_satisfied_by(
+      preference<bool> add,
+      color_channels   cc
+  ) {
+    return has_alpha(cc) || !*add || add.level() == preference_level::whatever;
+  }
 }
 
 
 
 bool output_format::satisfied_by(const pixel_format& fmt) const {
   return component_type.satisfied_by(fmt.format)
-    && expand_gray_to_rgb_satisfied_by(expand_gray_to_rgb, fmt.channels);
+    && expand_gray_to_rgb_satisfied_by(expand_gray_to_rgb, fmt.channels)
+    && add_alpha_satisfied_by(add_alpha, fmt.channels);
 }
 
 
 
 bool output_format::preference_satisfied_by(const pixel_format& fmt) const {
   return component_type.preference_satisfied_by(fmt.format)
-    && expand_gray_to_rgb_preference_satisfied_by(expand_gray_to_rgb, fmt.channels);
+    && expand_gray_to_rgb_preference_satisfied_by(expand_gray_to_rgb, fmt.channels)
+    && add_alpha_preference_satisfied_by(add_alpha, fmt.channels);
 }
 
 

@@ -20,6 +20,7 @@ struct output_format {
   preference<pixel_target>    target;
 
   preference<bool>            expand_gray_to_rgb;
+  preference<bool>            add_alpha;
   preference<data_format>     component_type;
 
   preference<alpha_mode>      alpha;
