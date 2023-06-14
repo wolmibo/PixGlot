@@ -22,6 +22,8 @@ void pixglot::convert_endian(pixel_buffer& pb, std::endian src, std::endian tgt)
     return;
   }
 
+  static_assert(pixel_buffer::padding() % 4 == 0);
+
   if (byte_size(pb.format().format) == 2) {
     swap_bytes<u16>(pb.data());
   } else if (byte_size(pb.format().format) == 4) {
