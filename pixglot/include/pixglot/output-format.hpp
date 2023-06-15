@@ -38,6 +38,8 @@ struct output_format {
   [[nodiscard]] bool preference_satisfied_by(const pixel_format&) const;
   [[nodiscard]] bool preference_satisfied_by(const frame&)        const;
   [[nodiscard]] bool preference_satisfied_by(const image&)        const;
+
+  void enforce();
 };
 
 

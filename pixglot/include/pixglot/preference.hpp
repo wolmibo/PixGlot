@@ -81,6 +81,14 @@ class preference {
 
 
 
+    void enforce() {
+      if (level_ == preference_level::prefer) {
+        level_ = preference_level::require;
+      }
+    }
+
+
+
   private:
     T                value_{};
     preference_level level_{preference_level::whatever};

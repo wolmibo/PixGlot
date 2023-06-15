@@ -13,6 +13,23 @@ using namespace pixglot;
 
 
 
+
+
+void output_format::enforce() {
+  target.enforce();
+  expand_gray_to_rgb.enforce();
+  add_alpha.enforce();
+  component_type.enforce();
+  alpha.enforce();
+  gamma.enforce();
+  endianess.enforce();
+  orientation.enforce();
+}
+
+
+
+
+
 bool output_format::satisfied_by(const image& img) const {
   return std::ranges::all_of(
     img.frames,
