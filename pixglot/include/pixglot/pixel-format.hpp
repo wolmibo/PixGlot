@@ -148,6 +148,11 @@ enum class color_channels : unsigned int {
 
 
 
+[[nodiscard]] color_channels add_alpha(color_channels);
+[[nodiscard]] color_channels add_color(color_channels);
+
+
+
 
 
 struct pixel_format {
