@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 To build PixGlot you will need:
 * GCC C++ 12 or newer
 * meson
-* OpenGL development libraries
+* libepoxy
 * libpng (Optional)
 * libjpeg (Optional)
 * libavif (Optional)
@@ -71,7 +71,7 @@ To build PixGlot you will need:
 
 To install all dependencies on Fedora 37 run:
 ```sh
-sudo dnf install gcc-c++ meson mesa-libGL-devel \
+sudo dnf install gcc-c++ meson mesa-libGL-devel libepoxy-devel \
 libpng-devel libjpeg-turbo-devel giflib-devel libwebp-devel \
 libavif-devel libjxl-devel openexr-devel
 ```

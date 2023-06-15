@@ -15,7 +15,8 @@ sources = [
 
 
 dependencies = [
-  dependency('gl')
+  dependency('gl'),
+  dependency('epoxy')
 ]
 
 config = configuration_data()
