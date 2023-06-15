@@ -5,9 +5,11 @@
 #include "pixglot/output-format.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/pixel-storage.hpp"
+#include "pixglot/preference.hpp"
 #include "pixglot/square-isometry.hpp"
 
 #include <algorithm>
+#include <optional>
 
 using namespace pixglot;
 
@@ -148,24 +150,93 @@ bool output_format::preference_satisfied_by(const pixel_format& fmt) const {
 
 
 
+namespace pixglot::details {
+  void convert(gl_texture&, pixel_format, int, float, square_isometry);
+
+  std::endian convert(pixel_buffer&, std::endian, std::optional<std::endian>,
+                      pixel_format, int, float, square_isometry);
+}
+
+
+
+
 namespace {
-  [[nodiscard]] bool must_match_preference(preference_level level, bool enforce) {
-    return level == preference_level::require ||
-      (enforce && level == preference_level::prefer);
+  void apply_conversions(
+      frame&               f,
+      const output_format& fmt,
+      pixel_format         target_format,
+      int                  premultiply,
+      float                gamma,
+      square_isometry      transform
+  ) {
+    if (fmt.target.level() == preference_level::require) {
+      convert_storage(f.pixels, *fmt.target);
+    }
+
+    if (f.pixels.storage_type() == pixel_target::gl_texture) {
+      details::convert(f.pixels.texture(), target_format, premultiply, gamma, transform);
+    } else {
+      auto target_endian = fmt.endianess.level() == preference_level::require ?
+        std::optional{*fmt.endianess} : std::nullopt;
+
+      auto endian = details::convert(f.pixels.pixels(), f.endianess, target_endian,
+          target_format, premultiply, gamma, transform);
+
+      f.endianess = endian;
+    }
   }
 
 
 
-  template<typename T>
-  void make_compatible(
-      frame&               f,
-      const preference<T>& pref,
-      bool                 enforce,
-      void                 (task)(frame&, T)
-  ) {
-    if (must_match_preference(pref.level(), enforce)) {
-      task(f, pref.value());
+  void make_compatible(frame& f, const output_format& fmt) {
+    square_isometry transform{};
+    if (fmt.orientation.level() == preference_level::require) {
+      transform = inverse(*fmt.orientation) * f.orientation;
+      f.orientation = *fmt.orientation;
     }
+
+
+    int premultiply{};
+    if (fmt.alpha.level() == preference_level::require) {
+      if (f.alpha == alpha_mode::straight && *fmt.alpha == alpha_mode::premultiplied) {
+        premultiply = 1;
+        f.alpha = alpha_mode::premultiplied;
+      } else if (f.alpha == alpha_mode::premultiplied
+                 && *fmt.alpha == alpha_mode::straight) {
+        premultiply = -1;
+        f.alpha = alpha_mode::straight;
+      }
+    }
+
+
+    float gamma{1.f};
+    if (fmt.gamma.level() == preference_level::require) {
+      gamma = *fmt.gamma / f.gamma;
+      f.gamma = *fmt.gamma;
+    }
+
+
+    auto target_format = f.pixels.format();
+    if (fmt.add_alpha.level() == preference_level::require) {
+      target_format.channels = add_alpha(target_format.channels);
+
+      if (f.alpha == alpha_mode::none) {
+        if (fmt.alpha.has_preference()) {
+          f.alpha = *fmt.alpha;
+        } else {
+          f.alpha = alpha_mode::straight;
+        }
+      }
+    }
+    if (fmt.expand_gray_to_rgb.level() == preference_level::require) {
+      target_format.channels = add_color(target_format.channels);
+    }
+    if (fmt.component_type.level() == preference_level::require) {
+      target_format.format = *fmt.component_type;
+    }
+
+
+    apply_conversions(f, fmt, target_format, premultiply, gamma, transform);
   }
 }
 
@@ -178,13 +249,14 @@ void pixglot::make_format_compatible(
     const output_format& fmt,
     bool                 enforce
 ) {
-  make_compatible(f, fmt.target, enforce, convert_storage);
+  if (enforce) {
+    auto enforced = fmt;
+    enforced.enforce();
+    make_compatible(f, fmt);
+    return;
+  }
 
-  make_compatible(f, fmt.gamma,       enforce, convert_gamma);
-  make_compatible(f, fmt.orientation, enforce, convert_orientation);
-
-  // must be last since other conversions might convert to endian::native
-  make_compatible(f, fmt.endianess,   enforce, convert_endian);
+  make_compatible(f, fmt);
 }
 
 
@@ -194,7 +266,16 @@ void pixglot::make_format_compatible(
     const output_format& fmt,
     bool                 enforce
 ) {
+  if (enforce) {
+    auto enforced = fmt;
+    enforced.enforce();
+    for (auto& f: img. frames) {
+      make_compatible(f, fmt);
+    }
+    return;
+  }
+
   for (auto& f : img.frames) {
-    make_format_compatible(f, fmt, enforce);
+    make_compatible(f, fmt);
   }
 }
