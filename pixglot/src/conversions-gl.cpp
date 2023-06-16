@@ -1,10 +1,10 @@
+#include <epoxy/gl.h>
+#include <epoxy/gl_generated.h>
+
 #include "pixglot/exception.hpp"
 #include "pixglot/gl-texture.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
-
-#include <epoxy/gl.h>
-#include <epoxy/gl_generated.h>
 
 
 
@@ -120,8 +120,86 @@ namespace {
 
       ~program() { glDeleteProgram(program_); }
 
+
+
     private:
       GLuint program_{0};
+  };
+
+
+
+  class plane {
+    public:
+      static constexpr std::array<GLushort, 6> indices {
+        0, 1, 2,
+        1, 2, 3,
+      };
+
+      static constexpr std::array<GLfloat, 16> vertices {
+        -1.f,  1.f, 0.f, 1.f,
+         1.f,  1.f, 0.f, 1.f,
+        -1.f, -1.f, 0.f, 1.f,
+         1.f, -1.f, 0.f, 1.f,
+      };
+
+      [[nodiscard]] static GLuint generate_vertex_array() {
+        GLuint vao{0};
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        return vao;
+      }
+
+      [[nodiscard]] static GLuint generate_vertex_buffer() {
+        GLuint vbo{0};
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER,
+            std::span{vertices}.size_bytes(), vertices.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), nullptr);
+        glEnableVertexAttribArray(0);
+
+        return vbo;
+      }
+
+      [[nodiscard]] static GLuint generate_index_buffer() {
+        GLuint ibo{0};
+        glGenBuffers(1, &ibo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+            std::span{indices}.size_bytes(), indices.data(), GL_STATIC_DRAW);
+        return ibo;
+      }
+
+
+
+      plane(const plane&)            = delete;
+      plane(plane&&)                 = delete;
+      plane& operator=(const plane&) = delete;
+      plane& operator=(plane&&)      = delete;
+
+      plane() :
+        vao_{generate_vertex_array()},
+        vbo_{generate_vertex_buffer()},
+        ibo_{generate_index_buffer()}
+      {}
+
+      ~plane() {
+        glDeleteBuffers(1, &ibo_);
+        glDeleteBuffers(1, &vbo_);
+        glDeleteVertexArrays(1, &vao_);
+      }
+
+      void draw() const {
+        glBindVertexArray(vao_);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, nullptr);
+      }
+
+
+
+    private:
+      GLuint vao_{0};
+      GLuint vbo_{0};
+      GLuint ibo_{0};
   };
 }
 
@@ -137,7 +215,7 @@ layout (location=0) uniform mat4 transform;
 out vec2 uvCoord;
 
 void main() {
-  uvCoord = vec2(0.5, -0.5) * position.xy + vec2(0.5, 0.5);
+  uvCoord = vec2(0.5, 0.5) * position.xy + vec2(0.5, 0.5);
 
   gl_Position = transform * position;
 }
@@ -153,12 +231,11 @@ out vec4 fragColor;
 in vec2 uvCoord;
 uniform sampler2D textureSampler;
 
-layout (location=1) uniform float exponent;
+layout (location=1) uniform vec4 exponent;
 
 void main() {
   vec4 source_color = texture(textureSampler, uvCoord);
-
-  fragColor = pow(source_color, vec4(exponent, exponent, exponent, 1.f));
+  fragColor = pow(source_color, exponent);
 }
 )";
 }
@@ -187,11 +264,27 @@ namespace pixglot::details {
       std::swap(width, height);
     }
 
+
     gl_texture target{width, height, target_format};
 
-    if (false) {
+    {
       framebuffer buffer{target};
       program     program{vertex_shader, fragment_shader};
+      plane       quad;
+
+      glViewport(0, 0, width, height);
+      glClearColor(1.f, 0.f, 0.f, 1.f);
+      glClear(GL_COLOR_BUFFER_BIT);
+
+      program.use();
+
+      auto matrix = square_isometry_to_mat4x4({});
+      glUniformMatrix4fv(0, 1, GL_FALSE, matrix.data());
+
+      glUniform4f(1, gamma_diff, gamma_diff, gamma_diff, 1.f);
+
+      texture.bind();
+      quad.draw();
     }
 
     texture = std::move(target);
