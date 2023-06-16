@@ -211,7 +211,7 @@ namespace {
 
     float gamma{1.f};
     if (fmt.gamma.level() == preference_level::require) {
-      gamma = *fmt.gamma / f.gamma;
+      gamma = f.gamma / *fmt.gamma;
       f.gamma = *fmt.gamma;
     }
 
