@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 | webp      | libwebp    | Supports animation                                            |
 | avif      | libavif    | Supports animation                                            |
 | jxl       | libjxl     | Supports animation                                            |
-| exr       | openexr    | Only simple API (single frame, half fp) currently supported   |
+| exr       | openexr    |                                                               |
 
 
 
