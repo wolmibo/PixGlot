@@ -186,6 +186,10 @@ namespace {
 
 
       [[nodiscard]] pixel_format make_colorspace_compatible() {
+        if (format_out().gamma.has_preference()) {
+          cinfo_->output_gamma = *format_out().gamma;
+        }
+
         if (cinfo_->num_components != 1
             || format_out().expand_gray_to_rgb.prefers(true)) {
           cinfo_->out_color_space = JCS_RGB;
