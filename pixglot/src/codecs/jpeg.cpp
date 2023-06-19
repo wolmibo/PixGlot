@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <optional>
 #include <vector>
 
@@ -14,6 +15,10 @@
 
 
 namespace {
+  constexpr int JPEG_APP1 = JPEG_APP0 + 1;
+
+
+
 #if 0
   [[nodiscard]] constexpr optional<square_isometry> convert_orientation(uint32_t or) {
     using enum square_isometry;
@@ -61,15 +66,36 @@ namespace {
 
 
 
+      [[nodiscard]] static source_mgr& get(j_decompress_ptr cinfo) {
+        return *reinterpret_cast<source_mgr*>(cinfo->src); //NOLINT(*reinterpret-cast)
+      }
+
+
+
+      void fill(std::span<std::byte> buffer) {
+        size_t from_buffer = std::min(buffer.size(), pub.bytes_in_buffer);
+
+        std::ranges::copy(std::as_bytes(std::span{pub.next_input_byte, from_buffer}),
+            buffer.begin());
+        buffer = buffer.subspan(from_buffer);
+
+        pub.next_input_byte += from_buffer; //NOLINT(*pointer-arithmetic)
+        pub.bytes_in_buffer -= from_buffer;
+
+        if (buffer.empty()) {
+          return;
+        }
+
+        if (reader_->read(buffer) != buffer.size()) {
+          throw decode_error{codec::jpeg, "uexpected eof"};
+        }
+      }
+
+
+
     private:
       reader*                reader_;
       std::vector<std::byte> buffer_;
-
-
-
-      [[nodiscard]] static source_mgr& myself(j_decompress_ptr cinfo) {
-        return *reinterpret_cast<source_mgr*>(cinfo->src); //NOLINT(*reinterpret-cast)
-      }
 
 
 
@@ -78,7 +104,7 @@ namespace {
 
 
       [[nodiscard]] static boolean fill_input_buffer(j_decompress_ptr cinfo) {
-        auto& self = myself(cinfo);
+        auto& self = get(cinfo);
 
         self.pub.bytes_in_buffer = self.reader_->read(self.buffer_);
         self.pub.next_input_byte = utils::byte_pointer_cast<JOCTET>(self.buffer_.data());
@@ -98,7 +124,7 @@ namespace {
         }
         size_t nb = num_bytes;
 
-        auto& self = myself(cinfo);
+        auto& self = get(cinfo);
 
         if (nb >= self.pub.bytes_in_buffer) {
           self.reader_->skip(nb - self.pub.bytes_in_buffer);
@@ -160,6 +186,8 @@ namespace {
       void decode() {
         //NOLINTNEXTLINE(*reinterpret-cast)
         cinfo_->src = reinterpret_cast<jpeg_source_mgr*>(&src_mgr_);
+
+        jpeg_set_marker_processor(cinfo_.get(), JPEG_APP1, process_marker);
 
         jpeg_read_header(cinfo_.get(), TRUE);
 
@@ -261,6 +289,22 @@ namespace {
 
       static void output_message(j_common_ptr cinfo) {
         static_cast<jpeg_decoder*>(cinfo->client_data)->warn(message(cinfo));
+      }
+
+
+
+      static boolean process_marker(j_decompress_ptr cinfo) {
+        uint16_t length_be{0};
+        source_mgr::get(cinfo).fill(std::as_writable_bytes(std::span{&length_be, 1}));
+
+        std::vector<std::byte> buffer(std::byteswap(length_be) - 2);
+        source_mgr::get(cinfo).fill(buffer);
+
+        if (cinfo->unread_marker == JPEG_APP1) {
+
+        }
+
+        return TRUE;
       }
   };
 }
