@@ -1,5 +1,6 @@
 #include "../decoder.hpp"
 #include "pixglot/codecs.hpp"
+#include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -34,16 +35,22 @@ namespace {
         if (!is_exif(buffer_)) {
           throw decode_error{codec::jpeg, "exif: invalid file format"};
         }
-        buffer_ = buffer.subspan(0, magic.size());
+        buffer_ = buffer.subspan(magic.size());
 
         read_tiff();
       }
 
 
 
+      [[nodiscard]] square_isometry orientation() const {
+        return orientation_;
+      }
+
+
+
     private:
       static constexpr std::array<std::byte, 6> magic {
-        std::byte{'E'}, std::byte{'X'}, std::byte{'I'}, std::byte{'F'},
+        std::byte{'E'}, std::byte{'x'}, std::byte{'i'}, std::byte{'f'},
         std::byte{0}, std::byte{0}
       };
 
@@ -54,6 +61,8 @@ namespace {
 
       std::span<const std::byte> buffer_;
       std::endian                byte_order_{std::endian::native};
+
+      square_isometry            orientation_{};
 
 
 
@@ -145,6 +154,10 @@ namespace {
           auto count = int_at<uint16_t>(offset);
           offset += 2;
           for (uint16_t i = 0; i < count; ++i) {
+            if (static_cast<attribute>(int_at<uint16_t>(offset)) ==
+                attribute::orientation) {
+              orientation_ = convert_orientation(int_at<uint16_t>(offset + 8));
+            }
             offset += 12;
           }
           offset = int_at<uint32_t>(offset);
@@ -194,29 +207,28 @@ namespace {
           return static_cast<T>(buffer_[offset]);
         }
       }
+
+
+
+      [[nodiscard]] static square_isometry convert_orientation(uint16_t orientation) {
+        using enum square_isometry;
+
+        switch (orientation) {
+          case 1: return identity;
+          case 2: return flip_x;
+          case 3: return rotate_half;
+          case 4: return flip_y;
+          case 5: return transpose;
+          case 6: return rotate_ccw;
+          case 7: return anti_transpose;
+          case 8: return rotate_cw;
+
+          default:
+            return identity;
+        }
+      }
   };
 
-
-
-#if 0
-  [[nodiscard]] constexpr optional<square_isometry> convert_orientation(uint32_t or) {
-    using enum square_isometry;
-
-    switch (or) {
-      case 1: return identity;
-      case 2: return flip_x;
-      case 3: return rotate_half;
-      case 4: return flip_y;
-      case 5: return transpose;
-      case 6: return rotate_ccw;
-      case 7: return anti_transpose;
-      case 8: return rotate_cw;
-
-      default:
-        return {};
-    }
-  }
-#endif
 
 
 
@@ -359,6 +371,7 @@ namespace {
       std::unique_ptr<jpeg_decompress_struct, jds_destroyer> cinfo_;
       jpeg_error_mgr                                         err_mgr_{};
       source_mgr                                             src_mgr_;
+      square_isometry                                        orientation_{};
 
 
 
@@ -378,7 +391,7 @@ namespace {
 
           append_frame(frame {
             .pixels      = std::move(pixels),
-            .orientation = square_isometry::identity,
+            .orientation = orientation_,
 
             .alpha       = alpha_mode::none,
             .gamma       = gamma_s_rgb,
@@ -479,8 +492,17 @@ namespace {
         std::vector<std::byte> buffer(std::byteswap(length_be) - 2);
         source_mgr::get(cinfo).fill(buffer);
 
+        auto* self = static_cast<jpeg_decoder*>(cinfo->client_data);
+
         if (cinfo->unread_marker == JPEG_APP1 && exif_decoder::is_exif(buffer)) {
-          exif_decoder exif{buffer};
+          try {
+            exif_decoder exif{buffer};
+            self->orientation_ = exif.orientation();
+          } catch (base_exception& ex) {
+            self->warn(std::string{ex.message()});
+          } catch (std::exception& ex) {
+            self->warn(ex.what());
+          }
         }
 
         return TRUE;
