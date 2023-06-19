@@ -65,7 +65,7 @@ namespace {
       square_isometry            orientation_{};
 
 
-
+#if 0
       enum class value_type : uint16_t {
         byte      = 1,
         ascii     = 2,
@@ -76,6 +76,8 @@ namespace {
         slong     = 8,
         srational = 10,
       };
+#endif
+
 
       enum class attribute : uint16_t {
         orientation = 0x112,
@@ -83,7 +85,7 @@ namespace {
 
 
 
-
+#if 0
       using ifd_value = std::variant<
         std::array<uint8_t, 4>,
         std::array<uint16_t, 2>,
@@ -146,7 +148,7 @@ namespace {
           }
         }
       }
-
+#endif
 
 
       void load_entries(size_t offset) {
