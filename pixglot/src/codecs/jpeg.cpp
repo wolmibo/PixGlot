@@ -68,6 +68,13 @@ namespace {
         srational = 10,
       };
 
+      enum class attribute : uint16_t {
+        orientation = 0x112,
+      };
+
+
+
+
       using ifd_value = std::variant<
         std::array<uint8_t, 4>,
         std::array<uint16_t, 2>,
@@ -77,7 +84,7 @@ namespace {
       >;
 
       struct ifd_entry {
-        uint16_t  tag;
+        attribute tag;
         uint32_t  count;
         ifd_value value;
       };
@@ -88,7 +95,7 @@ namespace {
 
       [[nodiscard]] ifd_entry read_ifd_entry(size_t offset) {
         return ifd_entry{
-          .tag   = int_at<uint16_t>(offset),
+          .tag   = static_cast<attribute>(int_at<uint16_t>(offset)),
           .count = int_at<uint32_t>(offset + 4),
           .value = read_ifd_value(offset + 8, int_at<uint16_t>(offset + 2)),
         };
