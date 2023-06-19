@@ -39,7 +39,7 @@ namespace {
   // Derived from the implementation of jpeg_stdio_src in libjpeg-turbo
   class source_mgr {
     public:
-      jpeg_source_mgr pub; //NOLINT
+      jpeg_source_mgr pub; //NOLINT(*non-private-member-*)
 
       ~source_mgr() = default;
       source_mgr(const source_mgr&) = delete;
