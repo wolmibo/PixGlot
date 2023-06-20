@@ -17,6 +17,23 @@ using namespace pixglot;
 
 
 
+output_format output_format::standard() {
+  return output_format {
+    .target = pixel_target::pixel_buffer,
+    .expand_gray_to_rgb = true,
+    .add_alpha          = true,
+    .component_type     = data_format::u8,
+    .alpha              = alpha_mode::straight,
+    .gamma              = gamma_s_rgb,
+    .endianess          = std::endian::native,
+    .orientation        = square_isometry{}
+  };
+}
+
+
+
+
+
 void output_format::enforce() {
   target.enforce();
   expand_gray_to_rgb.enforce();

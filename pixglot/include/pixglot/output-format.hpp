@@ -40,6 +40,10 @@ struct output_format {
   [[nodiscard]] bool preference_satisfied_by(const image&)        const;
 
   void enforce();
+
+
+
+  [[nodiscard]] static output_format standard();
 };
 
 
