@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
 | Format    | Library    | Notes                                                         |
 |-----------|------------|---------------------------------------------------------------|
-| ppm       | *built-in* | Supports Pf, PF and 16bit (big endian) for P2, P3, P5, and P6 |
+| ppm       | *built-in* | Supports Pf, PF; 16bit (big endian) for P2, P3, P5, and P6    |
 | png       | libpng     |                                                               |
 | jpeg      | libjpeg    |                                                               |
 | gif       | giflib     | Supports animation                                            |
