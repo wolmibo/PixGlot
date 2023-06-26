@@ -124,12 +124,12 @@ namespace {
 
   [[nodiscard]] constexpr dispose convert_disposal(int disp) {
     switch (disp) {
+      default:
       case DISPOSE_DO_NOT:
         return dispose::leave_in_place;
       case DISPOSE_PREVIOUS:
         return dispose::previous;
       case DISPOSE_BACKGROUND:
-      default:
         return dispose::background;
     }
   }
