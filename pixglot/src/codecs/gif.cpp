@@ -226,15 +226,16 @@ namespace {
         std::ranges::transform(std::span{cmap.Colors, color_count},
             valid_colors_.begin(), convert_gif_color);
 
-        if (alpha_index && *alpha_index < valid_colors_.size()) {
-          valid_colors_[*alpha_index] = neutral_color();
-        }
 
 
 
-        if (!alpha_index && background_index >= 0
+        if (background_index >= 0
             && static_cast<size_t>(background_index) < valid_colors_.size()) {
           background_ = valid_colors_[background_index];
+        }
+
+        if (alpha_index && *alpha_index < valid_colors_.size()) {
+          valid_colors_[*alpha_index] = neutral_color();
         }
       }
 
@@ -295,45 +296,6 @@ namespace {
 
 
   void transfer_pixels_over_background(
-      pixel_buffer&      target,
-      const SavedImage&  img,
-      const gif_palette& palette
-  ) {
-    gif_rect rect{img.ImageDesc};
-    auto source = std::span{img.RasterBits, rect.width * rect.height};
-
-    for (size_t y = 0; y < rect.y; ++y) {
-      std::ranges::fill(target.row<rgba<u8>>(y), palette.background());
-    }
-
-
-
-    for (size_t y = rect.y; y < rect.y + rect.height; ++y) {
-      auto row = target.row<rgba<u8>>(y);
-      auto src = source.subspan((y - rect.y) * rect.width, rect.width);
-
-
-
-      auto it = std::fill_n(row.begin(), rect.x, palette.background());
-
-      it = std::transform(src.begin(), src.end(), it,
-          [palette](u8 in){ return palette.resolve_color(in); });
-
-      std::fill(it, row.end(), palette.background());
-    }
-
-
-
-    for (size_t y = rect.y + rect.height; y < target.height(); ++y) {
-      std::ranges::fill(target.row<rgba<u8>>(y), palette.background());
-    }
-  }
-
-
-
-
-
-  void transfer_pixels_over_buffer(
       pixel_buffer&       target,
       const SavedImage&   img,
       const gif_palette&  palette,
@@ -407,7 +369,7 @@ namespace {
       size_t   width;
       size_t   height;
 
-      std::optional<pixel_buffer> old_pixels;
+      std::optional<pixel_buffer> background;
 
 
 
@@ -417,21 +379,29 @@ namespace {
         gif_meta meta{img};
         gif_palette palette{current_color_map(img), meta.alpha(), gif->SBackGroundColor};
 
-        pixel_buffer buffer{width, height, rgba<u8>::format()};
-        if (old_pixels) {
-          transfer_pixels_over_buffer(buffer, img, palette, *old_pixels);
-        } else {
-          transfer_pixels_over_background(buffer, img, palette);
+        if (!background) {
+          background.emplace(width, height, rgba<u8>::format());
+          for (size_t y = 0; y < background->height(); ++y) {
+            std::ranges::fill(background->row<rgba<u8>>(y), palette.background());
+          }
         }
 
+        pixel_buffer buffer{width, height, rgba<u8>::format()};
+
+        transfer_pixels_over_background(buffer, img, palette, *background);
+
         switch (meta.dispose_mode()) {
-          case dispose::background:
-            old_pixels = {};
-            break;
+          case dispose::background: {
+            gif_rect rect{img.ImageDesc};
+            for (size_t y = 0; y < rect.y + rect.height; ++y) {
+              auto row = background->row<rgba<u8>>(y).subspan(rect.x, rect.width);
+              std::ranges::fill(row, palette.background());
+            }
+          } break;
           case dispose::previous:
             break;
           case dispose::leave_in_place:
-            old_pixels = buffer;
+            background = buffer;
             break;
         }
 
