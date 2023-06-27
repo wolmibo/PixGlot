@@ -18,10 +18,10 @@ void decode_png(details::decoder&);
 #ifdef PIXGLOT_WITH_AVIF
 void decode_avif(details::decoder&);
 #endif
-/*#ifdef PIXGLOT_WITH_EXR
-[[nodiscard]] image decode_exr(decoder&&);
+#ifdef PIXGLOT_WITH_EXR
+void decode_exr(details::decoder&);
 #endif
-#ifdef PIXGLOT_WITH_PPM
+/*#ifdef PIXGLOT_WITH_PPM
 [[nodiscard]] image decode_ppm(decoder&&);
 #endif
 #ifdef PIXGLOT_WITH_WEBP
@@ -55,10 +55,10 @@ image pixglot::decode(
 #ifdef PIXGLOT_WITH_AVIF
       case codec::avif: decode_avif(dec); break;
 #endif
-/*#ifdef PIXGLOT_WITH_EXR
-      case codec::exr:  return decode_exr(std::move(dec));
+#ifdef PIXGLOT_WITH_EXR
+      case codec::exr:  decode_exr(dec);  break;
 #endif
-#ifdef PIXGLOT_WITH_PPM
+/*#ifdef PIXGLOT_WITH_PPM
       case codec::ppm:  return decode_ppm(std::move(dec));
 #endif
 #ifdef PIXGLOT_WITH_WEBP

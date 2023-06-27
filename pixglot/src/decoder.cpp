@@ -29,7 +29,15 @@ void decoder::frame_total(size_t count) {
 
 
 void decoder::frame_mark_ready_until_line(size_t y) {
-  progress(y, current_frame_.value().pixels.height(), frame_index_, frame_total_);
+  progress(y, target().height(), frame_index_, frame_total_);
+}
+
+
+
+void decoder::frame_mark_ready_from_line(size_t y) {
+  auto height = target().height();
+
+  progress(height - y, height, frame_index_, frame_total_);
 }
 
 

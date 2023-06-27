@@ -39,6 +39,7 @@ class decoder {
 
     void frame_total(size_t);
     void frame_mark_ready_until_line(size_t);
+    void frame_mark_ready_from_line (size_t);
 
 
     void progress(float);

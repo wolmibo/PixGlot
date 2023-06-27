@@ -1,4 +1,4 @@
-#include "../decoder.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -256,11 +256,11 @@ namespace {
 
 
 
-  class exr_decoder : public decoder {
+  class exr_decoder {
     public:
-      explicit exr_decoder(decoder&& parent) :
-        decoder     {std::move(parent)},
-        reader_     {input()},
+      explicit exr_decoder(details::decoder& decoder) :
+        decoder_    {&decoder},
+        reader_     {decoder_->input()},
         input_      {reader_},
         data_window_{input_.header().dataWindow()},
         width_      {static_cast<size_t>(data_window_.max.x - data_window_.min.x + 1)},
@@ -271,63 +271,33 @@ namespace {
 
       void decode() {
         auto frame_sources = exr_determine_frames(input_);
-        frame_count_ = frame_sources.size();
-        frame_index_ = 0;
+        decoder_->frame_total(frame_sources.size());
+
         for (const auto& frame_source: frame_sources) {
           decode_frame(frame_source);
-          frame_index_++;
         }
       }
 
 
 
     private:
-      exr_reader reader_;
-      InputFile  input_;
+      details::decoder* decoder_;
+      exr_reader        reader_;
+      InputFile         input_;
 
-      Box2i      data_window_;
-      size_t     width_;
-      size_t     height_;
-
-      size_t     frame_index_{0};
-      size_t     frame_count_{1};
+      Box2i             data_window_;
+      size_t            width_;
+      size_t            height_;
 
 
 
       void decode_frame(const exr_frame& frame_source) {
         pixel_buffer buffer{width_, height_, determine_pixel_format(frame_source)};
 
-        FrameBuffer frame_buffer;
-
-        if (std::holds_alternative<const Channel*>(frame_source.second)) {
-          frame_buffer.insert(frame_source.first.c_str(), create_slice(buffer, 0, 0.f));
-
-        } else {
-          if (!has_color(buffer.format().channels)) {
-            throw decode_error{codec::exr, "cannot load image without rgb channels"};
-          }
-
-          std::string cname = frame_source.first;
-          cname.pop_back();
-
-          frame_buffer.insert((cname + 'R').c_str(), create_slice(buffer, 0, 0.f));
-          frame_buffer.insert((cname + 'G').c_str(), create_slice(buffer, 1, 0.f));
-          frame_buffer.insert((cname + 'B').c_str(), create_slice(buffer, 2, 0.f));
-
-          if (has_alpha(buffer.format().channels)) {
-            frame_buffer.insert((cname + 'A').c_str(), create_slice(buffer, 3, 1.f));
-          }
-        }
-
-        input_.setFrameBuffer(frame_buffer);
-
-
-        transfer_pixels();
-
         auto alpha = has_alpha(buffer.format().channels) ?
           alpha_mode::premultiplied : alpha_mode::none;
 
-        append_frame(frame {
+        decoder_->begin_frame(frame {
           .pixels      = std::move(buffer),
           .orientation = square_isometry::identity,
           .alpha       = alpha,
@@ -335,6 +305,40 @@ namespace {
           .endianess   = std::endian::native,
           .duration    = std::chrono::microseconds{0}
         });
+
+
+
+        FrameBuffer frame_buffer;
+
+        auto& target = decoder_->target();
+
+        if (std::holds_alternative<const Channel*>(frame_source.second)) {
+          frame_buffer.insert(frame_source.first.c_str(), create_slice(target, 0, 0.f));
+
+        } else {
+          if (!has_color(target.format().channels)) {
+            throw decode_error{codec::exr, "cannot load image without rgb channels"};
+          }
+
+          std::string cname = frame_source.first;
+          cname.pop_back();
+
+          frame_buffer.insert((cname + 'R').c_str(), create_slice(target, 0, 0.f));
+          frame_buffer.insert((cname + 'G').c_str(), create_slice(target, 1, 0.f));
+          frame_buffer.insert((cname + 'B').c_str(), create_slice(target, 2, 0.f));
+
+          if (has_alpha(target.format().channels)) {
+            frame_buffer.insert((cname + 'A').c_str(), create_slice(target, 3, 1.f));
+          }
+        }
+
+        input_.setFrameBuffer(frame_buffer);
+
+
+
+        transfer_pixels();
+
+        decoder_->finish_frame();
       }
 
 
@@ -343,12 +347,12 @@ namespace {
         if (input_.header().lineOrder() == LineOrder::INCREASING_Y) {
           for (auto y = data_window_.min.y; y <= data_window_.max.y; ++y) {
             input_.readPixels(y, y);
-            progress(y - data_window_.min.y + 1, height_, frame_index_, frame_count_);
+            decoder_->frame_mark_ready_until_line(y - data_window_.min.y + 1);
           }
         } else {
-          for (auto y = data_window_.max.y; y >= data_window_.min.y; ++y) {
+          for (auto y = data_window_.max.y; y >= data_window_.min.y; --y) {
             input_.readPixels(y, y);
-            progress(data_window_.max.y - y + 1, height_, frame_index_, frame_count_);
+            decoder_->frame_mark_ready_from_line(y - data_window_.min.y);
           }
         }
       }
@@ -357,13 +361,10 @@ namespace {
 
 
 
-image decode_exr(decoder&& dec) {
+void decode_exr(details::decoder& dec) {
   try {
-    exr_decoder edec{std::move(dec)};
-
+    exr_decoder edec{dec};
     edec.decode();
-
-    return edec.finalize_image();
 
   } catch (const base_exception&) {
     throw;
