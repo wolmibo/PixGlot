@@ -5,6 +5,21 @@ using namespace pixglot::details;
 
 
 
+
+decoder::decoder(
+    reader&                read,
+    progress_access_token  token,
+    pixglot::output_format format
+) :
+  reader_{&read},
+  token_ {std::move(token)},
+  format_{format}
+{}
+
+
+
+
+
 void decoder::progress(float f) {
   if (!token_.progress(f)) {
     throw abort{};
