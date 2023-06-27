@@ -12,7 +12,7 @@ using namespace pixglot;
 #ifdef PIXGLOT_WITH_JPEG
 [[nodiscard]] image decode_jpeg(decoder&&);
 #endif
-#ifdef PIXGLOT_WITH_JPEG
+#ifdef PIXGLOT_WITH_PNG
 [[nodiscard]] image decode_png(decoder&&);
 #endif
 #ifdef PIXGLOT_WITH_AVIF
