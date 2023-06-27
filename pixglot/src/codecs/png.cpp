@@ -1,10 +1,12 @@
-#include "../decoder.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <utility>
 
 #include <png.h>
+
+using namespace pixglot;
 
 
 
@@ -91,10 +93,10 @@ namespace {
 
 
 
-  class png_decoder : public decoder {
+  class png_decoder {
     public:
-      explicit png_decoder(decoder&& parent) :
-        decoder(std::move(parent))
+      explicit png_decoder(details::decoder& decoder) :
+        decoder_{&decoder}
       {
         png_set_error_fn(png.ptr, this, &error_function, &warn_function);
         png_set_read_fn (png.ptr, this, &read);
@@ -124,9 +126,7 @@ namespace {
 
         png_read_update_info(png.ptr, png.info);
 
-        transfer_data(buffer);
-
-        append_frame(frame{
+        decoder_->begin_frame(frame{
           .pixels      = std::move(buffer),
           .orientation = square_isometry::identity,
 
@@ -136,12 +136,17 @@ namespace {
 
           .duration    = std::chrono::microseconds{0}
         });
+
+        transfer_data(decoder_->target());
+
+        decoder_->finish_frame();
       }
 
 
 
     private:
-      png_guard png;
+      details::decoder* decoder_;
+      png_guard         png;
 
 
 
@@ -161,7 +166,11 @@ namespace {
                 nullptr
             );
 
-            progress(y, height, p, passes);
+            if (passes == 1) {
+              decoder_->frame_mark_ready_until_line(y);
+            } else {
+              decoder_->progress(y, height, p, passes);
+            }
           }
         }
       }
@@ -178,7 +187,7 @@ namespace {
         }
 
         if ((color_type & PNG_COLOR_MASK_COLOR) == 0 &&
-          format_out().expand_gray_to_rgb.prefers(true)) {
+          decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
           png_set_gray_to_rgb(png.ptr);
 
           png_color_type_add_color(color_type);
@@ -205,7 +214,7 @@ namespace {
 
       [[nodiscard]] alpha_mode make_alpha_mode_compatible(color_channels cc) {
         if (has_alpha(cc)) {
-          if (format_out().alpha.prefers(alpha_mode::premultiplied)) {
+          if (decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)) {
             png_set_alpha_mode(png.ptr, PNG_ALPHA_PREMULTIPLIED, PNG_GAMMA_LINEAR);
 
             return alpha_mode::premultiplied;
@@ -218,7 +227,8 @@ namespace {
 
 
       [[nodiscard]] std::endian make_endian_compatible(data_format df) {
-        if (byte_size(df) > 1 && format_out().endianess.prefers(std::endian::little)) {
+        if (byte_size(df) > 1 &&
+            decoder_->output_format().endianess.prefers(std::endian::little)) {
           png_set_swap(png.ptr);
           return std::endian::little;
         }
@@ -239,14 +249,14 @@ namespace {
         }
 
         if (bit_depth == 8) {
-          if (format_out().component_type.prefers(data_format::u16)) {
+          if (decoder_->output_format().component_type.prefers(data_format::u16)) {
             png_set_expand_16(png.ptr);
             return data_format::u16;
           }
           return data_format::u8;
         }
         if (bit_depth == 16) {
-          if (format_out().component_type.prefers(data_format::u8)) {
+          if (decoder_->output_format().component_type.prefers(data_format::u8)) {
             png_set_strip_16(png.ptr);
             return data_format::u8;
           }
@@ -264,7 +274,7 @@ namespace {
       static void read(png_structp png_ptr, png_bytep data, size_t length) {
         auto* pdec = static_cast<png_decoder*>(png_get_io_ptr(png_ptr));
 
-        if (pdec->input().read(
+        if (pdec->decoder_->input().read(
               std::as_writable_bytes(std::span{data, length})) != length) {
           throw decode_error{codec::png, "failed to read: unexpected eof"};
         }
@@ -281,7 +291,7 @@ namespace {
       static void warn_function(png_structp png_ptr, png_const_charp msg) {
         auto* pdec = static_cast<png_decoder*>(png_get_error_ptr(png_ptr));
 
-        pdec->warn(msg);
+        pdec->decoder_->warn(msg);
       }
   };
 }
@@ -290,8 +300,7 @@ namespace {
 
 
 
-image decode_png(decoder&& dec) {
-  png_decoder pdec{std::move(dec)};
+void decode_png(details::decoder& dec) {
+  png_decoder pdec{dec};
   pdec.decode();
-  return pdec.finalize_image();
 }

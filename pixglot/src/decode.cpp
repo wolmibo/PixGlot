@@ -12,10 +12,10 @@ using namespace pixglot;
 #ifdef PIXGLOT_WITH_JPEG
 void decode_jpeg(details::decoder&);
 #endif
-/*#ifdef PIXGLOT_WITH_PNG
-[[nodiscard]] image decode_png(decoder&&);
+#ifdef PIXGLOT_WITH_PNG
+void decode_png(details::decoder&);
 #endif
-#ifdef PIXGLOT_WITH_AVIF
+/*#ifdef PIXGLOT_WITH_AVIF
 [[nodiscard]] image decode_avif(decoder&&);
 #endif
 #ifdef PIXGLOT_WITH_EXR
@@ -49,10 +49,10 @@ image pixglot::decode(
 #ifdef PIXGLOT_WITH_JPEG
       case codec::jpeg: decode_jpeg(dec); break;
 #endif
-/*#ifdef PIXGLOT_WITH_PNG
-      case codec::png:  return decode_png(std::move(dec));
+#ifdef PIXGLOT_WITH_PNG
+      case codec::png:  decode_png(dec);  break;
 #endif
-#ifdef PIXGLOT_WITH_AVIF
+/*#ifdef PIXGLOT_WITH_AVIF
       case codec::avif: return decode_avif(std::move(dec));
 #endif
 #ifdef PIXGLOT_WITH_EXR
