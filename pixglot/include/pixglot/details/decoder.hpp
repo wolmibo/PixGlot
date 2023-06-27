@@ -23,12 +23,16 @@ class decoder {
 
 
 
-    void   begin_frame(frame);
-    frame& current_frame() { return current_frame_.value(); }
-    void   finish_frame();
+    void begin_frame(frame);
+    void finish_frame();
 
-    void   finish_frame(frame);
+    void finish_frame(frame);
 
+    pixel_buffer& target() { return current_frame_.value().pixels.pixels(); }
+
+
+    void frame_total(size_t);
+    void frame_mark_ready_until_line(size_t);
 
 
     void progress(float);
@@ -48,6 +52,9 @@ class decoder {
     progress_access_token  token_;
     image                  image_;
     pixglot::output_format format_;
+
+    size_t                 frame_total_{1};
+    size_t                 frame_index_{0};
 
     std::optional<frame>   current_frame_;
 };

@@ -20,6 +20,22 @@ decoder::decoder(
 
 
 
+void decoder::frame_total(size_t count) {
+  frame_total_ = count;
+}
+
+
+
+
+
+void decoder::frame_mark_ready_until_line(size_t y) {
+  progress(y, current_frame_.value().pixels.height(), frame_index_, frame_total_);
+}
+
+
+
+
+
 void decoder::progress(float f) {
   if (!token_.progress(f)) {
     throw abort{};
@@ -54,12 +70,8 @@ void decoder::warn(std::string_view msg) {
 
 
 void decoder::finish_frame(frame f) {
-  make_format_compatible(f, format_);
-
-  image_.frames.emplace_back(std::move(f));
-  if (!token_.append_frame(image_.frames.back())) {
-    throw abort{};
-  }
+  begin_frame(std::move(f));
+  finish_frame();
 }
 
 
@@ -71,8 +83,15 @@ void decoder::finish_frame() {
     throw std::runtime_error{"finish_frame called without previous begin_frame"};
   }
 
-  finish_frame(std::move(*current_frame_));
+  make_format_compatible(*current_frame_, format_);
+
+  image_.frames.emplace_back(std::move(*current_frame_));
+  if (!token_.append_frame(image_.frames.back())) {
+    throw abort{};
+  }
+
   current_frame_.reset();
+  frame_index_++;
 }
 
 
