@@ -6,6 +6,7 @@ sources = [
   'src/conversions-cpu-orientation.cpp',
   'src/conversions-gl.cpp',
   'src/decode.cpp',
+  'src/decoder.cpp',
   'src/gl-texture.cpp',
   'src/output-format.cpp',
   'src/pixel-format.cpp',
