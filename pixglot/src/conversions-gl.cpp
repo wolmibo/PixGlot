@@ -278,7 +278,7 @@ namespace pixglot::details {
 
       program.use();
 
-      auto matrix = square_isometry_to_mat4x4({});
+      auto matrix = square_isometry_to_mat4x4(transform);
       glUniformMatrix4fv(0, 1, GL_FALSE, matrix.data());
 
       glUniform4f(1, gamma_diff, gamma_diff, gamma_diff, 1.f);
