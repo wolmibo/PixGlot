@@ -1,4 +1,4 @@
-#include "../decoder.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -20,13 +20,15 @@ namespace {
       avif_reader& operator=(avif_reader&&)      = delete;
 
       explicit avif_reader(reader& input) :
-        input_{&input},
-        avif_io_{.destroy    = nullptr,
-                 .read       = read,
-                 .write      = nullptr,
-                 .sizeHint   = input_->size(),
-                 .persistent = AVIF_FALSE,
-                 .data       = this} {}
+        input_  {&input},
+        avif_io_{
+          .destroy    = nullptr,
+          .read       = read,
+          .write      = nullptr,
+          .sizeHint   = input_->size(),
+          .persistent = AVIF_FALSE,
+          .data       = this}
+      {}
 
 
 
@@ -231,12 +233,12 @@ namespace {
 
 
 
-  class avif_decoder : public decoder {
+  class avif_decoder {
     public:
-      explicit avif_decoder(decoder&& parent) :
-        decoder(std::move(parent)),
-        reader_(decoder::input()),
-        dec_{avifDecoderCreate(), avifDecoderDestroy}
+      explicit avif_decoder(details::decoder& decoder) :
+        decoder_{&decoder},
+        reader_ {decoder_->input()},
+        dec_    {avifDecoderCreate(), avifDecoderDestroy}
       {
         avifDecoderSetIO(dec_.get(), reader_.avif_io());
       }
@@ -248,7 +250,7 @@ namespace {
 
 
 
-        output_image().animated = dec_->imageCount > 1 &&
+        decoder_->image().animated = dec_->imageCount > 1 &&
           dec_->progressiveState == AVIF_PROGRESSIVE_STATE_UNAVAILABLE;
 
 
@@ -257,13 +259,13 @@ namespace {
         uint32_t prog      {0};
 
         while (avifDecoderNextImage(dec_.get()) == AVIF_RESULT_OK) {
-          progress(++prog, task_count);
+          decoder_->progress(++prog, task_count);
 
-          avif_rgb_image rgb{dec_->image, format_out()};
+          avif_rgb_image rgb{dec_->image, decoder_->output_format()};
           assert_avif(avifImageYUVToRGB(dec_->image, rgb.get()),
             "avifImageYUVToRGB");
 
-          append_frame(frame {
+          decoder_->finish_frame(frame {
             .pixels      = rgb.take_pixels(),
             .orientation = isometry_from(dec_->image),
             .alpha       = rgb.to_alpha_mode(),
@@ -274,13 +276,14 @@ namespace {
                            }
           });
 
-          progress(++prog, task_count);
+          decoder_->progress(++prog, task_count);
         }
       }
 
 
 
     private:
+      details::decoder*                                           decoder_;
       avif_reader                                                 reader_;
       std::unique_ptr<avifDecoder, decltype(&avifDecoderDestroy)> dec_;
 
@@ -299,10 +302,7 @@ namespace {
 
 
 
-image decode_avif(decoder&& dec) {
-  avif_decoder adec{std::move(dec)};
-
+void decode_avif(details::decoder& dec) {
+  avif_decoder adec{dec};
   adec.decode();
-
-  return adec.finalize_image();
 }

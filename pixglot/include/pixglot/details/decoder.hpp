@@ -19,7 +19,7 @@ class decoder {
 
     decoder(reader&, progress_access_token, output_format);
 
-    [[nodiscard]] image finish();
+    [[nodiscard]] pixglot::image finish();
 
 
 
@@ -28,7 +28,13 @@ class decoder {
 
     void finish_frame(frame);
 
-    pixel_buffer& target() { return current_frame_.value().pixels.pixels(); }
+    [[nodiscard]] pixel_buffer& target() {
+      return current_frame_.value().pixels.pixels();
+    }
+
+    [[nodiscard]] pixglot::image& image() {
+      return image_;
+    }
 
 
     void frame_total(size_t);
@@ -50,7 +56,7 @@ class decoder {
   private:
     reader*                reader_;
     progress_access_token  token_;
-    image                  image_;
+    pixglot::image         image_;
     pixglot::output_format format_;
 
     size_t                 frame_total_{1};
