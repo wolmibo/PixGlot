@@ -1,5 +1,5 @@
-#include "../decoder.hpp"
 #include "pixglot/codecs.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/square-isometry.hpp"
@@ -12,6 +12,8 @@
 #include <vector>
 
 #include <jpeglib.h>
+
+using namespace pixglot;
 
 
 
@@ -350,12 +352,12 @@ namespace {
 
 
 
-  class jpeg_decoder : public decoder {
+  class jpeg_decoder {
     public:
-      explicit jpeg_decoder(decoder&& parent) :
-        decoder(std::move(parent)),
-        cinfo_{new jpeg_decompress_struct()},
-        src_mgr_{input()}
+      explicit jpeg_decoder(details::decoder& decoder) :
+        decoder_{&decoder},
+        cinfo_  {new jpeg_decompress_struct()},
+        src_mgr_{decoder_->input()}
       {
         cinfo_->client_data = this;
 
@@ -370,6 +372,7 @@ namespace {
 
 
     private:
+      details::decoder*                                      decoder_;
       std::unique_ptr<jpeg_decompress_struct, jds_destroyer> cinfo_;
       jpeg_error_mgr                                         err_mgr_{};
       source_mgr                                             src_mgr_;
@@ -389,9 +392,8 @@ namespace {
 
         jpeg_start_decompress(cinfo_.get()); {
           pixel_buffer pixels{cinfo_->image_width, cinfo_->image_height, pf};
-          transfer_data(pixels);
 
-          append_frame(frame {
+          decoder_->begin_frame(frame {
             .pixels      = std::move(pixels),
             .orientation = orientation_,
 
@@ -402,18 +404,22 @@ namespace {
             .duration    = std::chrono::microseconds{0}
           });
 
+          transfer_data(decoder_->target());
+
+          decoder_->finish_frame();
+
         } jpeg_finish_decompress(cinfo_.get());
       }
 
 
 
       [[nodiscard]] pixel_format make_colorspace_compatible() {
-        if (format_out().gamma.has_preference()) {
-          cinfo_->output_gamma = *format_out().gamma;
+        if (decoder_->output_format().gamma.has_preference()) {
+          cinfo_->output_gamma = *decoder_->output_format().gamma;
         }
 
         if (cinfo_->num_components != 1
-            || format_out().expand_gray_to_rgb.prefers(true)) {
+            || decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
           cinfo_->out_color_space = JCS_RGB;
           return {
             .format   = data_format::u8,
@@ -441,7 +447,7 @@ namespace {
 
           jpeg_read_scanlines(cinfo_.get(), rows.data(), row_count);
 
-          progress(cinfo_->output_scanline, cinfo_->output_height);
+          decoder_->frame_mark_ready_until_line(cinfo_->output_scanline);
         }
       }
 
@@ -476,7 +482,7 @@ namespace {
 
 
       void warn(const std::string& msg) {
-        decoder::warn(msg);
+        decoder_->warn(msg);
       }
 
 
@@ -514,8 +520,6 @@ namespace {
 
 
 
-image decode_jpeg(decoder&& dec) {
-  jpeg_decoder jdec{std::move(dec)};
-
-  return jdec.finalize_image();
+void decode_jpeg(details::decoder& dec) {
+  jpeg_decoder jdec{dec};
 }

@@ -1,7 +1,7 @@
 #include "config.hpp"
-#include "decoder.hpp"
-#include "pixglot/decode.hpp"
 #include "pixglot/codecs-magic.hpp"
+#include "pixglot/decode.hpp"
+#include "pixglot/details/decoder.hpp"
 
 #include <utility>
 
@@ -10,9 +10,9 @@ using namespace pixglot;
 
 
 #ifdef PIXGLOT_WITH_JPEG
-[[nodiscard]] image decode_jpeg(decoder&&);
+void decode_jpeg(details::decoder&);
 #endif
-#ifdef PIXGLOT_WITH_PNG
+/*#ifdef PIXGLOT_WITH_PNG
 [[nodiscard]] image decode_png(decoder&&);
 #endif
 #ifdef PIXGLOT_WITH_AVIF
@@ -32,7 +32,7 @@ using namespace pixglot;
 #endif
 #ifdef PIXGLOT_WITH_JXL
 [[nodiscard]] image decode_jxl(decoder&&);
-#endif
+#endif*/
 
 
 
@@ -43,13 +43,13 @@ image pixglot::decode(
     output_format         fmt
 ) {
   try {
-    decoder dec{r, std::move(pat), fmt};
+    details::decoder dec{r, std::move(pat), fmt};
 
     switch (c) {
 #ifdef PIXGLOT_WITH_JPEG
-      case codec::jpeg: return decode_jpeg(std::move(dec));
+      case codec::jpeg: decode_jpeg(dec); break;
 #endif
-#ifdef PIXGLOT_WITH_PNG
+/*#ifdef PIXGLOT_WITH_PNG
       case codec::png:  return decode_png(std::move(dec));
 #endif
 #ifdef PIXGLOT_WITH_AVIF
@@ -69,17 +69,17 @@ image pixglot::decode(
 #endif
 #ifdef PIXGLOT_WITH_JXL
       case codec::jxl:  return decode_jxl(std::move(dec));
-#endif
-      default: break;
+#endif*/
+      default: throw no_decoder{};
     }
+
+    return dec.finish();
   } catch (pixglot::base_exception&) {
     throw;
   } catch (std::exception& ex) {
     throw base_exception{std::string{"fatal error: "} + ex.what() +
       "\n(this is most likely a bug or a problem outside of the control of pixglot)"};
   }
-
-  throw no_decoder{};
 }
 
 
