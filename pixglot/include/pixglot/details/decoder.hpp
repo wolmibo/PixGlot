@@ -41,7 +41,9 @@ class decoder {
     }
 
 
-    void frame_total(size_t);
+    void                 frame_total(size_t);
+    [[nodiscard]] size_t frame_total()        const { return frame_total_; }
+
     void frame_mark_ready_until_line(size_t);
     void frame_mark_ready_from_line (size_t);
 

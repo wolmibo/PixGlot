@@ -1,5 +1,5 @@
-#include "../decoder.hpp"
 #include "pixglot/codecs-magic.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -119,32 +119,34 @@ namespace {
 
 
 
-  class jxl_decoder : public decoder {
+  class jxl_decoder {
     public:
-      explicit jxl_decoder(decoder&& dec) :
-        decoder{std::move(dec)},
-        jxl    {JxlDecoderMake(nullptr)},
-        reader {input()}
+      explicit jxl_decoder(details::decoder& decoder) :
+        decoder_{&decoder},
+        jxl_    {JxlDecoderMake(nullptr)},
+        reader_ {decoder_->input()}
       {
-        reader.set_input(jxl.get());
+        reader_.set_input(jxl_.get());
 
-        alpha_strategy  = create_alpha_strategy();  // NOLINT(*initializer)
-        endian_strategy = create_endian_strategy(); // NOLINT(*initializer)
+        alpha_strategy_  = create_alpha_strategy();  // NOLINT(*initializer)
+        endian_strategy_ = create_endian_strategy(); // NOLINT(*initializer)
 
 
-        if (!format_out().orientation.prefers(square_isometry::identity)) {
-          assert_jxl(JxlDecoderSetKeepOrientation(jxl.get(), JXL_TRUE),
+        if (!decoder_->output_format().orientation.prefers(square_isometry::identity)) {
+          assert_jxl(JxlDecoderSetKeepOrientation(jxl_.get(), JXL_TRUE),
             "unable to take responsibility for image orientation");
         }
 
-        assert_jxl(JxlDecoderSetCoalescing(jxl.get(), JXL_TRUE),
+        assert_jxl(JxlDecoderSetCoalescing(jxl_.get(), JXL_TRUE),
           "unable to request frame coalescing");
       }
 
 
 
       void decode() {
-        assert_jxl(JxlDecoderSubscribeEvents(jxl.get(),
+        decoder_->frame_total(0);
+
+        assert_jxl(JxlDecoderSubscribeEvents(jxl_.get(),
           JXL_DEC_BASIC_INFO |
           JXL_DEC_FRAME      |
           JXL_DEC_FULL_IMAGE
@@ -156,35 +158,24 @@ namespace {
 
 
     private:
-      JxlDecoderPtr  jxl;
-      jxl_reader     reader;
+      details::decoder* decoder_;
+      JxlDecoderPtr     jxl_;
+      jxl_reader        reader_;
 
-      JxlBasicInfo   info{};
-      JxlFrameHeader frame_header{};
+      JxlBasicInfo      info_{};
+      JxlFrameHeader    frame_header_{};
 
-      alpha_mode     alpha_strategy {alpha_mode::premultiplied};
-      std::endian    endian_strategy{std::endian::native};
-
-      size_t         pixels_done{0};
-      size_t         pixels_total{0};
-
-      std::unique_ptr<pixel_buffer> current_pixels;
+      alpha_mode        alpha_strategy_ {alpha_mode::premultiplied};
+      std::endian       endian_strategy_{std::endian::native};
 
 
-
-
-
-      void update_pixel_count(size_t num_pixels) {
-        pixels_done += num_pixels;
-        progress(pixels_done, pixels_total);
-      }
 
 
 
       [[nodiscard]] alpha_mode create_alpha_strategy() {
-        auto straight = format_out().alpha.prefers(alpha_mode::straight);
+        auto straight = decoder_->output_format().alpha.prefers(alpha_mode::straight);
 
-        assert_jxl(JxlDecoderSetUnpremultiplyAlpha(jxl.get(), static_cast<int>(straight)),
+        assert_jxl(JxlDecoderSetUnpremultiplyAlpha(jxl_.get(), static_cast<int>(straight)),
           "unable to request alpha mode");
 
         return straight ? alpha_mode::straight : alpha_mode::premultiplied;
@@ -193,34 +184,17 @@ namespace {
 
 
       void on_basic_info() {
-        assert_jxl(JxlDecoderGetBasicInfo(jxl.get(), &info),
+        assert_jxl(JxlDecoderGetBasicInfo(jxl_.get(), &info_),
           "unable to obtain basic info");
       }
 
 
 
       void on_full_image() {
-        if (!current_pixels) {
-          throw decode_error{codec::jxl, "trying to complete image without active pixels"};
-        }
+        decoder_->image().animated = decoder_->image().animated
+                    || decoder_->current_frame().duration > std::chrono::microseconds{0};
 
-        auto duration = convert_duration(info, frame_header.duration);
-        output_image().animated = output_image().animated
-                                  || duration > std::chrono::microseconds{0};
-
-
-        append_frame(frame {
-          .pixels      = std::move(*current_pixels),
-          .orientation = unwrap_orientation(convert_orientation(info.orientation)),
-
-          .alpha       = get_alpha_mode(info),
-          .gamma       = gamma_s_rgb,
-          .endianess   = endian_strategy,
-
-          .duration    = duration
-        });
-
-        current_pixels.reset(nullptr);
+        decoder_->finish_frame();
       }
 
 
@@ -234,39 +208,42 @@ namespace {
       ) {
         auto* self = static_cast<jxl_decoder*>(opaque);
 
-        if (x + num_pixels > self->current_pixels->width()) {
+        if (x + num_pixels > self->decoder_->target().width()) {
           throw decode_error{codec::jxl, "trying to write pixels out of bounds"};
         }
 
-        if (self->current_pixels) {
-          std::span<const std::byte> source{
-            static_cast<const std::byte*>(pixels),
-            num_pixels * self->current_pixels->format().size()
-          };
+        std::span<const std::byte> source{
+          static_cast<const std::byte*>(pixels),
+          num_pixels * self->decoder_->target().format().size()
+        };
 
-          std::ranges::copy(source, self->current_pixels->row_bytes(y).begin());
-
-          self->update_pixel_count(num_pixels);
-        } else {
-          throw decode_error{codec::jxl,
-                  "trying to write pixels without active pixel buffer"};
-        }
+        std::ranges::copy(source, self->decoder_->target().row_bytes(y).begin());
+        self->decoder_->frame_mark_ready_until_line(y);
       }
 
 
 
       void on_frame() {
-        pixels_total += static_cast<size_t>(info.xsize) * info.ysize;
+        decoder_->frame_total(decoder_->frame_total() + 1);
 
-        current_pixels = std::make_unique<pixel_buffer>(info.xsize, info.ysize,
-                                 select_pixel_format(info));
+        decoder_->begin_frame(frame {
+          .pixels      = pixel_buffer{info_.xsize, info_.ysize,
+                            select_pixel_format(info_)},
+          .orientation = unwrap_orientation(convert_orientation(info_.orientation)),
 
-        auto format = convert_pixel_format(current_pixels->format());
+          .alpha       = get_alpha_mode(info_),
+          .gamma       = gamma_s_rgb,
+          .endianess   = endian_strategy_,
 
-        assert_jxl(JxlDecoderGetFrameHeader(jxl.get(), &frame_header),
+          .duration    = convert_duration(info_, frame_header_.duration)
+        });
+
+        auto format = convert_pixel_format(decoder_->target().format());
+
+        assert_jxl(JxlDecoderGetFrameHeader(jxl_.get(), &frame_header_),
           "unable to obtain frame header");
 
-        assert_jxl(JxlDecoderSetImageOutCallback(jxl.get(),
+        assert_jxl(JxlDecoderSetImageOutCallback(jxl_.get(),
           &format,
           on_pixels,
           this
@@ -277,7 +254,7 @@ namespace {
 
       void event_loop() {
         while (true) {
-          switch (auto v = JxlDecoderProcessInput(jxl.get())) {
+          switch (auto v = JxlDecoderProcessInput(jxl_.get())) {
             case JXL_DEC_SUCCESS:
               return;
             case JXL_DEC_ERROR:
@@ -294,7 +271,7 @@ namespace {
               break;
 
             default:
-              warn("unhandled decoding event: " + std::to_string(v));
+              decoder_->warn("unhandled decoding event: " + std::to_string(v));
               break;
           }
         }
@@ -306,7 +283,7 @@ namespace {
           std::optional<square_isometry> iso
       ) {
         if (!iso) {
-          warn("unknown image orientation");
+          decoder_->warn("unknown image orientation");
           return square_isometry::identity;
         }
         return *iso;
@@ -318,7 +295,7 @@ namespace {
         return JxlPixelFormat {
           .num_channels = n_channels(format.channels),
           .data_type    = convert_data_format(format.format),
-          .endianness   = convert_endian(endian_strategy),
+          .endianness   = convert_endian(endian_strategy_),
           .align        = pixel_buffer::alignment
         };
       }
@@ -326,8 +303,8 @@ namespace {
 
 
       [[nodiscard]] std::endian create_endian_strategy() const {
-        if (format_out().endianess.has_preference()) {
-          return format_out().endianess.value();
+        if (auto endian = decoder_->output_format().endianess; endian.has_preference()) {
+          return endian.value();
         }
         return std::endian::native;
       }
@@ -345,7 +322,7 @@ namespace {
 
       [[nodiscard]] color_channels select_color_channels(const JxlBasicInfo& info) const {
         if (info.num_color_channels == 1 &&
-          !format_out().expand_gray_to_rgb.prefers(true)) {
+          !decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
           if (info.alpha_bits > 0) {
             return color_channels::gray_a;
           }
@@ -360,8 +337,8 @@ namespace {
 
 
       [[nodiscard]] data_format select_data_format(const JxlBasicInfo& info) const {
-        if (format_out().component_type.has_preference()) {
-          switch (auto val = format_out().component_type.value()) {
+        if (auto comp = decoder_->output_format().component_type; comp.has_preference()) {
+          switch (auto val = comp.value()) {
             case data_format::u8:
             case data_format::u16:
             case data_format::f16:
@@ -388,7 +365,7 @@ namespace {
 
       [[nodiscard]] alpha_mode get_alpha_mode(const JxlBasicInfo& info) const {
         if (info.alpha_bits > 0) {
-          return alpha_strategy;
+          return alpha_strategy_;
         }
         return alpha_mode::none;
       }
@@ -412,10 +389,7 @@ bool pixglot::magic<codec::jxl>::check(std::span<const std::byte> input) {
 
 
 
-image decode_jxl(decoder&& dec) {
-  jxl_decoder jdec{std::move(dec)};
-
+void decode_jxl(details::decoder& dec) {
+  jxl_decoder jdec{dec};
   jdec.decode();
-
-  return jdec.finalize_image();
 }

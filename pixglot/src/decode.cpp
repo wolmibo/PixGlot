@@ -30,9 +30,9 @@ void decode_webp(details::decoder&);
 #ifdef PIXGLOT_WITH_GIF
 void decode_gif(details::decoder&);
 #endif
-/*#ifdef PIXGLOT_WITH_JXL
-[[nodiscard]] image decode_jxl(decoder&&);
-#endif*/
+#ifdef PIXGLOT_WITH_JXL
+void decode_jxl(details::decoder&);
+#endif
 
 
 
@@ -67,9 +67,9 @@ image pixglot::decode(
 #ifdef PIXGLOT_WITH_GIF
       case codec::gif:  decode_gif(dec);  break;
 #endif
-/*#ifdef PIXGLOT_WITH_JXL
-      case codec::jxl:  return decode_jxl(std::move(dec));
-#endif*/
+#ifdef PIXGLOT_WITH_JXL
+      case codec::jxl:  decode_jxl(dec);  break;
+#endif
       default: throw no_decoder{};
     }
 
