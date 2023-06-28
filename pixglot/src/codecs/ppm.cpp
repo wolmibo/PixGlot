@@ -1,6 +1,6 @@
-#include "../decoder.hpp"
 #include "pixglot/buffer.hpp"
 #include "pixglot/conversions.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
@@ -467,27 +467,19 @@ namespace {
 
 
 
-  class ppm_decoder : public decoder {
+  class ppm_decoder {
     public:
-      explicit ppm_decoder(decoder&& parent) :
-        decoder{std::move(parent)},
-        reader{input()},
-        header{reader}
+      explicit ppm_decoder(details::decoder& decoder) :
+        decoder_{&decoder},
+        reader_ {decoder_->input()},
+        header_ {reader_}
       {}
 
 
 
       void decode() {
-        pixel_buffer pixels{header.width, header.height, header.format};
-
-        if (header.ascii) {
-          transfer_ascii(pixels);
-        } else {
-          transfer_binary(pixels);
-        }
-
-        append_frame(frame {
-          .pixels      = std::move(pixels),
+        decoder_->begin_frame(frame {
+          .pixels      = pixel_buffer{header_.width, header_.height, header_.format},
           .orientation = current_orientation(),
 
           .alpha       = alpha_mode::none,
@@ -496,47 +488,56 @@ namespace {
 
           .duration    = std::chrono::microseconds{0}
         });
+
+        if (header_.ascii) {
+          transfer_ascii(decoder_->target());
+        } else {
+          transfer_binary(decoder_->target());
+        }
+
+        decoder_->finish_frame();
       }
 
 
 
     private:
-      ppm_reader reader;
-      ppm_header header;
+      details::decoder* decoder_;
+      ppm_reader reader_;
+      ppm_header header_;
 
 
 
       [[nodiscard]] float current_gamma() const {
-        return is_float(header.format.format) ? gamma_linear : gamma_s_rgb;
+        return is_float(header_.format.format) ? gamma_linear : gamma_s_rgb;
       }
 
 
 
       [[nodiscard]] std::endian current_endianess() {
-        return byte_size(header.format.format) > 1 ? header.endianess :
-          (format_out().endianess.prefers(std::endian::big)
+        return byte_size(header_.format.format) > 1 ? header_.endianess :
+          (decoder_->output_format().endianess.prefers(std::endian::big)
             ? std::endian::big : std::endian::little);
       }
 
 
 
       [[nodiscard]] square_isometry current_orientation() const {
-        return is_float(header.format.format)
+        return is_float(header_.format.format)
           ? square_isometry::flip_y : square_isometry::identity;
       }
 
 
 
       void transfer_ascii(pixel_buffer& pixels) {
-        switch (header.type) {
+        switch (header_.type) {
           case ppm_type::bits:
-            transfer_ascii_bitmap(reader, pixels);
+            transfer_ascii_bitmap(reader_, pixels);
             break;
           case ppm_type::integer:
             if (pixels.format().format == data_format::u8) {
-              transfer_ascii_data<u8>(reader, pixels, get<u16>(header.range));
+              transfer_ascii_data<u8>(reader_, pixels, get<u16>(header_.range));
             } else {
-              transfer_ascii_data<u16>(reader, pixels, get<u16>(header.range));
+              transfer_ascii_data<u16>(reader_, pixels, get<u16>(header_.range));
             }
             adjust_range(pixels);
             break;
@@ -548,9 +549,9 @@ namespace {
 
 
       void transfer_binary(pixel_buffer& pixels) {
-        auto binary = reader.read_binary_to_end();
+        auto binary = reader_.read_binary_to_end();
 
-        switch (header.type) {
+        switch (header_.type) {
           case ppm_type::bits:
             transfer_binary_bitmap(binary, pixels);
             break;
@@ -564,8 +565,8 @@ namespace {
 
 
       void make_endian_native(pixel_buffer& pixels) {
-        convert_endian(pixels, header.endianess, std::endian::native);
-        header.endianess = std::endian::native;
+        convert_endian(pixels, header_.endianess, std::endian::native);
+        header_.endianess = std::endian::native;
       }
 
 
@@ -573,18 +574,18 @@ namespace {
       void adjust_range(pixel_buffer& pixels) {
         switch (pixels.format().format) {
           case data_format::u8:
-            if (auto range = get<u16>(header.range); range != 0xff) {
+            if (auto range = get<u16>(header_.range); range != 0xff) {
               ::adjust_range<u8, u32>(pixels, range);
             }
             break;
           case data_format::u16:
-            if (auto range = get<u16>(header.range); range != 0xffff) {
+            if (auto range = get<u16>(header_.range); range != 0xffff) {
               make_endian_native(pixels);
               ::adjust_range<u16, u32>(pixels, range);
             }
             break;
           case data_format::f32:
-            if (auto range = get<f32>(header.range); std::abs(range - 1.f) > 1e-5) {
+            if (auto range = get<f32>(header_.range); std::abs(range - 1.f) > 1e-5) {
               make_endian_native(pixels);
               ::adjust_range<f32, f32>(pixels, range);
             }
@@ -598,8 +599,7 @@ namespace {
 
 
 
-image decode_ppm(decoder&& dec) {
-  ppm_decoder pdec{std::move(dec)};
+void decode_ppm(details::decoder& dec) {
+  ppm_decoder pdec{dec};
   pdec.decode();
-  return pdec.finalize_image();
 }
