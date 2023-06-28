@@ -100,6 +100,10 @@ void decoder::finish_frame() {
 
   current_frame_.reset();
   frame_index_++;
+
+  if (frame_index_ <= frame_total_) {
+    progress(frame_index_, frame_total_);
+  }
 }
 
 

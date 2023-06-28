@@ -1,4 +1,4 @@
-#include "../decoder.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
 
@@ -296,7 +296,7 @@ namespace {
 
 
   void transfer_pixels_over_background(
-      pixel_buffer&       target,
+      details::decoder&   decoder,
       const SavedImage&   img,
       const gif_palette&  palette,
       const pixel_buffer& background
@@ -305,13 +305,14 @@ namespace {
     auto source = std::span{img.RasterBits, rect.width * rect.height};
 
     for (size_t y = 0; y < rect.y; ++y) {
-      std::ranges::copy(background.row_bytes(y), target.row_bytes(y).begin());
+      std::ranges::copy(background.row_bytes(y), decoder.target().row_bytes(y).begin());
+      decoder.frame_mark_ready_until_line(y);
     }
 
 
 
     for (size_t y = rect.y; y < rect.y + rect.height; ++y) {
-      auto row = target.row<rgba<u8>>(y);
+      auto row = decoder.target().row<rgba<u8>>(y);
       auto old = background.row<rgba<u8>>(y);
 
 
@@ -328,36 +329,40 @@ namespace {
       }
 
       std::copy(jt, old.end(), it);
+
+      decoder.frame_mark_ready_until_line(y);
     }
 
 
 
-    for (size_t y = rect.y + rect.height; y < target.height(); ++y) {
-      std::ranges::copy(background.row_bytes(y), target.row_bytes(y).begin());
+    for (size_t y = rect.y + rect.height; y < decoder.target().height(); ++y) {
+      std::ranges::copy(background.row_bytes(y), decoder.target().row_bytes(y).begin());
+      decoder.frame_mark_ready_until_line(y);
     }
   }
 
 
 
 
-  class gif_decoder : public decoder {
+  class gif_decoder {
     public:
-      explicit gif_decoder(decoder&& parent) :
-        decoder{std::move(parent)},
-        gif    {input()}
+      explicit gif_decoder(details::decoder& decoder) :
+        decoder_{&decoder},
+        gif_    {decoder_->input()}
       {
-        gif.slurp();
+        gif_.slurp();
 
-        width  = gif->SWidth;  //NOLINT(*initializer)
-        height = gif->SHeight; //NOLINT(*initializer)
+        width_  = gif_->SWidth;  //NOLINT(*initializer)
+        height_ = gif_->SHeight; //NOLINT(*initializer)
+        
+        decoder_->frame_total(gif_->ImageCount);
       }
 
 
 
       void decode() {
-        for (int i = 0; i < gif->ImageCount; ++i) {
-          append_frame(decode_frame(gif->SavedImages[i])); //NOLINT(*pointer-arithmetic)
-          progress(i, gif->ImageCount);
+        for (int i = 0; i < gif_->ImageCount; ++i) {
+          decode_frame(gif_->SavedImages[i]); //NOLINT(*pointer-arithmetic)
         }
       }
 
@@ -365,30 +370,40 @@ namespace {
 
 
     private:
-      gif_file gif;
-      size_t   width;
-      size_t   height;
+      details::decoder*           decoder_;
+      gif_file                    gif_;
+      size_t                      width_;
+      size_t                      height_;
 
       std::optional<pixel_buffer> background;
 
 
 
-      [[nodiscard]] frame decode_frame(const SavedImage& img) {
+      void decode_frame(const SavedImage& img) {
         assert_frame_size(img);
 
         gif_meta meta{img};
-        gif_palette palette{current_color_map(img), meta.alpha(), gif->SBackGroundColor};
+        gif_palette palette{current_color_map(img), meta.alpha(), gif_->SBackGroundColor};
 
         if (!background) {
-          background.emplace(width, height, rgba<u8>::format());
+          background.emplace(width_, height_, rgba<u8>::format());
           for (size_t y = 0; y < background->height(); ++y) {
             std::ranges::fill(background->row<rgba<u8>>(y), palette.background());
           }
         }
 
-        pixel_buffer buffer{width, height, rgba<u8>::format()};
+        decoder_->begin_frame(frame {
+          .pixels      = pixel_buffer{width_, height_, rgba<u8>::format()},
+          .orientation = square_isometry::identity,
 
-        transfer_pixels_over_background(buffer, img, palette, *background);
+          .alpha       = get_preferred_alpha_mode(),
+          .gamma       = gamma_s_rgb,
+          .endianess   = std::endian::native,
+
+          .duration    = meta.duration()
+        });
+
+        transfer_pixels_over_background(*decoder_, img, palette, *background);
 
         switch (meta.dispose_mode()) {
           case dispose::background: {
@@ -401,23 +416,14 @@ namespace {
           case dispose::previous:
             break;
           case dispose::leave_in_place:
-            background = buffer;
+            background = decoder_->target();
             break;
         }
 
-        output_image().animated = output_image().animated
+        decoder_->image().animated = decoder_->image().animated
           || (meta.duration() > std::chrono::microseconds{0});
 
-        return frame {
-          .pixels      = std::move(buffer),
-          .orientation = square_isometry::identity,
-
-          .alpha       = get_preferred_alpha_mode(),
-          .gamma       = gamma_s_rgb,
-          .endianess   = std::endian::native,
-
-          .duration    = meta.duration()
-        };
+        decoder_->finish_frame();
       }
 
 
@@ -426,8 +432,8 @@ namespace {
         if (img.ImageDesc.ColorMap != nullptr) {
           return *img.ImageDesc.ColorMap;
         }
-        if (gif->SColorMap != nullptr) {
-          return *gif->SColorMap;
+        if (gif_->SColorMap != nullptr) {
+          return *gif_->SColorMap;
         }
         throw decode_error{codec::gif, "unable to find color map"};
       }
@@ -435,8 +441,8 @@ namespace {
 
 
       void assert_frame_size(const SavedImage& img) const {
-        if (img.ImageDesc.Left + img.ImageDesc.Width > static_cast<int>(width) ||
-          img.ImageDesc.Top + img.ImageDesc.Height > static_cast<int>(height)) {
+        if (img.ImageDesc.Left + img.ImageDesc.Width > static_cast<int>(width_) ||
+          img.ImageDesc.Top + img.ImageDesc.Height > static_cast<int>(height_)) {
           throw decode_error{codec::gif, "frame exceeds canvas bounds"};
         }
       }
@@ -444,7 +450,7 @@ namespace {
 
 
       [[nodiscard]] alpha_mode get_preferred_alpha_mode() const {
-        if (format_out().alpha.prefers(alpha_mode::premultiplied)) {
+        if (decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)) {
           return alpha_mode::premultiplied;
         }
         return alpha_mode::straight;
@@ -455,9 +461,8 @@ namespace {
 
 
 
-image decode_gif(decoder&& dec) {
-  gif_decoder gdec{std::move(dec)};
+void decode_gif(details::decoder& dec) {
+  gif_decoder gdec{dec};
   gdec.decode();
-  return gdec.finalize_image();
 }
 
