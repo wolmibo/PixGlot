@@ -36,6 +36,10 @@ class decoder {
       return image_;
     }
 
+    [[nodiscard]] frame& current_frame() {
+      return current_frame_.value();
+    }
+
 
     void frame_total(size_t);
     void frame_mark_ready_until_line(size_t);

@@ -1,5 +1,5 @@
-#include "../decoder.hpp"
 #include "pixglot/buffer.hpp"
+#include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -185,14 +185,14 @@ namespace {
 
 
 
-  class webp_decoder : public decoder {
+  class webp_decoder {
     public:
-      explicit webp_decoder(decoder&& dec) :
-        decoder{std::move(dec)},
-        data   {input()},
-        demux  {WebPDemux(&data.get())}
+      explicit webp_decoder(details::decoder& decoder) :
+        decoder_{&decoder},
+        data_   {decoder_->input()},
+        demux_  {WebPDemux(&data_.get())}
       {
-        if (!demux) {
+        if (!demux_) {
           throw decode_error{codec::webp, "unable to parse webp"};
         }
       }
@@ -200,42 +200,46 @@ namespace {
 
 
       void decode() {
-        for (auto& webp_frame: webp_frame_iterator{demux.get()}) {
+        for (auto& webp_frame: webp_frame_iterator{demux_.get()}) {
           if (webp_frame.complete == 0) {
-            warn("fragment does not contain full frame");
+            decoder_->warn("fragment does not contain full frame");
           }
 
-          auto pixels = create_pixel_buffer(&webp_frame);
+          decoder_->begin_frame(frame {
+            .pixels      = create_pixel_buffer(&webp_frame),
+            .orientation = square_isometry::identity,
 
-          webp_decoder_config config{&webp_frame, pixels,
-                                format_out().alpha.prefers(alpha_mode::premultiplied)};
+            .alpha       = alpha_mode::none,
+            .gamma       = gamma_s_rgb,
+            .endianess   = std::endian::native,
+
+            .duration    = std::chrono::microseconds{webp_frame.duration * 1000}
+          });
+
+          webp_decoder_config config{&webp_frame, decoder_->target(),
+                decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)};
+
+          decoder_->current_frame().alpha = config.alpha();
+
 
           if (WebPDecode(webp_frame.fragment.bytes, webp_frame.fragment.size,
                 config.get()) != VP8_STATUS_OK) {
             throw decode_error{codec::webp, "unable to decode frame"};
           }
 
-          progress(webp_frame.frame_num, webp_frame.num_frames);
+          decoder_->progress(webp_frame.frame_num, webp_frame.num_frames);
+          decoder_->finish_frame();
 
-          output_image().animated = output_image().animated || webp_frame.duration > 0;
-
-          append_frame(frame {
-            .pixels      = std::move(pixels),
-            .orientation = square_isometry::identity,
-
-            .alpha       = config.alpha(),
-            .gamma       = gamma_s_rgb,
-            .endianess   = std::endian::native,
-
-            .duration    = std::chrono::microseconds{webp_frame.duration * 1000}
-          });
+          decoder_->image().animated =
+            decoder_->image().animated || webp_frame.duration > 0;
         }
       }
 
 
 
     private:
-      webp_data data;
+      details::decoder* decoder_;
+      webp_data         data_;
 
       struct demux_deleter {
         void operator()(WebPDemuxer* demux) const {
@@ -243,7 +247,7 @@ namespace {
         }
       };
 
-      std::unique_ptr<WebPDemuxer, demux_deleter> demux;
+      std::unique_ptr<WebPDemuxer, demux_deleter> demux_;
 
 
 
@@ -270,9 +274,7 @@ namespace {
 
 
 
-image decode_webp(decoder&& dec) {
-  webp_decoder wdec{std::move(dec)};
-
+void decode_webp(details::decoder& dec) {
+  webp_decoder wdec{dec};
   wdec.decode();
-  return wdec.finalize_image();
 }
