@@ -201,6 +201,8 @@ namespace {
 
       void decode() {
         for (auto& webp_frame: webp_frame_iterator{demux_.get()}) {
+          decoder_->frame_total(webp_frame.num_frames);
+
           if (webp_frame.complete == 0) {
             decoder_->warn("fragment does not contain full frame");
           }
@@ -227,7 +229,6 @@ namespace {
             throw decode_error{codec::webp, "unable to decode frame"};
           }
 
-          decoder_->progress(webp_frame.frame_num, webp_frame.num_frames);
           decoder_->finish_frame();
 
           decoder_->image().animated =
