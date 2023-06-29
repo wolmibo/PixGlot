@@ -84,7 +84,7 @@ namespace {
       explicit avif_rgb_image(avifImage* image, const output_format& out) {
         avifRGBImageSetDefaults(&rgb_, image);
 
-        rgb_.format = (image->alphaPlane == nullptr)
+        rgb_.format = (image->alphaPlane == nullptr && !out.add_alpha.prefers(true))
                         ? AVIF_RGB_FORMAT_RGB : AVIF_RGB_FORMAT_RGBA;
         try_satisfy_preferences(out);
 
