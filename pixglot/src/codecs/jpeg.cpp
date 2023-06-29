@@ -2,6 +2,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
+#include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -341,6 +342,19 @@ namespace {
 
 
 
+  [[nodiscard]] color_channels convert_color_channels(J_COLOR_SPACE cspace) {
+    switch (cspace) {
+      case JCS_GRAYSCALE: return color_channels::gray;
+      case JCS_RGB:       return color_channels::rgb;
+      case JCS_EXT_RGBA:  return color_channels::rgba;
+      default: break;
+    }
+    throw decode_error{codec::jpeg, "unsupported color space"};
+  }
+
+
+
+
   struct jds_destroyer {
     void operator()(jpeg_decompress_struct* cinfo) const {
       jpeg_destroy_decompress(cinfo);
@@ -421,15 +435,18 @@ namespace {
         if (cinfo_->num_components != 1
             || decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
           cinfo_->out_color_space = JCS_RGB;
-          return {
-            .format   = data_format::u8,
-            .channels = color_channels::rgb,
-          };
+#ifdef JCS_ALPHA_EXTENSIONS
+          if (decoder_->output_format().add_alpha.prefers(true)) {
+            cinfo_->out_color_space = JCS_EXT_RGBA;
+          }
+#endif
+        } else {
+          cinfo_->out_color_space = JCS_GRAYSCALE;
         }
-        cinfo_->out_color_space = JCS_GRAYSCALE;
+
         return {
           .format   = data_format::u8,
-          .channels = color_channels::gray,
+          .channels = convert_color_channels(cinfo_->out_color_space)
         };
       }
 
