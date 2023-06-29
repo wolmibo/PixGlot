@@ -323,12 +323,12 @@ namespace {
       [[nodiscard]] color_channels select_color_channels(const JxlBasicInfo& info) const {
         if (info.num_color_channels == 1 &&
           !decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
-          if (info.alpha_bits > 0) {
+          if (info.alpha_bits > 0 || decoder_->output_format().add_alpha.prefers(true)) {
             return color_channels::gray_a;
           }
           return color_channels::gray;
         }
-        if (info.alpha_bits > 0) {
+        if (info.alpha_bits > 0 || decoder_->output_format().add_alpha.prefers(true)) {
           return color_channels::rgba;
         }
         return color_channels::rgb;
