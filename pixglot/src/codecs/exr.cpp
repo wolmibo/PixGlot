@@ -3,6 +3,7 @@
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
+#include <random>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -170,10 +171,28 @@ namespace {
 
 
 
-  [[nodiscard]] pixel_format determine_pixel_format(const exr_frame& frame) {
+  [[nodiscard]] color_channels expand_color_channels(
+      color_channels       cc,
+      const output_format& format
+  ) {
+    if (format.expand_gray_to_rgb.prefers(true)) {
+      cc = add_color(cc);
+    }
+    if (format.add_alpha.prefers(true)) {
+      cc = add_alpha(cc);
+    }
+    return cc;
+  }
+
+
+
+  [[nodiscard]] pixel_format determine_pixel_format(
+      const exr_frame&     frame,
+      const output_format& format
+  ) {
     return pixel_format {
       .format   = determine_data_format(frame),
-      .channels = determine_color_channels(frame)
+      .channels = expand_color_channels(determine_color_channels(frame), format)
     };
   }
 
@@ -228,6 +247,50 @@ namespace {
     std::ranges::sort(list, {}, &exr_frame::first);
 
     return list;
+  }
+
+
+
+  [[nodiscard]] bool has_channel_with_name(InputFile& file, std::string_view name) {
+    const auto& channels = file.header().channels();
+
+    for (auto it = channels.begin(); it != channels.end(); ++it) {
+      if (it.name() == name) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+
+  [[nodiscard]] std::string find_nonexisting_channel(
+      InputFile&         file,
+      const std::string& base
+  ) {
+    auto test = base + ".A";
+    if (!has_channel_with_name(file, test)) {
+      return test;
+    }
+
+    std::random_device rd;
+    std::mt19937_64    gen{rd()};
+
+    std::string buffer(sizeof(std::mt19937_64::result_type) * 2, ' ');
+
+    for (size_t i = 0; i < 1024; ++i) {
+      //NOLINTNEXTLINE(*-pointer-arithmetic)
+      std::to_chars(buffer.data(), buffer.data() + buffer.size(), gen(), 16);
+
+      if (!has_channel_with_name(file, buffer)) {
+        return buffer;
+      }
+
+      std::ranges::fill(buffer, ' ');
+    }
+
+    throw decode_error{codec::exr, "cannot find non-existing channel to fill alpha"};
   }
 
 
@@ -292,7 +355,11 @@ namespace {
 
 
       void decode_frame(const exr_frame& frame_source) {
-        pixel_buffer buffer{width_, height_, determine_pixel_format(frame_source)};
+        pixel_buffer buffer{
+          width_,
+          height_,
+          determine_pixel_format(frame_source, decoder_->output_format())
+        };
 
         auto alpha = has_alpha(buffer.format().channels) ?
           alpha_mode::premultiplied : alpha_mode::none;
@@ -312,8 +379,29 @@ namespace {
 
         auto& target = decoder_->target();
 
+        std::optional<string> non_existing_channel;
+
         if (std::holds_alternative<const Channel*>(frame_source.second)) {
-          frame_buffer.insert(frame_source.first.c_str(), create_slice(target, 0, 0.f));
+          frame_buffer.insert(frame_source.first, create_slice(target, 0, 0.f));
+
+          size_t next_index{1};
+
+          if (has_color(target.format().channels)) {
+            frame_buffer.insert(frame_source.first,
+                create_slice(target, next_index++, 0.f));
+            frame_buffer.insert(frame_source.first,
+                create_slice(target, next_index++, 0.f));
+          }
+
+          if (has_alpha(target.format().channels)) {
+            if (!non_existing_channel) {
+              non_existing_channel.emplace(
+                  find_nonexisting_channel(input_, frame_source.first));
+            }
+
+            frame_buffer.insert(*non_existing_channel,
+                create_slice(target, next_index++, 1.f));
+          }
 
         } else {
           if (!has_color(target.format().channels)) {
@@ -323,12 +411,12 @@ namespace {
           std::string cname = frame_source.first;
           cname.pop_back();
 
-          frame_buffer.insert((cname + 'R').c_str(), create_slice(target, 0, 0.f));
-          frame_buffer.insert((cname + 'G').c_str(), create_slice(target, 1, 0.f));
-          frame_buffer.insert((cname + 'B').c_str(), create_slice(target, 2, 0.f));
+          frame_buffer.insert((cname + 'R'), create_slice(target, 0, 0.f));
+          frame_buffer.insert((cname + 'G'), create_slice(target, 1, 0.f));
+          frame_buffer.insert((cname + 'B'), create_slice(target, 2, 0.f));
 
           if (has_alpha(target.format().channels)) {
-            frame_buffer.insert((cname + 'A').c_str(), create_slice(target, 3, 1.f));
+            frame_buffer.insert((cname + 'A'), create_slice(target, 3, 1.f));
           }
         }
 
