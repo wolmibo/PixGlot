@@ -199,6 +199,12 @@ namespace {
           png_color_type_add_alpha(color_type);
         }
 
+        if (decoder_->output_format().add_alpha.prefers(true)) {
+          png_set_add_alpha(png.ptr, 0xffff, PNG_FILLER_AFTER);
+
+          png_color_type_add_alpha(color_type);
+        }
+
         switch (color_type) {
           case PNG_COLOR_TYPE_GRAY: return color_channels::gray;
           case PNG_COLOR_TYPE_GA:   return color_channels::gray_a;
