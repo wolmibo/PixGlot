@@ -85,6 +85,25 @@ namespace {
   ) {
     return alpha == alpha_mode::none || pref.preference_satisfied_by(alpha);
   }
+
+
+
+
+
+  [[nodiscard]] bool endian_satisfied_by(preference<std::endian> pref, const frame& f) {
+    return f.type() != storage_type::pixel_buffer
+      || pref.satisfied_by(f.pixels().endian());
+  }
+
+
+
+  [[nodiscard]] bool endian_preference_satisfied_by(
+      preference<std::endian> pref,
+      const frame&            f
+  ) {
+    return f.type() != storage_type::pixel_buffer
+      || pref.preference_satisfied_by(f.pixels().endian());
+  }
 }
 
 
@@ -94,7 +113,7 @@ bool output_format::satisfied_by(const frame& f) const {
     && alpha_satisfied_by(alpha, f.alpha())
     && gamma.satisfied_by(f.gamma())
     && orientation.satisfied_by(f.orientation())
-    && endianess.satisfied_by(f.endian())
+    && endian_satisfied_by(endianess, f)
     && target.satisfied_by(f.type());
 }
 
@@ -105,7 +124,7 @@ bool output_format::preference_satisfied_by(const frame& f) const {
     && alpha_preference_satisfied_by(alpha, f.alpha())
     && gamma.preference_satisfied_by(f.gamma())
     && orientation.preference_satisfied_by(f.orientation())
-    && endianess.preference_satisfied_by(f.endian())
+    && endian_preference_satisfied_by(endianess, f)
     && target.preference_satisfied_by(f.type());
 }
 
@@ -169,7 +188,7 @@ bool output_format::preference_satisfied_by(const pixel_format& fmt) const {
 namespace pixglot::details {
   void convert(gl_texture&, pixel_format, int, float, square_isometry);
 
-  std::endian convert(pixel_buffer&, std::endian, std::optional<std::endian>,
+  void convert(pixel_buffer&, std::optional<std::endian>,
                       pixel_format, int, float, square_isometry);
 }
 
@@ -195,10 +214,8 @@ namespace {
       auto target_endian = fmt.endianess.level() == preference_level::require ?
         std::optional{*fmt.endianess} : std::nullopt;
 
-      auto endian = details::convert(f.pixels(), f.endian(), target_endian,
+      details::convert(f.pixels(), target_endian,
           target_format, premultiply, gamma, transform);
-
-      f.endian(endian);
     }
   }
 

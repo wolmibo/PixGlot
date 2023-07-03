@@ -17,7 +17,7 @@ using namespace pixglot;
 namespace pixglot::details {
   void convert(gl_texture&, pixel_format, int, float, square_isometry);
 
-  std::endian convert(pixel_buffer&, std::endian, std::optional<std::endian>,
+  void convert(pixel_buffer&, std::optional<std::endian>,
                       pixel_format, int, float, square_isometry);
 
   void apply_orientation(pixel_buffer&, square_isometry);
@@ -51,8 +51,7 @@ void pixglot::convert_gamma(frame& f, float target) {
   if (f.type() == storage_type::gl_texture) {
     convert_gamma(f.texture(), f.gamma(), target);
   } else {
-    f.endian(details::convert(f.pixels(), f.endian(), {}, f.format(),
-                                   0, target / f.gamma(), {}));
+    details::convert(f.pixels(), {}, f.format(), 0, target / f.gamma(), {});
   }
   f.gamma(target);
 }
@@ -60,7 +59,7 @@ void pixglot::convert_gamma(frame& f, float target) {
 
 
 void pixglot::convert_gamma(pixel_buffer& pb, float current, float target) {
-  details::convert(pb, std::endian::native, {}, pb.format(), 0, target / current, {});
+  details::convert(pb, {}, pb.format(), 0, target / current, {});
 }
 
 
@@ -80,17 +79,17 @@ void pixglot::convert_endian(image& img, std::endian target) {
 
 
 void pixglot::convert_endian(frame& f, std::endian target) {
-  if (f.type() == storage_type::pixel_buffer && f.endian() != target) {
-    details::apply_byte_swap(f.pixels());
-  }
-  f.endian(target);
+  if (f.type() == storage_type::pixel_buffer) {
+    convert_endian(f.pixels(), target);
+  } 
 }
 
 
 
-void pixglot::convert_endian(pixel_buffer& pb, std::endian src, std::endian tgt) {
-  if (src != tgt) {
+void pixglot::convert_endian(pixel_buffer& pb, std::endian tgt) {
+  if (pb.endian() != tgt) {
     details::apply_byte_swap(pb);
+    pb.endian(tgt);
   }
 }
 
@@ -152,12 +151,9 @@ void pixglot::convert_storage(frame& frm, storage_type target) {
     return;
   }
 
-  if (target == storage_type::gl_texture && frm.endian() != std::endian::native) {
-    convert_endian(frm, std::endian::native);
-  }
-
   if (frm.type() == storage_type::pixel_buffer) {
     if (target == storage_type::gl_texture) {
+      convert_endian(frm, std::endian::native);
       frm.reset(gl_texture(frm.pixels()));
     }
 

@@ -115,7 +115,6 @@ class frame {
     [[nodiscard]] std::chrono::microseconds duration()    const { return duration_;    }
     [[nodiscard]] float                     gamma()       const { return gamma_;       }
     [[nodiscard]] alpha_mode                alpha()       const { return alpha_;       }
-    [[nodiscard]] std::endian               endian()      const { return endian_;      }
 
 
 
@@ -123,7 +122,6 @@ class frame {
     void duration   (std::chrono::microseconds duration) { duration_    = duration; }
     void gamma      (float                     gamma   ) { gamma_       = gamma;    }
     void alpha      (alpha_mode                alpha   ) { alpha_       = alpha;    }
-    void endian     (std::endian               endian  ) { endian_      = endian;   }
 
 
 
@@ -137,7 +135,6 @@ class frame {
     square_isometry           orientation_{square_isometry::identity};
     alpha_mode                alpha_      {alpha_mode::straight};
     float                     gamma_      {gamma_s_rgb};
-    std::endian               endian_     {std::endian::native};
     std::chrono::microseconds duration_   {0};
 };
 

@@ -40,10 +40,16 @@ class pixel_buffer {
 
 
 
-    pixel_buffer(size_t width, size_t height, pixel_format format = {}) :
+    pixel_buffer(
+        size_t       width,
+        size_t       height,
+        pixel_format format = {},
+        std::endian  endian = std::endian::native
+    ) :
       width_ {width},
       height_{height},
       format_{format},
+      endian_{endian},
 
       buffer_{height_ * stride_for_width(width_, format_) / sizeof(aligner)}
     {}
@@ -51,6 +57,8 @@ class pixel_buffer {
 
 
 
+    [[nodiscard]] std::span<const std::byte> data()   const { return buffer_.as_bytes(); }
+    [[nodiscard]] std::span<std::byte>       data()         { return buffer_.as_bytes(); }
 
     [[nodiscard]] bool                       empty()  const { return buffer_.empty(); }
     [[nodiscard]] operator                   bool()   const { return !empty();        }
@@ -58,9 +66,7 @@ class pixel_buffer {
     [[nodiscard]] pixel_format               format() const { return format_; }
     [[nodiscard]] size_t                     width()  const { return width_;  }
     [[nodiscard]] size_t                     height() const { return height_; }
-
-    [[nodiscard]] std::span<const std::byte> data()   const { return buffer_.as_bytes(); }
-    [[nodiscard]] std::span<std::byte>       data()         { return buffer_.as_bytes(); }
+    [[nodiscard]] std::endian                endian() const { return endian_; }
 
 
 
@@ -71,6 +77,9 @@ class pixel_buffer {
       return 0;
     }
 
+
+
+    void endian(std::endian endian) { endian_ = endian; }
 
 
 
@@ -196,6 +205,8 @@ class pixel_buffer {
     size_t                    width_ {0};
     size_t                    height_{0};
     pixel_format              format_{};
+
+    std::endian               endian_{std::endian::native};
 
     buffer<aligner>           buffer_;
 };

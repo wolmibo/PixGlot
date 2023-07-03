@@ -121,14 +121,14 @@ namespace {
             "unable to obtain image format (or image is empty)"};
         }
 
+        buffer.endian(make_endian_compatible(buffer.format().format));
+
         auto alpha  = make_alpha_mode_compatible(buffer.format().channels);
-        auto endian = make_endian_compatible(buffer.format().format);
 
         png_read_update_info(png.ptr, png.info);
 
         auto& frame = decoder_->begin_frame(std::move(buffer));
         frame.alpha(alpha);
-        frame.endian(endian);
 
         transfer_data(decoder_->target());
 

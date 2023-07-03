@@ -478,12 +478,11 @@ namespace {
 
 
       void decode() {
-        auto& frame = decoder_->begin_frame(
-            pixel_buffer{header_.width, header_.height, header_.format});
+        auto& frame = decoder_->begin_frame(pixel_buffer{header_.width, header_.height,
+            header_.format, current_endianess()});
 
         frame.orientation(current_orientation());
         frame.alpha      (alpha_mode::none);
-        frame.endian     (current_endianess());
 
         if (header_.ascii) {
           transfer_ascii(decoder_->target());
@@ -561,7 +560,7 @@ namespace {
 
 
       void make_endian_native(pixel_buffer& pixels) {
-        convert_endian(pixels, header_.endianess, std::endian::native);
+        convert_endian(pixels, std::endian::native);
         header_.endianess = std::endian::native;
       }
 
