@@ -48,13 +48,13 @@ void pixglot::convert_gamma(image& img, float target) {
 
 
 void pixglot::convert_gamma(frame& f, float target) {
-  if (f.pixels.storage_type() == pixel_target::gl_texture) {
-    convert_gamma(f.pixels.texture(), f.gamma, target);
+  if (f.storage().storage_type() == pixel_target::gl_texture) {
+    convert_gamma(f.storage().texture(), f.gamma(), target);
   } else {
-    f.endianess = details::convert(f.pixels.pixels(), f.endianess, {}, f.pixels.format(),
-                                   0, target / f.gamma, {});
+    f.endian(details::convert(f.storage().pixels(), f.endian(), {}, f.format(),
+                                   0, target / f.gamma(), {}));
   }
-  f.gamma = target;
+  f.gamma(target);
 }
 
 
@@ -86,8 +86,8 @@ void pixglot::convert_endian(image& img, std::endian target) {
 
 
 void pixglot::convert_endian(frame& f, std::endian target) {
-  convert_endian(f.pixels, f.endianess, target);
-  f.endianess = target;
+  convert_endian(f.storage(), f.endian(), target);
+  f.endian(target);
 }
 
 
@@ -117,8 +117,8 @@ void pixglot::convert_orientation(image& img, square_isometry target) {
 
 
 void pixglot::convert_orientation(frame& f, square_isometry target) {
-  convert_orientation(f.pixels, f.orientation, target);
-  f.orientation = target;
+  convert_orientation(f.storage(), f.orientation(), target);
+  f.orientation(target);
 }
 
 
@@ -168,10 +168,10 @@ void pixglot::convert_storage(image& img, pixel_target target) {
 
 
 void pixglot::convert_storage(frame& frm, pixel_target target) {
-  if (target == pixel_target::gl_texture && frm.endianess != std::endian::native) {
+  if (target == pixel_target::gl_texture && frm.endian() != std::endian::native) {
     convert_endian(frm, std::endian::native);
   }
-  convert_storage(frm.pixels, target);
+  convert_storage(frm.storage(), target);
 }
 
 

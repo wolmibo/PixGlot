@@ -478,16 +478,12 @@ namespace {
 
 
       void decode() {
-        decoder_->begin_frame(frame {
-          .pixels      = pixel_buffer{header_.width, header_.height, header_.format},
-          .orientation = current_orientation(),
+        auto& frame = decoder_->begin_frame(
+            pixel_buffer{header_.width, header_.height, header_.format});
 
-          .alpha       = alpha_mode::none,
-          .gamma       = current_gamma(),
-          .endianess   = current_endianess(),
-
-          .duration    = std::chrono::microseconds{0}
-        });
+        frame.orientation(current_orientation());
+        frame.alpha      (alpha_mode::none);
+        frame.endian     (current_endianess());
 
         if (header_.ascii) {
           transfer_ascii(decoder_->target());

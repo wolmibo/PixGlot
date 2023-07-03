@@ -24,7 +24,7 @@ static constexpr std::array<unsigned char, 42> black_white {
 
 void test_general(const image& img) {
   id_assert_eq(img.frames.size(), 1u);
-  const auto& pixels = img.frames[0].pixels;
+  const auto& pixels = img.frames[0].storage();
 
   id_assert_eq(pixels.width(),  6u);
   id_assert_eq(pixels.height(), 7u);
@@ -37,7 +37,7 @@ void test_general(const image& img) {
 
 
 void test_black_white(const image& img) {
-  const auto& pixels = img.frames[0].pixels.pixels();
+  const auto& pixels = img.frames[0].storage().pixels();
 
   id_assert_eq(pixels.format(), gray<u8>::format());
 

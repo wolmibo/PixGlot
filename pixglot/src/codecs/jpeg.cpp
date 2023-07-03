@@ -407,16 +407,9 @@ namespace {
         jpeg_start_decompress(cinfo_.get()); {
           pixel_buffer pixels{cinfo_->image_width, cinfo_->image_height, pf};
 
-          decoder_->begin_frame(frame {
-            .pixels      = std::move(pixels),
-            .orientation = orientation_,
-
-            .alpha       = alpha_mode::none,
-            .gamma       = gamma_s_rgb,
-            .endianess   = std::endian::native,
-
-            .duration    = std::chrono::microseconds{0}
-          });
+          auto& frame = decoder_->begin_frame(std::move(pixels));
+          frame.alpha      (alpha_mode::none);
+          frame.orientation(orientation_);
 
           transfer_data(decoder_->target());
 

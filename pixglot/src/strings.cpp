@@ -141,8 +141,8 @@ std::string pixglot::to_string(const pixel_storage& storage) {
 
 
 std::string pixglot::to_string(const frame& f) {
-  return to_string(f.pixels) + " [trafo=" + to_string(f.orientation)
-    + "; alpha=" + to_string(f.alpha) + "; gamma=" + std::to_string(f.gamma) + "]";
+  return to_string(f.storage()) + " [trafo=" + to_string(f.orientation())
+    + "; alpha=" + to_string(f.alpha()) + "; gamma=" + std::to_string(f.gamma()) + "]";
 }
 
 

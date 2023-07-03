@@ -207,21 +207,13 @@ namespace {
             decoder_->warn("fragment does not contain full frame");
           }
 
-          decoder_->begin_frame(frame {
-            .pixels      = create_pixel_buffer(&webp_frame),
-            .orientation = square_isometry::identity,
-
-            .alpha       = alpha_mode::none,
-            .gamma       = gamma_s_rgb,
-            .endianess   = std::endian::native,
-
-            .duration    = std::chrono::microseconds{webp_frame.duration * 1000}
-          });
+          auto& frame = decoder_->begin_frame(create_pixel_buffer(&webp_frame));
+          frame.duration(std::chrono::microseconds{webp_frame.duration * 1000});
 
           webp_decoder_config config{&webp_frame, decoder_->target(),
                 decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)};
 
-          decoder_->current_frame().alpha = config.alpha();
+          frame.alpha(config.alpha());
 
 
           if (WebPDecode(webp_frame.fragment.bytes, webp_frame.fragment.size,

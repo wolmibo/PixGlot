@@ -37,16 +37,47 @@ static constexpr float gamma_linear{1.f};
 
 
 
-struct frame {
-  pixel_storage             pixels;
-  square_isometry           orientation{square_isometry::identity};
 
-  alpha_mode                alpha      {alpha_mode::straight};
-  float                     gamma      {2.2};
+class frame {
+  public:
+    frame(pixel_buffer pixels ) : storage_{std::move(pixels )} {}
+    frame(gl_texture   texture) : storage_{std::move(texture)} {}
 
-  std::endian               endianess  {std::endian::native};
 
-  std::chrono::microseconds duration   {0};
+
+    [[nodiscard]] const pixel_storage&      storage() const { return storage_;          }
+    [[nodiscard]] pixel_storage&            storage()       { return storage_;          }
+
+    [[nodiscard]] pixel_format              format()  const { return storage_.format(); }
+    [[nodiscard]] size_t                    width()   const { return storage_.width();  }
+    [[nodiscard]] size_t                    height()  const { return storage_.height(); }
+
+
+
+    [[nodiscard]] square_isometry           orientation() const { return orientation_; }
+    [[nodiscard]] std::chrono::microseconds duration()    const { return duration_;    }
+    [[nodiscard]] float                     gamma()       const { return gamma_;       }
+    [[nodiscard]] alpha_mode                alpha()       const { return alpha_;       }
+    [[nodiscard]] std::endian               endian()      const { return endian_;      }
+
+
+
+    void orientation(square_isometry           iso     ) { orientation_ = iso;      }
+    void duration   (std::chrono::microseconds duration) { duration_    = duration; }
+    void gamma      (float                     gamma   ) { gamma_       = gamma;    }
+    void alpha      (alpha_mode                alpha   ) { alpha_       = alpha;    }
+    void endian     (std::endian               endian  ) { endian_      = endian;   }
+
+
+
+  private:
+    pixel_storage             storage_;
+
+    square_isometry           orientation_{square_isometry::identity};
+    alpha_mode                alpha_      {alpha_mode::straight};
+    float                     gamma_      {gamma_s_rgb};
+    std::endian               endian_     {std::endian::native};
+    std::chrono::microseconds duration_   {0};
 };
 
 [[nodiscard]] std::string to_string(const frame&);

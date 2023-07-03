@@ -265,16 +265,13 @@ namespace {
           assert_avif(avifImageYUVToRGB(dec_->image, rgb.get()),
             "avifImageYUVToRGB");
 
-          decoder_->finish_frame(frame {
-            .pixels      = rgb.take_pixels(),
-            .orientation = isometry_from(dec_->image),
-            .alpha       = rgb.to_alpha_mode(),
-            .gamma       = gamma_s_rgb,
-            .endianess   = std::endian::native,
-            .duration    = std::chrono::microseconds{
-                              static_cast<long int>(dec_->duration) * 1000 * 1000
-                           }
-          });
+          frame frame{rgb.take_pixels()};
+          frame.orientation(isometry_from(dec_->image));
+          frame.alpha      (rgb.to_alpha_mode());
+          frame.duration   (std::chrono::microseconds{
+                              static_cast<long int>(dec_->duration) * 1000 * 1000});
+
+          decoder_->finish_frame(std::move(frame));
 
           decoder_->progress(++prog, task_count);
         }

@@ -392,16 +392,10 @@ namespace {
           }
         }
 
-        decoder_->begin_frame(frame {
-          .pixels      = pixel_buffer{width_, height_, rgba<u8>::format()},
-          .orientation = square_isometry::identity,
-
-          .alpha       = get_preferred_alpha_mode(),
-          .gamma       = gamma_s_rgb,
-          .endianess   = std::endian::native,
-
-          .duration    = meta.duration()
-        });
+        auto& frame = decoder_->begin_frame(
+            pixel_buffer{width_, height_, rgba<u8>::format()});
+        frame.alpha   (get_preferred_alpha_mode());
+        frame.duration(meta.duration());
 
         transfer_pixels_over_background(*decoder_, img, palette, *background);
 

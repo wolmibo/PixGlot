@@ -23,13 +23,13 @@ class decoder {
 
 
 
-    void begin_frame(frame);
+    frame& begin_frame(frame);
     void finish_frame();
 
     void finish_frame(frame);
 
     [[nodiscard]] pixel_buffer& target() {
-      return current_frame_.value().pixels.pixels();
+      return current_frame_.value().storage().pixels();
     }
 
     [[nodiscard]] pixglot::image& image() {

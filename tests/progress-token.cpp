@@ -59,9 +59,7 @@ void test_disconnect() {
 
 void test_callback() {
   int counter {0};
-  frame f{
-    .pixels = pixel_buffer{1, 1}
-  };
+  frame f{pixel_buffer{1, 1}};
 
   auto inc_counter = [&counter](frame&) { counter++; };
 
@@ -96,9 +94,7 @@ void test_callback() {
 void test_async() {
   int counter {0};
 
-  frame f{
-    .pixels = pixel_buffer{1, 1}
-  };
+  frame f{pixel_buffer{1, 1}};
 
   auto inc_counter = [&counter](frame&) { counter++; };
 

@@ -126,16 +126,9 @@ namespace {
 
         png_read_update_info(png.ptr, png.info);
 
-        decoder_->begin_frame(frame{
-          .pixels      = std::move(buffer),
-          .orientation = square_isometry::identity,
-
-          .alpha       = alpha,
-          .gamma       = gamma_s_rgb,
-          .endianess   = endian,
-
-          .duration    = std::chrono::microseconds{0}
-        });
+        auto& frame = decoder_->begin_frame(std::move(buffer));
+        frame.alpha(alpha);
+        frame.endian(endian);
 
         transfer_data(decoder_->target());
 

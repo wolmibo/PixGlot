@@ -361,17 +361,10 @@ namespace {
           determine_pixel_format(frame_source, decoder_->output_format())
         };
 
-        auto alpha = has_alpha(buffer.format().channels) ?
-          alpha_mode::premultiplied : alpha_mode::none;
-
-        decoder_->begin_frame(frame {
-          .pixels      = std::move(buffer),
-          .orientation = square_isometry::identity,
-          .alpha       = alpha,
-          .gamma       = gamma_linear,
-          .endianess   = std::endian::native,
-          .duration    = std::chrono::microseconds{0}
-        });
+        auto& frame = decoder_->begin_frame(std::move(buffer));
+        frame.gamma(gamma_linear);
+        frame.alpha(has_alpha(frame.format().channels) ?
+            alpha_mode::premultiplied : alpha_mode::none);
 
 
 

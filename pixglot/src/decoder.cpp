@@ -110,12 +110,14 @@ void decoder::finish_frame() {
 
 
 
-void decoder::begin_frame(frame f) {
+pixglot::frame& decoder::begin_frame(frame f) {
   if (current_frame_) {
     throw std::runtime_error{
       "begin_frame called but previous frame has not been finished"};
   }
   current_frame_.emplace(std::move(f));
+
+  return *current_frame_;
 }
 
 

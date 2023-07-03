@@ -192,7 +192,7 @@ namespace {
 
       void on_full_image() {
         decoder_->image().animated = decoder_->image().animated
-                    || decoder_->current_frame().duration > std::chrono::microseconds{0};
+                  || decoder_->current_frame().duration() > std::chrono::microseconds{0};
 
         decoder_->finish_frame();
       }
@@ -226,17 +226,12 @@ namespace {
       void on_frame() {
         decoder_->frame_total(decoder_->frame_total() + 1);
 
-        decoder_->begin_frame(frame {
-          .pixels      = pixel_buffer{info_.xsize, info_.ysize,
-                            select_pixel_format(info_)},
-          .orientation = unwrap_orientation(convert_orientation(info_.orientation)),
+        auto& frame = decoder_->begin_frame(
+            pixel_buffer{info_.xsize, info_.ysize, select_pixel_format(info_)});
 
-          .alpha       = get_alpha_mode(info_),
-          .gamma       = gamma_s_rgb,
-          .endianess   = endian_strategy_,
-
-          .duration    = convert_duration(info_, frame_header_.duration)
-        });
+        frame.duration(convert_duration(info_, frame_header_.duration));
+        frame.alpha   (get_alpha_mode(info_));
+        frame.endian  (endian_strategy_);
 
         auto format = convert_pixel_format(decoder_->target().format());
 

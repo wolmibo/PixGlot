@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
     for (size_t i = 0; i < img.frames.size(); ++i) {
       std::cout << "Frame #" << i << ": "
-        << pixglot::to_string(img.frames[i].pixels) << std::endl;
+        << pixglot::to_string(img.frames[i]) << std::endl;
     }
   } catch (pixglot::base_exception& ex) {
     std::cerr << "*ERROR:*" << ex.what() << std::endl;
