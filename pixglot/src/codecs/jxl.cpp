@@ -191,9 +191,6 @@ namespace {
 
 
       void on_full_image() {
-        decoder_->image().animated = decoder_->image().animated
-                  || decoder_->current_frame().duration() > std::chrono::microseconds{0};
-
         decoder_->finish_frame();
       }
 

@@ -414,9 +414,6 @@ namespace {
             break;
         }
 
-        decoder_->image().animated = decoder_->image().animated
-          || (meta.duration() > std::chrono::microseconds{0});
-
         decoder_->finish_frame();
       }
 

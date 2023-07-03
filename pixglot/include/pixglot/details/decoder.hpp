@@ -51,7 +51,7 @@ class decoder {
     void progress(float);
     void progress(size_t, size_t, size_t = 0, size_t = 1);
 
-    void warn(std::string_view);
+    void warn(std::string);
 
 
 

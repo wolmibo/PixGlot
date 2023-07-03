@@ -31,7 +31,7 @@ namespace pixglot::details {
 namespace {
   template<typename T>
   void convert_image(image& img, void (function)(frame&, T), T value) {
-    for (auto& f: img.frames) {
+    for (auto& f: img.frames()) {
       function(f, value);
     }
   }

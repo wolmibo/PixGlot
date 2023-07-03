@@ -50,7 +50,7 @@ void output_format::enforce() {
 
 bool output_format::satisfied_by(const image& img) const {
   return std::ranges::all_of(
-    img.frames,
+    img.frames(),
     [this](const auto& f) {
       return satisfied_by(f);
     }
@@ -61,7 +61,7 @@ bool output_format::satisfied_by(const image& img) const {
 
 bool output_format::preference_satisfied_by(const image& img) const {
   return std::ranges::all_of(
-    img.frames,
+    img.frames(),
     [this](const auto& f) {
       return preference_satisfied_by(f);
     }
@@ -302,13 +302,13 @@ void pixglot::make_format_compatible(
   if (enforce) {
     auto enforced = fmt;
     enforced.enforce();
-    for (auto& f: img. frames) {
+    for (auto& f: img.frames()) {
       make_compatible(f, fmt);
     }
     return;
   }
 
-  for (auto& f : img.frames) {
+  for (auto& f : img.frames()) {
     make_compatible(f, fmt);
   }
 }

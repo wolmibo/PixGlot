@@ -69,8 +69,8 @@ void decoder::progress(size_t i, size_t n, size_t j, size_t m) {
 
 
 
-void decoder::warn(std::string_view msg) {
-  image_.warnings.emplace_back(msg);
+void decoder::warn(std::string msg) {
+  image_.add_warning(std::move(msg));
 }
 
 
@@ -93,8 +93,7 @@ void decoder::finish_frame() {
 
   make_format_compatible(*current_frame_, format_);
 
-  image_.frames.emplace_back(std::move(*current_frame_));
-  if (!token_.append_frame(image_.frames.back())) {
+  if (!token_.append_frame(image_.add_frame(std::move(*current_frame_)))) {
     throw abort{};
   }
 

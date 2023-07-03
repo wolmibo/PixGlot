@@ -9,6 +9,7 @@ sources = [
   'src/decoder.cpp',
   'src/frame.cpp',
   'src/gl-texture.cpp',
+  'src/image.cpp',
   'src/output-format.cpp',
   'src/pixel-format.cpp',
   'src/square-isometry.cpp',

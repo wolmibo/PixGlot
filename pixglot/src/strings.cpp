@@ -143,18 +143,19 @@ std::string pixglot::to_string(const frame& f) {
 
 std::string pixglot::to_string(const image& img) {
   std::string buffer = "{";
-  for (size_t i = 0; i < img.frames.size(); ++i) {
+  for (size_t i = 0; i < img.size(); ++i) {
     if (i > 0) {
       buffer += ", ";
     }
-    buffer += to_string(img.frames[i]);
+    buffer += to_string(img.frame(i));
   }
-  buffer += std::string{"} [animated="} + (img.animated ? "y" : "n") + "; warnings: {";
-  for (size_t i = 0; i < img.warnings.size(); ++i) {
+  buffer += std::string{"} [animated="} + (img.animated() ? "y" : "n") + "; warnings: {";
+  auto warnings = img.warnings();
+  for (size_t i = 0; i < warnings.size(); ++i) {
     if (i > 0) {
       buffer += ", ";
     }
-    buffer += img.warnings[i];
+    buffer += warnings[i];
   }
   buffer += "}]";
 

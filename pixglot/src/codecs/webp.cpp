@@ -222,9 +222,6 @@ namespace {
           }
 
           decoder_->finish_frame();
-
-          decoder_->image().animated =
-            decoder_->image().animated || webp_frame.duration > 0;
         }
       }
 

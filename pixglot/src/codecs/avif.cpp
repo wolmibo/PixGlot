@@ -250,8 +250,8 @@ namespace {
 
 
 
-        decoder_->image().animated = dec_->imageCount > 1 &&
-          dec_->progressiveState == AVIF_PROGRESSIVE_STATE_UNAVAILABLE;
+        long int time_multi = (dec_->imageCount > 1 &&
+          dec_->progressiveState == AVIF_PROGRESSIVE_STATE_UNAVAILABLE) ? 1000 * 1000 : 0;
 
 
 
@@ -269,7 +269,7 @@ namespace {
           frame.orientation(isometry_from(dec_->image));
           frame.alpha      (rgb.to_alpha_mode());
           frame.duration   (std::chrono::microseconds{
-                              static_cast<long int>(dec_->duration) * 1000 * 1000});
+                              static_cast<long int>(dec_->duration) * time_multi});
 
           decoder_->finish_frame(std::move(frame));
 
