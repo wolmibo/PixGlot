@@ -12,7 +12,6 @@ headers = [
   'pixglot/pixel-buffer.hpp',
   'pixglot/pixel-format-conversion.hpp',
   'pixglot/pixel-format.hpp',
-  'pixglot/pixel-storage.hpp',
   'pixglot/preference.hpp',
   'pixglot/progress-token.hpp',
   'pixglot/reader.hpp',

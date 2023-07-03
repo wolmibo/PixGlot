@@ -8,7 +8,9 @@
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/square-isometry.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <experimental/propagate_const>
 #include <string>
 #include <string_view>
 
@@ -56,8 +58,15 @@ enum class storage_type {
 
 class frame {
   public:
-    frame(pixel_buffer pixels ) : storage_{std::move(pixels )} {}
-    frame(gl_texture   texture) : storage_{std::move(texture)} {}
+    frame(const frame&)            = delete;
+    frame(frame&&) noexcept;
+    frame& operator=(const frame&) = delete;
+    frame& operator=(frame&&) noexcept;
+
+    ~frame();
+
+    frame(pixel_buffer);
+    frame(gl_texture);
 
 
 
@@ -111,17 +120,17 @@ class frame {
 
 
 
-    [[nodiscard]] square_isometry           orientation() const { return orientation_; }
-    [[nodiscard]] std::chrono::microseconds duration()    const { return duration_;    }
-    [[nodiscard]] float                     gamma()       const { return gamma_;       }
-    [[nodiscard]] alpha_mode                alpha()       const { return alpha_;       }
+    [[nodiscard]] square_isometry           orientation() const;
+    [[nodiscard]] std::chrono::microseconds duration()    const;
+    [[nodiscard]] float                     gamma()       const;
+    [[nodiscard]] alpha_mode                alpha()       const;
 
 
 
-    void orientation(square_isometry           iso     ) { orientation_ = iso;      }
-    void duration   (std::chrono::microseconds duration) { duration_    = duration; }
-    void gamma      (float                     gamma   ) { gamma_       = gamma;    }
-    void alpha      (alpha_mode                alpha   ) { alpha_       = alpha;    }
+    void orientation(square_isometry);
+    void duration   (std::chrono::microseconds);
+    void gamma      (float);
+    void alpha      (alpha_mode);
 
 
 
@@ -130,12 +139,10 @@ class frame {
       pixel_buffer,
       gl_texture
     >;
-    pixel_storage             storage_;
+    pixel_storage storage_;
 
-    square_isometry           orientation_{square_isometry::identity};
-    alpha_mode                alpha_      {alpha_mode::straight};
-    float                     gamma_      {gamma_s_rgb};
-    std::chrono::microseconds duration_   {0};
+    class impl;
+    std::experimental::propagate_const<std::unique_ptr<impl>> impl_;
 };
 
 [[nodiscard]] std::string to_string(const frame&);
