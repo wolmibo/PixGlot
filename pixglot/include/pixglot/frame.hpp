@@ -4,7 +4,8 @@
 #ifndef PIXGLOT_FRAME_HPP_INCLUDED
 #define PIXGLOT_FRAME_HPP_INCLUDED
 
-#include "pixglot/pixel-storage.hpp"
+#include "pixglot/gl-texture.hpp"
+#include "pixglot/pixel-buffer.hpp"
 #include "pixglot/square-isometry.hpp"
 
 #include <chrono>
@@ -38,6 +39,21 @@ static constexpr float gamma_linear{1.f};
 
 
 
+enum class storage_type {
+  pixel_buffer = 0,
+  gl_texture   = 1
+};
+
+[[nodiscard]] std::string_view stringify(storage_type);
+
+[[nodiscard]] inline std::string to_string(storage_type t) {
+  return std::string{stringify(t)};
+};
+
+
+
+
+
 class frame {
   public:
     frame(pixel_buffer pixels ) : storage_{std::move(pixels )} {}
@@ -45,12 +61,53 @@ class frame {
 
 
 
-    [[nodiscard]] const pixel_storage&      storage() const { return storage_;          }
-    [[nodiscard]] pixel_storage&            storage()       { return storage_;          }
+    [[nodiscard]] storage_type type() const {
+      return static_cast<storage_type>(storage_.index());
+    }
 
-    [[nodiscard]] pixel_format              format()  const { return storage_.format(); }
-    [[nodiscard]] size_t                    width()   const { return storage_.width();  }
-    [[nodiscard]] size_t                    height()  const { return storage_.height(); }
+
+
+    void reset(pixel_buffer pixels ) { storage_ = std::move(pixels);  }
+    void reset(gl_texture   texture) { storage_ = std::move(texture); }
+
+
+
+    [[nodiscard]] gl_texture&   texture() { return std::get<gl_texture  >(storage_); }
+    [[nodiscard]] pixel_buffer& pixels()  { return std::get<pixel_buffer>(storage_); }
+
+    [[nodiscard]] const gl_texture& texture() const {
+      return std::get<gl_texture>(storage_);
+    }
+
+    [[nodiscard]] const pixel_buffer& pixels() const {
+      return std::get<pixel_buffer>(storage_);
+    }
+
+
+
+    [[nodiscard]] pixel_format format() const {
+      return std::visit([](auto&& arg) { return arg.format(); }, storage_);
+    }
+
+    [[nodiscard]] size_t width() const {
+      return std::visit([](auto&& arg) { return arg.width(); }, storage_);
+    }
+
+    [[nodiscard]] size_t height() const {
+      return std::visit([](auto&& arg) { return arg.height(); }, storage_);
+    }
+
+
+
+    template<typename Fnc>
+    auto visit_storage(Fnc&& function) {
+      return std::visit(std::forward<Fnc>(function), storage_);
+    }
+
+    template<typename Fnc>
+    auto visit_storage(Fnc&& function) const {
+      return std::visit(std::forward<Fnc>(function), storage_);
+    }
 
 
 
@@ -71,6 +128,10 @@ class frame {
 
 
   private:
+    using pixel_storage = std::variant<
+      pixel_buffer,
+      gl_texture
+    >;
     pixel_storage             storage_;
 
     square_isometry           orientation_{square_isometry::identity};

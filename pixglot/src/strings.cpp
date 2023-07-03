@@ -3,7 +3,6 @@
 #include "pixglot/image.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format.hpp"
-#include "pixglot/pixel-storage.hpp"
 
 #include <string>
 #include <string_view>
@@ -109,10 +108,10 @@ std::string_view pixglot::stringify(alpha_mode a) {
 
 
 
-std::string_view pixglot::stringify(pixel_target t) {
+std::string_view pixglot::stringify(storage_type t) {
   switch (t) {
-    case pixel_target::pixel_buffer: return "pixel buffer";
-    case pixel_target::gl_texture:   return "gl texture";
+    case storage_type::pixel_buffer: return "pixel buffer";
+    case storage_type::gl_texture:   return "gl texture";
   }
   return "<invalid pixel_target>";
 }
@@ -133,16 +132,11 @@ std::string pixglot::to_string(const pixel_buffer& pixels) {
 
 
 
-std::string pixglot::to_string(const pixel_storage& storage) {
-  return to_string(storage.storage_type()) + "="
-    + storage.visit([](const auto& arg) { return to_string(arg); });
-}
-
-
-
 std::string pixglot::to_string(const frame& f) {
-  return to_string(f.storage()) + " [trafo=" + to_string(f.orientation())
-    + "; alpha=" + to_string(f.alpha()) + "; gamma=" + std::to_string(f.gamma()) + "]";
+  return f.visit_storage([](auto&& arg) { return to_string(arg); })
+    + " [trafo=" + to_string(f.orientation())
+    + "; alpha=" + to_string(f.alpha())
+    + "; gamma=" + std::to_string(f.gamma()) + "]";
 }
 
 

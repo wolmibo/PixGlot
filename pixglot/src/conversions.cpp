@@ -48,19 +48,13 @@ void pixglot::convert_gamma(image& img, float target) {
 
 
 void pixglot::convert_gamma(frame& f, float target) {
-  if (f.storage().storage_type() == pixel_target::gl_texture) {
-    convert_gamma(f.storage().texture(), f.gamma(), target);
+  if (f.type() == storage_type::gl_texture) {
+    convert_gamma(f.texture(), f.gamma(), target);
   } else {
-    f.endian(details::convert(f.storage().pixels(), f.endian(), {}, f.format(),
+    f.endian(details::convert(f.pixels(), f.endian(), {}, f.format(),
                                    0, target / f.gamma(), {}));
   }
   f.gamma(target);
-}
-
-
-
-void pixglot::convert_gamma(pixel_storage& storage, float current, float target) {
-  storage.visit([current, target](auto& arg) { convert_gamma(arg, current, target); });
 }
 
 
@@ -86,16 +80,10 @@ void pixglot::convert_endian(image& img, std::endian target) {
 
 
 void pixglot::convert_endian(frame& f, std::endian target) {
-  convert_endian(f.storage(), f.endian(), target);
-  f.endian(target);
-}
-
-
-
-void pixglot::convert_endian(pixel_storage& ps, std::endian src, std::endian tgt) {
-  if (ps.storage_type() == pixel_target::pixel_buffer && src != tgt) {
-    details::apply_byte_swap(ps.pixels());
+  if (f.type() == storage_type::pixel_buffer && f.endian() != target) {
+    details::apply_byte_swap(f.pixels());
   }
+  f.endian(target);
 }
 
 
@@ -117,18 +105,10 @@ void pixglot::convert_orientation(image& img, square_isometry target) {
 
 
 void pixglot::convert_orientation(frame& f, square_isometry target) {
-  convert_orientation(f.storage(), f.orientation(), target);
+  f.visit_storage([src=f.orientation(), target](auto& arg) {
+      convert_orientation(arg, src, target);
+  });
   f.orientation(target);
-}
-
-
-
-void pixglot::convert_orientation(
-    pixel_storage&  storage,
-    square_isometry src,
-    square_isometry tgt
-) {
-  storage.visit([src, tgt](auto& arg) { convert_orientation(arg, src, tgt); });
 }
 
 
@@ -161,34 +141,29 @@ void pixglot::convert_orientation(
 
 
 
-void pixglot::convert_storage(image& img, pixel_target target) {
+void pixglot::convert_storage(image& img, storage_type target) {
   convert_image(img, convert_storage, target);
 }
 
 
 
-void pixglot::convert_storage(frame& frm, pixel_target target) {
-  if (target == pixel_target::gl_texture && frm.endian() != std::endian::native) {
-    convert_endian(frm, std::endian::native);
-  }
-  convert_storage(frm.storage(), target);
-}
-
-
-
-void pixglot::convert_storage(pixel_storage& storage, pixel_target target) {
-  if (storage.storage_type() == target) {
+void pixglot::convert_storage(frame& frm, storage_type target) {
+  if (frm.type() == target) {
     return;
   }
 
-  if (storage.storage_type() == pixel_target::pixel_buffer) {
-    if (target == pixel_target::gl_texture) {
-      storage = gl_texture(storage.pixels());
+  if (target == storage_type::gl_texture && frm.endian() != std::endian::native) {
+    convert_endian(frm, std::endian::native);
+  }
+
+  if (frm.type() == storage_type::pixel_buffer) {
+    if (target == storage_type::gl_texture) {
+      frm.reset(gl_texture(frm.pixels()));
     }
 
-  } else if (storage.storage_type() == pixel_target::gl_texture) {
-    if (target == pixel_target::pixel_buffer) {
-      storage = storage.texture().download();
+  } else if (frm.type() == storage_type::gl_texture) {
+    if (target == storage_type::pixel_buffer) {
+      frm.reset(frm.texture().download());
     }
   }
 }

@@ -29,7 +29,7 @@ class decoder {
     void finish_frame(frame);
 
     [[nodiscard]] pixel_buffer& target() {
-      return current_frame_.value().storage().pixels();
+      return current_frame_.value().pixels();
     }
 
     [[nodiscard]] pixglot::image& image() {

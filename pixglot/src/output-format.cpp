@@ -4,7 +4,6 @@
 #include "pixglot/image.hpp"
 #include "pixglot/output-format.hpp"
 #include "pixglot/pixel-format.hpp"
-#include "pixglot/pixel-storage.hpp"
 #include "pixglot/preference.hpp"
 #include "pixglot/square-isometry.hpp"
 
@@ -19,7 +18,7 @@ using namespace pixglot;
 
 output_format output_format::standard() {
   return output_format {
-    .target = pixel_target::pixel_buffer,
+    .target             = storage_type::pixel_buffer,
     .expand_gray_to_rgb = true,
     .add_alpha          = true,
     .component_type     = data_format::u8,
@@ -96,7 +95,7 @@ bool output_format::satisfied_by(const frame& f) const {
     && gamma.satisfied_by(f.gamma())
     && orientation.satisfied_by(f.orientation())
     && endianess.satisfied_by(f.endian())
-    && target.satisfied_by(f.storage().storage_type());
+    && target.satisfied_by(f.type());
 }
 
 
@@ -107,7 +106,7 @@ bool output_format::preference_satisfied_by(const frame& f) const {
     && gamma.preference_satisfied_by(f.gamma())
     && orientation.preference_satisfied_by(f.orientation())
     && endianess.preference_satisfied_by(f.endian())
-    && target.preference_satisfied_by(f.storage().storage_type());
+    && target.preference_satisfied_by(f.type());
 }
 
 
@@ -187,17 +186,16 @@ namespace {
       square_isometry      transform
   ) {
     if (fmt.target.level() == preference_level::require) {
-      convert_storage(f.storage(), *fmt.target);
+      convert_storage(f, *fmt.target);
     }
 
-    if (f.storage().storage_type() == pixel_target::gl_texture) {
-      details::convert(f.storage().texture(),
-          target_format, premultiply, gamma, transform);
+    if (f.type() == storage_type::gl_texture) {
+      details::convert(f.texture(), target_format, premultiply, gamma, transform);
     } else {
       auto target_endian = fmt.endianess.level() == preference_level::require ?
         std::optional{*fmt.endianess} : std::nullopt;
 
-      auto endian = details::convert(f.storage().pixels(), f.endian(), target_endian,
+      auto endian = details::convert(f.pixels(), f.endian(), target_endian,
           target_format, premultiply, gamma, transform);
 
       f.endian(endian);

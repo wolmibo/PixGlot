@@ -6,7 +6,6 @@
 
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-format.hpp"
-#include "pixglot/pixel-storage.hpp"
 #include "pixglot/preference.hpp"
 #include "pixglot/square-isometry.hpp"
 
@@ -17,7 +16,7 @@ namespace pixglot {
 class image;
 
 struct output_format {
-  preference<pixel_target>    target;
+  preference<storage_type>    target;
 
   preference<bool>            expand_gray_to_rgb;
   preference<bool>            add_alpha;
