@@ -211,7 +211,8 @@ namespace {
           frame.duration(std::chrono::microseconds{webp_frame.duration * 1000});
 
           webp_decoder_config config{&webp_frame, decoder_->target(),
-                decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)};
+                decoder_->output_format().alpha_mode()
+                  .prefers(alpha_mode::premultiplied)};
 
           frame.alpha(config.alpha());
 

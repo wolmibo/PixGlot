@@ -132,7 +132,7 @@ namespace {
         endian_strategy_ = create_endian_strategy(); // NOLINT(*initializer)
 
 
-        if (!decoder_->output_format().orientation.prefers(square_isometry::identity)) {
+        if (!decoder_->output_format().orientation().prefers(square_isometry::identity)) {
           assert_jxl(JxlDecoderSetKeepOrientation(jxl_.get(), JXL_TRUE),
             "unable to take responsibility for image orientation");
         }
@@ -173,7 +173,8 @@ namespace {
 
 
       [[nodiscard]] alpha_mode create_alpha_strategy() {
-        auto straight = decoder_->output_format().alpha.prefers(alpha_mode::straight);
+        auto straight = decoder_->output_format().alpha_mode()
+                            .prefers(alpha_mode::straight);
 
         assert_jxl(JxlDecoderSetUnpremultiplyAlpha(jxl_.get(), static_cast<int>(straight)),
           "unable to request alpha mode");
@@ -295,7 +296,7 @@ namespace {
 
 
       [[nodiscard]] std::endian create_endian_strategy() const {
-        if (auto endian = decoder_->output_format().endianess; endian.has_preference()) {
+        if (auto endian = decoder_->output_format().endian()) {
           return endian.value();
         }
         return std::endian::native;
@@ -314,13 +315,14 @@ namespace {
 
       [[nodiscard]] color_channels select_color_channels(const JxlBasicInfo& info) const {
         if (info.num_color_channels == 1 &&
-          !decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
-          if (info.alpha_bits > 0 || decoder_->output_format().add_alpha.prefers(true)) {
+          !decoder_->output_format().expand_gray_to_rgb().prefers(true)) {
+          if (info.alpha_bits > 0 ||
+              decoder_->output_format().fill_alpha().prefers(true)) {
             return color_channels::gray_a;
           }
           return color_channels::gray;
         }
-        if (info.alpha_bits > 0 || decoder_->output_format().add_alpha.prefers(true)) {
+        if (info.alpha_bits > 0 || decoder_->output_format().fill_alpha().prefers(true)) {
           return color_channels::rgba;
         }
         return color_channels::rgb;
@@ -329,7 +331,7 @@ namespace {
 
 
       [[nodiscard]] data_format select_data_format(const JxlBasicInfo& info) const {
-        if (auto comp = decoder_->output_format().component_type; comp.has_preference()) {
+        if (auto comp = decoder_->output_format().data_format()) {
           switch (auto val = comp.value()) {
             case data_format::u8:
             case data_format::u16:

@@ -84,7 +84,7 @@ namespace {
       explicit avif_rgb_image(avifImage* image, const output_format& out) {
         avifRGBImageSetDefaults(&rgb_, image);
 
-        rgb_.format = (image->alphaPlane == nullptr && !out.add_alpha.prefers(true))
+        rgb_.format = (image->alphaPlane == nullptr && !out.fill_alpha().prefers(true))
                         ? AVIF_RGB_FORMAT_RGB : AVIF_RGB_FORMAT_RGBA;
         try_satisfy_preferences(out);
 
@@ -173,18 +173,18 @@ namespace {
 
 
       void try_satisfy_preferences(const output_format& out) {
-        if (out.alpha.prefers(alpha_mode::straight)) {
+        if (out.alpha_mode().prefers(alpha_mode::straight)) {
           rgb_.alphaPremultiplied = AVIF_FALSE;
-        } else if (out.alpha.prefers(alpha_mode::premultiplied)) {
+        } else if (out.alpha_mode().prefers(alpha_mode::premultiplied)) {
           rgb_.alphaPremultiplied = AVIF_TRUE;
         }
 
 
-        if (out.component_type.prefers(data_format::f16)) {
+        if (out.data_format().prefers(data_format::f16)) {
           rgb_.isFloat = AVIF_TRUE;
           rgb_.depth   = 16;
-        } else if (out.component_type.prefers(data_format::u16) ||
-            (!out.component_type.prefers(data_format::u8) && rgb_.depth > 8)) {
+        } else if (out.data_format().prefers(data_format::u16) ||
+            (!out.data_format().prefers(data_format::u8) && rgb_.depth > 8)) {
           rgb_.isFloat = AVIF_FALSE;
           rgb_.depth   = 16;
         } else {

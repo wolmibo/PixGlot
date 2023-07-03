@@ -45,10 +45,14 @@ class preference {
 
 
 
-    [[nodiscard]] operator bool()       const { return has_preference(); }
+    [[nodiscard]] operator bool()       const { return preferred(); }
 
-    [[nodiscard]] bool has_preference() const {
+    [[nodiscard]] bool preferred() const {
       return level_ != preference_level::whatever;
+    }
+
+    [[nodiscard]] bool required() const {
+      return level_ == preference_level::require;
     }
 
 
@@ -62,7 +66,7 @@ class preference {
 
 
     [[nodiscard]] bool prefers(const T& other) const {
-      return has_preference() && value_ == other;
+      return preferred() && value_ == other;
     }
 
     [[nodiscard]] bool require(const T& other) const {

@@ -180,7 +180,7 @@ namespace {
         }
 
         if ((color_type & PNG_COLOR_MASK_COLOR) == 0 &&
-          decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
+          decoder_->output_format().expand_gray_to_rgb().prefers(true)) {
           png_set_gray_to_rgb(png.ptr);
 
           png_color_type_add_color(color_type);
@@ -192,7 +192,7 @@ namespace {
           png_color_type_add_alpha(color_type);
         }
 
-        if (decoder_->output_format().add_alpha.prefers(true)) {
+        if (decoder_->output_format().fill_alpha().prefers(true)) {
           png_set_add_alpha(png.ptr, 0xffff, PNG_FILLER_AFTER);
 
           png_color_type_add_alpha(color_type);
@@ -213,7 +213,7 @@ namespace {
 
       [[nodiscard]] alpha_mode make_alpha_mode_compatible(color_channels cc) {
         if (has_alpha(cc)) {
-          if (decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)) {
+          if (decoder_->output_format().alpha_mode().prefers(alpha_mode::premultiplied)) {
             png_set_alpha_mode(png.ptr, PNG_ALPHA_PREMULTIPLIED, PNG_GAMMA_LINEAR);
 
             return alpha_mode::premultiplied;
@@ -227,7 +227,7 @@ namespace {
 
       [[nodiscard]] std::endian make_endian_compatible(data_format df) {
         if (byte_size(df) > 1 &&
-            decoder_->output_format().endianess.prefers(std::endian::little)) {
+            decoder_->output_format().endian().prefers(std::endian::little)) {
           png_set_swap(png.ptr);
           return std::endian::little;
         }
@@ -248,14 +248,14 @@ namespace {
         }
 
         if (bit_depth == 8) {
-          if (decoder_->output_format().component_type.prefers(data_format::u16)) {
+          if (decoder_->output_format().data_format().prefers(data_format::u16)) {
             png_set_expand_16(png.ptr);
             return data_format::u16;
           }
           return data_format::u8;
         }
         if (bit_depth == 16) {
-          if (decoder_->output_format().component_type.prefers(data_format::u8)) {
+          if (decoder_->output_format().data_format().prefers(data_format::u8)) {
             png_set_strip_16(png.ptr);
             return data_format::u8;
           }

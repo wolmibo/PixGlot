@@ -421,15 +421,15 @@ namespace {
 
 
       [[nodiscard]] pixel_format make_colorspace_compatible() {
-        if (decoder_->output_format().gamma.has_preference()) {
-          cinfo_->output_gamma = *decoder_->output_format().gamma;
+        if (decoder_->output_format().gamma().preferred()) {
+          cinfo_->output_gamma = *decoder_->output_format().gamma();
         }
 
         if (cinfo_->num_components != 1
-            || decoder_->output_format().expand_gray_to_rgb.prefers(true)) {
+            || decoder_->output_format().expand_gray_to_rgb().prefers(true)) {
           cinfo_->out_color_space = JCS_RGB;
 #ifdef JCS_ALPHA_EXTENSIONS
-          if (decoder_->output_format().add_alpha.prefers(true)) {
+          if (decoder_->output_format().fill_alpha().prefers(true)) {
             cinfo_->out_color_space = JCS_EXT_RGBA;
           }
 #endif

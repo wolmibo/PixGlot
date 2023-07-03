@@ -175,10 +175,10 @@ namespace {
       color_channels       cc,
       const output_format& format
   ) {
-    if (format.expand_gray_to_rgb.prefers(true)) {
+    if (format.expand_gray_to_rgb().prefers(true)) {
       cc = add_color(cc);
     }
-    if (format.add_alpha.prefers(true)) {
+    if (format.fill_alpha().prefers(true)) {
       cc = add_alpha(cc);
     }
     return cc;

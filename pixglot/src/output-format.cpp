@@ -8,177 +8,299 @@
 #include "pixglot/square-isometry.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <optional>
 
 using namespace pixglot;
 
 
 
+class output_format::impl {
+  public:
+    preference<pixglot::storage_type> storage_type;
+
+    preference<bool>                  expand_gray_to_rgb;
+    preference<bool>                  fill_alpha;
+    preference<pixglot::data_format>  data_format;
+
+    preference<pixglot::alpha_mode>   alpha_mode;
+    preference<float>                 gamma;
+    preference<std::endian>           endian;
+
+    preference<square_isometry>       orientation;
+
+
+
+    void make_standard() {
+      storage_type       = storage_type::pixel_buffer;
+      expand_gray_to_rgb = true;
+      fill_alpha         = true;
+      data_format        = data_format::u8;
+      alpha_mode         = alpha_mode::straight;
+      gamma              = gamma_s_rgb;
+      endian             = std::endian::native;
+      orientation        = square_isometry{};
+    }
+
+
+
+    void enforce() {
+      storage_type.enforce();
+      expand_gray_to_rgb.enforce();
+      fill_alpha.enforce();
+      data_format.enforce();
+      alpha_mode.enforce();
+      gamma.enforce();
+      endian.enforce();
+      orientation.enforce();
+    }
+
+
+    
+    [[nodiscard]] bool satisfied_by(const image& img) const {
+      return std::ranges::all_of(img.frames(), [this](const auto& f) {
+          return satisfied_by(f);
+      }); 
+    }
+
+
+
+    [[nodiscard]] bool satisfied_by(const frame& f) const {
+      return satisfied_by(f.format()) &&
+        gamma.satisfied_by(f.gamma()) &&
+        orientation.satisfied_by(f.orientation()) &&
+        storage_type.satisfied_by(f.type()) &&
+        (f.type() != storage_type::pixel_buffer ||
+         endian.satisfied_by(f.pixels().endian())) &&
+        (f.alpha() == alpha_mode::none ||
+         alpha_mode.satisfied_by(f.alpha()));
+    }
+
+
+
+    [[nodiscard]] bool satisfied_by(pixel_format format) const {
+      return satisfied_by(format.channels) &&
+        data_format.satisfied_by(format.format);
+    }
+
+
+
+    [[nodiscard]] bool satisfied_by(color_channels cc) const {
+      return
+        (has_alpha(cc) || !*fill_alpha         || !fill_alpha.required()        ) &&
+        (has_color(cc) || !*expand_gray_to_rgb || !expand_gray_to_rgb.required());
+    }
+
+
+
+    template<typename T>
+    [[nodiscard]] bool preference_satisfied_by(T&& obj) const {
+      auto enforced = *this;
+      enforced.enforce();
+
+      return enforced.satisfied_by(std::forward<T>(obj));
+    }
+};
+
+
+
+
+output_format::output_format(output_format&&) noexcept = default;
+
+output_format::output_format(const output_format& rhs) :
+  impl_{std::make_unique<impl>(*rhs.impl_)}
+{}
+
+
+
+output_format& output_format::operator=(output_format&&) noexcept = default;
+
+output_format& output_format::operator=(const output_format& rhs) {
+  impl_ = std::make_unique<impl>(*rhs.impl_);
+  return *this;
+}
+
+
+
+output_format::~output_format() = default;
+
+
+
+output_format::output_format() :
+  impl_{std::make_unique<impl>()}
+{}
+
+
+
 
 
 output_format output_format::standard() {
-  return output_format {
-    .target             = storage_type::pixel_buffer,
-    .expand_gray_to_rgb = true,
-    .add_alpha          = true,
-    .component_type     = data_format::u8,
-    .alpha              = alpha_mode::straight,
-    .gamma              = gamma_s_rgb,
-    .endianess          = std::endian::native,
-    .orientation        = square_isometry{}
-  };
+  output_format def;
+  def.impl_->make_standard();
+  return def;
 }
 
 
 
 
 
-void output_format::enforce() {
-  target.enforce();
-  expand_gray_to_rgb.enforce();
-  add_alpha.enforce();
-  component_type.enforce();
-  alpha.enforce();
-  gamma.enforce();
-  endianess.enforce();
-  orientation.enforce();
+void output_format::storage_type(preference<pixglot::storage_type> pref) {
+  impl_->storage_type = pref;
 }
+
+void output_format::data_format(preference<pixglot::data_format> pref) {
+  impl_->data_format = pref;
+}
+
+void output_format::endian(preference<std::endian> pref) {
+  impl_->endian = pref;
+}
+
+void output_format::expand_gray_to_rgb(preference<bool> pref) {
+  impl_->expand_gray_to_rgb = pref;
+}
+
+void output_format::fill_alpha(preference<bool> pref) {
+  impl_->fill_alpha = pref;
+}
+
+void output_format::alpha_mode(preference<pixglot::alpha_mode> pref) {
+  impl_->alpha_mode = pref;
+}
+
+void output_format::gamma(preference<float> pref) {
+  impl_->gamma = pref;
+}
+
+void output_format::orientation(preference<square_isometry> pref) {
+  impl_->orientation = pref;
+}
+
+
+
+
+
+const preference<storage_type>& output_format::storage_type() const {
+  return impl_->storage_type;
+}
+
+preference<storage_type>& output_format::storage_type() {
+  return impl_->storage_type;
+}
+
+
+
+const preference<data_format>& output_format::data_format() const {
+  return impl_->data_format;
+}
+
+preference<data_format>& output_format::data_format() {
+  return impl_->data_format;
+}
+
+
+
+const preference<std::endian>& output_format::endian() const {
+  return impl_->endian;
+}
+
+preference<std::endian>& output_format::endian() {
+  return impl_->endian;
+}
+
+
+
+const preference<bool>& output_format::expand_gray_to_rgb() const {
+  return impl_->expand_gray_to_rgb;
+}
+
+preference<bool>& output_format::expand_gray_to_rgb() {
+  return impl_->expand_gray_to_rgb;
+}
+
+
+
+const preference<bool>& output_format::fill_alpha() const {
+  return impl_->fill_alpha;
+}
+
+preference<bool>& output_format::fill_alpha() {
+  return impl_->fill_alpha;
+}
+
+
+
+const preference<alpha_mode>& output_format::alpha_mode() const {
+  return impl_->alpha_mode;
+}
+
+preference<alpha_mode>& output_format::alpha_mode() {
+  return impl_->alpha_mode;
+}
+
+
+
+const preference<float>& output_format::gamma() const {
+  return impl_->gamma;
+}
+
+preference<float>& output_format::gamma() {
+  return impl_->gamma;
+}
+
+
+
+const preference<square_isometry>& output_format::orientation() const {
+  return impl_->orientation;
+}
+
+preference<square_isometry>& output_format::orientation() {
+  return impl_->orientation;
+}
+
+
+
+
+
+
+void output_format::enforce() { impl_->enforce(); }
 
 
 
 
 
 bool output_format::satisfied_by(const image& img) const {
-  return std::ranges::all_of(
-    img.frames(),
-    [this](const auto& f) {
-      return satisfied_by(f);
-    }
-  );
+  return impl_->satisfied_by(img);
+}
+
+bool output_format::satisfied_by(const frame& f) const {
+  return impl_->satisfied_by(f);
+}
+
+bool output_format::satisfied_by(pixel_format pf) const {
+  return impl_->satisfied_by(pf);
+}
+
+bool output_format::satisfied_by(color_channels cc) const {
+  return impl_->satisfied_by(cc);
 }
 
 
 
 bool output_format::preference_satisfied_by(const image& img) const {
-  return std::ranges::all_of(
-    img.frames(),
-    [this](const auto& f) {
-      return preference_satisfied_by(f);
-    }
-  );
+  return impl_->preference_satisfied_by(img);
 }
-
-
-
-
-
-namespace {
-  [[nodiscard]] bool alpha_satisfied_by(preference<alpha_mode> pref, alpha_mode alpha) {
-    return alpha == alpha_mode::none || pref.satisfied_by(alpha);
-  }
-
-
-
-  [[nodiscard]] bool alpha_preference_satisfied_by(
-      preference<alpha_mode> pref,
-      alpha_mode             alpha
-  ) {
-    return alpha == alpha_mode::none || pref.preference_satisfied_by(alpha);
-  }
-
-
-
-
-
-  [[nodiscard]] bool endian_satisfied_by(preference<std::endian> pref, const frame& f) {
-    return f.type() != storage_type::pixel_buffer
-      || pref.satisfied_by(f.pixels().endian());
-  }
-
-
-
-  [[nodiscard]] bool endian_preference_satisfied_by(
-      preference<std::endian> pref,
-      const frame&            f
-  ) {
-    return f.type() != storage_type::pixel_buffer
-      || pref.preference_satisfied_by(f.pixels().endian());
-  }
-}
-
-
-
-bool output_format::satisfied_by(const frame& f) const {
-  return satisfied_by(f.format())
-    && alpha_satisfied_by(alpha, f.alpha())
-    && gamma.satisfied_by(f.gamma())
-    && orientation.satisfied_by(f.orientation())
-    && endian_satisfied_by(endianess, f)
-    && target.satisfied_by(f.type());
-}
-
-
 
 bool output_format::preference_satisfied_by(const frame& f) const {
-  return preference_satisfied_by(f.format())
-    && alpha_preference_satisfied_by(alpha, f.alpha())
-    && gamma.preference_satisfied_by(f.gamma())
-    && orientation.preference_satisfied_by(f.orientation())
-    && endian_preference_satisfied_by(endianess, f)
-    && target.preference_satisfied_by(f.type());
+  return impl_->preference_satisfied_by(f);
 }
 
-
-
-
-
-namespace {
-  [[nodiscard]] bool expand_gray_to_rgb_satisfied_by(
-      preference<bool> expand,
-      color_channels   cc
-  ) {
-    return has_color(cc) || !*expand || expand.level() != preference_level::require;
-  }
-
-
-
-  [[nodiscard]] bool expand_gray_to_rgb_preference_satisfied_by(
-      preference<bool> expand,
-      color_channels   cc
-  ) {
-    return has_color(cc) || !*expand || expand.level() == preference_level::whatever;
-  }
-
-
-
-  [[nodiscard]] bool add_alpha_satisfied_by(preference<bool> add, color_channels cc) {
-    return has_alpha(cc) || !*add || add.level() != preference_level::require;
-  }
-
-
-
-  [[nodiscard]] bool add_alpha_preference_satisfied_by(
-      preference<bool> add,
-      color_channels   cc
-  ) {
-    return has_alpha(cc) || !*add || add.level() == preference_level::whatever;
-  }
+bool output_format::preference_satisfied_by(pixel_format pf) const {
+  return impl_->preference_satisfied_by(pf);
 }
 
-
-
-bool output_format::satisfied_by(const pixel_format& fmt) const {
-  return component_type.satisfied_by(fmt.format)
-    && expand_gray_to_rgb_satisfied_by(expand_gray_to_rgb, fmt.channels)
-    && add_alpha_satisfied_by(add_alpha, fmt.channels);
-}
-
-
-
-bool output_format::preference_satisfied_by(const pixel_format& fmt) const {
-  return component_type.preference_satisfied_by(fmt.format)
-    && expand_gray_to_rgb_preference_satisfied_by(expand_gray_to_rgb, fmt.channels)
-    && add_alpha_preference_satisfied_by(add_alpha, fmt.channels);
+bool output_format::preference_satisfied_by(color_channels cc) const {
+  return impl_->preference_satisfied_by(cc);
 }
 
 
@@ -204,15 +326,15 @@ namespace {
       float                gamma,
       square_isometry      transform
   ) {
-    if (fmt.target.level() == preference_level::require) {
-      convert_storage(f, *fmt.target);
+    if (fmt.storage_type().required()) {
+      convert_storage(f, *fmt.storage_type());
     }
 
     if (f.type() == storage_type::gl_texture) {
       details::convert(f.texture(), target_format, premultiply, gamma, transform);
     } else {
-      auto target_endian = fmt.endianess.level() == preference_level::require ?
-        std::optional{*fmt.endianess} : std::nullopt;
+      auto target_endian = fmt.endian().required() ? 
+        std::optional{*fmt.endian()} : std::nullopt;
 
       details::convert(f.pixels(), target_endian,
           target_format, premultiply, gamma, transform);
@@ -223,19 +345,20 @@ namespace {
 
   void make_compatible(frame& f, const output_format& fmt) {
     square_isometry transform{};
-    if (fmt.orientation.level() == preference_level::require) {
-      transform = inverse(*fmt.orientation) * f.orientation();
-      f.orientation(*fmt.orientation);
+    if (fmt.orientation().required()) {
+      transform = inverse(*fmt.orientation()) * f.orientation();
+      f.orientation(*fmt.orientation());
     }
 
 
     int premultiply{};
-    if (fmt.alpha.level() == preference_level::require) {
-      if (f.alpha() == alpha_mode::straight && *fmt.alpha == alpha_mode::premultiplied) {
+    if (fmt.alpha_mode().required()) {
+      if (f.alpha() == alpha_mode::straight &&
+          *fmt.alpha_mode() == alpha_mode::premultiplied) {
         premultiply = 1;
         f.alpha(alpha_mode::premultiplied);
       } else if (f.alpha() == alpha_mode::premultiplied
-                 && *fmt.alpha == alpha_mode::straight) {
+                 && *fmt.alpha_mode() == alpha_mode::straight) {
         premultiply = -1;
         f.alpha(alpha_mode::straight);
       }
@@ -243,29 +366,29 @@ namespace {
 
 
     float gamma{1.f};
-    if (fmt.gamma.level() == preference_level::require) {
-      gamma = f.gamma() / *fmt.gamma;
-      f.gamma(*fmt.gamma);
+    if (fmt.gamma().required()) {
+      gamma = f.gamma() / *fmt.gamma();
+      f.gamma(*fmt.gamma());
     }
 
 
     auto target_format = f.format();
-    if (fmt.add_alpha.level() == preference_level::require) {
+    if (fmt.fill_alpha().required()) {
       target_format.channels = add_alpha(target_format.channels);
 
       if (f.alpha() == alpha_mode::none) {
-        if (fmt.alpha.has_preference()) {
-          f.alpha(*fmt.alpha);
+        if (fmt.alpha_mode().preferred()) {
+          f.alpha(*fmt.alpha_mode());
         } else {
           f.alpha(alpha_mode::straight);
         }
       }
     }
-    if (fmt.expand_gray_to_rgb.level() == preference_level::require) {
+    if (fmt.expand_gray_to_rgb().required()) {
       target_format.channels = add_color(target_format.channels);
     }
-    if (fmt.component_type.level() == preference_level::require) {
-      target_format.format = *fmt.component_type;
+    if (fmt.data_format().required()) {
+      target_format.format = *fmt.data_format();
     }
 
 

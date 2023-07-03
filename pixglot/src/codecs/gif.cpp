@@ -441,7 +441,7 @@ namespace {
 
 
       [[nodiscard]] alpha_mode get_preferred_alpha_mode() const {
-        if (decoder_->output_format().alpha.prefers(alpha_mode::premultiplied)) {
+        if (decoder_->output_format().alpha_mode().prefers(alpha_mode::premultiplied)) {
           return alpha_mode::premultiplied;
         }
         return alpha_mode::straight;
