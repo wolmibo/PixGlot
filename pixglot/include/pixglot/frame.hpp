@@ -8,7 +8,6 @@
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/square-isometry.hpp"
 
-#include <algorithm>
 #include <chrono>
 #include <experimental/propagate_const>
 #include <string>
