@@ -229,9 +229,10 @@ namespace {
         auto& frame = decoder_->begin_frame(
             pixel_buffer{info_.xsize, info_.ysize, select_pixel_format(info_)});
 
-        frame.duration(convert_duration(info_, frame_header_.duration));
-        frame.alpha   (get_alpha_mode(info_));
-        frame.endian  (endian_strategy_);
+        frame.orientation(unwrap_orientation(convert_orientation(info_.orientation)));
+        frame.duration   (convert_duration(info_, frame_header_.duration));
+        frame.endian     (endian_strategy_);
+        frame.alpha      (get_alpha_mode(info_));
 
         auto format = convert_pixel_format(decoder_->target().format());
 
