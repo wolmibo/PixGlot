@@ -408,7 +408,7 @@ namespace {
           pixel_buffer pixels{cinfo_->image_width, cinfo_->image_height, pf};
 
           auto& frame = decoder_->begin_frame(std::move(pixels));
-          frame.alpha      (alpha_mode::none);
+          frame.alpha_mode (alpha_mode::none);
           frame.orientation(orientation_);
 
           transfer_data(decoder_->target());

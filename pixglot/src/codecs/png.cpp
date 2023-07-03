@@ -128,7 +128,7 @@ namespace {
         png_read_update_info(png.ptr, png.info);
 
         auto& frame = decoder_->begin_frame(std::move(buffer));
-        frame.alpha(alpha);
+        frame.alpha_mode(alpha);
 
         transfer_data(decoder_->target());
 

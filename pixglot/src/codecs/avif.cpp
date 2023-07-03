@@ -267,7 +267,7 @@ namespace {
 
           frame frame{rgb.take_pixels()};
           frame.orientation(isometry_from(dec_->image));
-          frame.alpha      (rgb.to_alpha_mode());
+          frame.alpha_mode (rgb.to_alpha_mode());
           frame.duration   (std::chrono::microseconds{
                               static_cast<long int>(dec_->duration) * time_multi});
 

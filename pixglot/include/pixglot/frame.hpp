@@ -122,14 +122,14 @@ class frame {
     [[nodiscard]] square_isometry           orientation() const;
     [[nodiscard]] std::chrono::microseconds duration()    const;
     [[nodiscard]] float                     gamma()       const;
-    [[nodiscard]] alpha_mode                alpha()       const;
+    [[nodiscard]] pixglot::alpha_mode       alpha_mode()  const;
 
 
 
     void orientation(square_isometry);
     void duration   (std::chrono::microseconds);
     void gamma      (float);
-    void alpha      (alpha_mode);
+    void alpha_mode (pixglot::alpha_mode);
 
 
 

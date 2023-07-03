@@ -229,7 +229,7 @@ namespace {
 
         frame.orientation(unwrap_orientation(convert_orientation(info_.orientation)));
         frame.duration   (convert_duration(info_, frame_header_.duration));
-        frame.alpha      (get_alpha_mode(info_));
+        frame.alpha_mode (get_alpha_mode(info_));
 
         auto format = convert_pixel_format(decoder_->target().format());
 

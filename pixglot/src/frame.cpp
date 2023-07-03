@@ -9,10 +9,10 @@ using std::chrono::microseconds;
 
 class frame::impl {
   public:
-    square_isometry orientation{square_isometry::identity};
-    alpha_mode      alpha      {alpha_mode::straight};
-    float           gamma      {gamma_s_rgb};
-    microseconds    duration   {0};
+    square_isometry     orientation{square_isometry::identity};
+    pixglot::alpha_mode alpha_mode {alpha_mode::straight};
+    float               gamma      {gamma_s_rgb};
+    microseconds        duration   {0};
 };
 
 
@@ -41,14 +41,14 @@ frame::frame(gl_texture texture) :
 
 
 
-square_isometry frame::orientation() const { return impl_->orientation; }
-microseconds    frame::duration()    const { return impl_->duration;    }
-float           frame::gamma()       const { return impl_->gamma;       }
-alpha_mode      frame::alpha()       const { return impl_->alpha;       }
+square_isometry     frame::orientation() const { return impl_->orientation; }
+microseconds        frame::duration()    const { return impl_->duration;    }
+float               frame::gamma()       const { return impl_->gamma;       }
+pixglot::alpha_mode frame::alpha_mode()  const { return impl_->alpha_mode;  }
 
 
 
-void frame::orientation(square_isometry iso     ) { impl_->orientation = iso;      }
-void frame::duration   (microseconds    duration) { impl_->duration    = duration; }
-void frame::gamma      (float           gamma   ) { impl_->gamma       = gamma;    }
-void frame::alpha      (alpha_mode      alpha   ) { impl_->alpha       = alpha;    }
+void frame::orientation(square_isometry     iso     ) { impl_->orientation = iso;      }
+void frame::duration   (microseconds        duration) { impl_->duration    = duration; }
+void frame::gamma      (float               gamma   ) { impl_->gamma       = gamma;    }
+void frame::alpha_mode (pixglot::alpha_mode alpha   ) { impl_->alpha_mode  = alpha;    }

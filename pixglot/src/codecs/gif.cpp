@@ -394,8 +394,8 @@ namespace {
 
         auto& frame = decoder_->begin_frame(
             pixel_buffer{width_, height_, rgba<u8>::format()});
-        frame.alpha   (get_preferred_alpha_mode());
-        frame.duration(meta.duration());
+        frame.alpha_mode(get_preferred_alpha_mode());
+        frame.duration  (meta.duration());
 
         transfer_pixels_over_background(*decoder_, img, palette, *background);
 

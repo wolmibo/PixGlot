@@ -482,7 +482,7 @@ namespace {
             header_.format, current_endianess()});
 
         frame.orientation(current_orientation());
-        frame.alpha      (alpha_mode::none);
+        frame.alpha_mode (alpha_mode::none);
 
         if (header_.ascii) {
           transfer_ascii(decoder_->target());

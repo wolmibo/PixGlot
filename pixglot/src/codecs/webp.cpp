@@ -214,7 +214,7 @@ namespace {
                 decoder_->output_format().alpha_mode()
                   .prefers(alpha_mode::premultiplied)};
 
-          frame.alpha(config.alpha());
+          frame.alpha_mode(config.alpha());
 
 
           if (WebPDecode(webp_frame.fragment.bytes, webp_frame.fragment.size,

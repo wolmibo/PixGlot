@@ -363,7 +363,7 @@ namespace {
 
         auto& frame = decoder_->begin_frame(std::move(buffer));
         frame.gamma(gamma_linear);
-        frame.alpha(has_alpha(frame.format().channels) ?
+        frame.alpha_mode(has_alpha(frame.format().channels) ?
             alpha_mode::premultiplied : alpha_mode::none);
 
 

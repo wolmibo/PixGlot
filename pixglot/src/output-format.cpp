@@ -72,8 +72,8 @@ class output_format::impl {
         storage_type.satisfied_by(f.type()) &&
         (f.type() != storage_type::pixel_buffer ||
          endian.satisfied_by(f.pixels().endian())) &&
-        (f.alpha() == alpha_mode::none ||
-         alpha_mode.satisfied_by(f.alpha()));
+        (f.alpha_mode() == alpha_mode::none ||
+         alpha_mode.satisfied_by(f.alpha_mode()));
     }
 
 
@@ -353,14 +353,14 @@ namespace {
 
     int premultiply{};
     if (fmt.alpha_mode().required()) {
-      if (f.alpha() == alpha_mode::straight &&
+      if (f.alpha_mode() == alpha_mode::straight &&
           *fmt.alpha_mode() == alpha_mode::premultiplied) {
         premultiply = 1;
-        f.alpha(alpha_mode::premultiplied);
-      } else if (f.alpha() == alpha_mode::premultiplied
+        f.alpha_mode(alpha_mode::premultiplied);
+      } else if (f.alpha_mode() == alpha_mode::premultiplied
                  && *fmt.alpha_mode() == alpha_mode::straight) {
         premultiply = -1;
-        f.alpha(alpha_mode::straight);
+        f.alpha_mode(alpha_mode::straight);
       }
     }
 
@@ -376,11 +376,11 @@ namespace {
     if (fmt.fill_alpha().required()) {
       target_format.channels = add_alpha(target_format.channels);
 
-      if (f.alpha() == alpha_mode::none) {
+      if (f.alpha_mode() == alpha_mode::none) {
         if (fmt.alpha_mode().preferred()) {
-          f.alpha(*fmt.alpha_mode());
+          f.alpha_mode(*fmt.alpha_mode());
         } else {
-          f.alpha(alpha_mode::straight);
+          f.alpha_mode(alpha_mode::straight);
         }
       }
     }
