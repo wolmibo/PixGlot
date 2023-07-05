@@ -7,9 +7,9 @@ using namespace pixglot::details;
 
 
 decoder::decoder(
-    reader&                read,
-    progress_access_token  token,
-    pixglot::output_format format
+    reader&                       read,
+    progress_access_token         token,
+    const pixglot::output_format* format
 ) :
   reader_{&read},
   token_ {std::move(token)},
@@ -91,7 +91,7 @@ void decoder::finish_frame() {
     throw std::runtime_error{"finish_frame called without previous begin_frame"};
   }
 
-  make_format_compatible(*current_frame_, format_);
+  make_format_compatible(*current_frame_, *format_);
 
   if (!token_.append_frame(image_.add_frame(std::move(*current_frame_)))) {
     throw abort{};

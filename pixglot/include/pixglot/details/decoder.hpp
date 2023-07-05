@@ -17,7 +17,7 @@ class decoder {
   public:
     enum class abort{};
 
-    decoder(reader&, progress_access_token, output_format);
+    decoder(reader&, progress_access_token, const output_format*);
 
     [[nodiscard]] pixglot::image finish();
 
@@ -56,20 +56,20 @@ class decoder {
 
 
     [[nodiscard]] reader&                       input()               { return *reader_; }
-    [[nodiscard]] const pixglot::output_format& output_format() const { return format_;  }
+    [[nodiscard]] const pixglot::output_format& output_format() const { return *format_; }
 
 
 
   private:
-    reader*                reader_;
-    progress_access_token  token_;
-    pixglot::image         image_;
-    pixglot::output_format format_;
+    reader*                       reader_;
+    progress_access_token         token_;
+    pixglot::image                image_;
+    const pixglot::output_format* format_;
 
-    size_t                 frame_total_{1};
-    size_t                 frame_index_{0};
+    size_t                        frame_total_{1};
+    size_t                        frame_index_{0};
 
-    std::optional<frame>   current_frame_;
+    std::optional<frame>          current_frame_;
 };
 
 }

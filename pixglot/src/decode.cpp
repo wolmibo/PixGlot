@@ -40,10 +40,10 @@ image pixglot::decode(
     reader&               r,
     codec                 c,
     progress_access_token pat,
-    output_format         fmt
+    const output_format&  fmt
 ) {
   try {
-    details::decoder dec{r, std::move(pat), fmt};
+    details::decoder dec{r, std::move(pat), &fmt};
 
     switch (c) {
 #ifdef PIXGLOT_WITH_JPEG
@@ -84,7 +84,7 @@ image pixglot::decode(
 
 
 
-image pixglot::decode(reader& r, progress_access_token pat, output_format fmt) {
+image pixglot::decode(reader& r, progress_access_token pat, const output_format& fmt) {
   std::array<std::byte, recommended_magic_size> buffer{};
   size_t count = r.peek(buffer);
 
@@ -98,7 +98,7 @@ image pixglot::decode(reader& r, progress_access_token pat, output_format fmt) {
 
 
 
-image pixglot::decode(reader&& r, progress_access_token pat, output_format fmt) {
+image pixglot::decode(reader&& r, progress_access_token pat, const output_format& fmt) {
   return decode(r, std::move(pat), fmt);
 }
 
@@ -108,7 +108,7 @@ image pixglot::decode(
     reader&&              r,
     codec                 c,
     progress_access_token pat,
-    output_format         fmt
+    const output_format&  fmt
 ) {
   return decode(r, c, std::move(pat), fmt);
 }

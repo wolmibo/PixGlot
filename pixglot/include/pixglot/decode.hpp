@@ -14,11 +14,11 @@
 
 namespace pixglot {
 
-image decode(reader&&, progress_access_token = {}, output_format = {});
-image decode(reader&&, codec, progress_access_token = {}, output_format = {});
+image decode(reader&&, progress_access_token = {}, const output_format& = {});
+image decode(reader&&, codec, progress_access_token = {}, const output_format& = {});
 
-image decode(reader&, progress_access_token = {}, output_format = {});
-image decode(reader&, codec, progress_access_token = {}, output_format = {});
+image decode(reader&, progress_access_token = {}, const output_format& = {});
+image decode(reader&, codec, progress_access_token = {}, const output_format& = {});
 
 }
 
