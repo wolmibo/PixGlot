@@ -12,6 +12,7 @@ sources = [
   'src/image.cpp',
   'src/output-format.cpp',
   'src/pixel-format.cpp',
+  'src/progress-token.cpp',
   'src/square-isometry.cpp',
   'src/strings.cpp',
 ]

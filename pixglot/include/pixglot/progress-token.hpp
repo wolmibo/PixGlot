@@ -22,76 +22,31 @@ class progress_access_token {
   friend class progress_token;
 
   public:
-    progress_access_token(const progress_access_token&)     = delete;
-    progress_access_token(progress_access_token&&) noexcept = default;
+    progress_access_token(const progress_access_token&) = delete;
+    progress_access_token(progress_access_token&&) noexcept;
 
-    progress_access_token& operator=(const progress_access_token&)     = delete;
-    progress_access_token& operator=(progress_access_token&&) noexcept = default;
+    progress_access_token& operator=(const progress_access_token&) = delete;
+    progress_access_token& operator=(progress_access_token&&) noexcept;
 
-    ~progress_access_token() = default;
-
-
-
-    progress_access_token() : state_{std::make_shared<shared_state>()} {}
+    ~progress_access_token();
 
 
 
-    void finish() {
-      state_->finished = true;
-    }
+    progress_access_token();
 
 
 
-    [[nodiscard]] bool proceed() const {
-      return state_->proceed;
-    }
+    void finish();
 
+    [[nodiscard]] bool proceed() const;
 
-
-    [[nodiscard]] bool progress(float f) {
-      state_->progress = f;
-      return proceed();
-    }
-
-
-
-    [[nodiscard]] bool append_frame(frame& f) {
-      std::lock_guard lock{state_->callback_mutex};
-      if (state_->callback) {
-        state_->callback(f);
-      }
-      return proceed();
-    }
-
-
+    [[nodiscard]] bool progress(float);
+    [[nodiscard]] bool append_frame(frame&);
 
 
 
   private:
-    struct shared_state {
-      std::atomic<float> progress{0.f};
-      std::atomic<bool>  finished{false};
-      std::atomic<bool>  proceed {true};
-
-      std::move_only_function<void(frame&)> callback{};
-      std::mutex                            callback_mutex{};
-
-
-
-      [[nodiscard]] shared_state take_away() {
-        std::lock_guard lock{callback_mutex};
-
-        return shared_state {
-          .progress{progress.load()},
-          .finished{finished.load()},
-          .proceed {proceed.load()},
-
-          .callback      {std::exchange(callback, {})},
-          .callback_mutex{},
-        };
-      }
-    };
-
+    class shared_state;
     std::shared_ptr<shared_state> state_;
 
 
@@ -107,41 +62,28 @@ class progress_access_token {
 
 class progress_token {
   public:
-    progress_token(const progress_token&)     = delete;
-    progress_token(progress_token&&) noexcept = default;
+    progress_token(const progress_token&) = delete;
+    progress_token(progress_token&&) noexcept;
 
-    progress_token& operator=(const progress_token&)     = delete;
-    progress_token& operator=(progress_token&&) noexcept = default;
+    progress_token& operator=(const progress_token&) = delete;
+    progress_token& operator=(progress_token&&) noexcept;
 
-    ~progress_token() = default;
+    ~progress_token();
 
-    progress_token() : state_{new progress_access_token::shared_state()} {}
-
-
-
-    [[nodiscard]] bool  finished() const { return state_->finished; }
-    [[nodiscard]] float progress() const { return state_->progress; }
+    progress_token();
 
 
 
-    void frame_callback(std::move_only_function<void(frame&)> callback = {}) {
-      std::lock_guard lock{state_->callback_mutex};
-      state_->callback = std::move(callback);
-    }
+    void frame_callback(std::move_only_function<void(frame&)> = {});
+
+    [[nodiscard]] bool  finished() const;
+    [[nodiscard]] float progress() const;
+
+    void stop();
 
 
 
-    void stop() {
-      state_->proceed = false;
-    }
-
-
-
-    progress_access_token access_token() {
-      //NOLINTNEXTLINE(*owning-memory)
-      state_.reset(new progress_access_token::shared_state(state_->take_away()));
-      return progress_access_token{state_};
-    }
+    [[nodiscard]] progress_access_token access_token();
 
 
 
