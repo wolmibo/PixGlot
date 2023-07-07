@@ -222,6 +222,38 @@ class no_decoder : public base_exception {
 
 
 
+class decoding_aborted : public base_exception {
+  public:
+    decoding_aborted(const decoding_aborted&) = default;
+    decoding_aborted(decoding_aborted&&)      = default;
+    decoding_aborted& operator=(const decoding_aborted&) = default;
+    decoding_aborted& operator=(decoding_aborted&&)      = default;
+
+    ~decoding_aborted() override = default;
+
+
+
+    explicit decoding_aborted(
+      const std::source_location& location = std::source_location::current()
+    ) :
+      base_exception{
+        "decoding aborted",
+        "the deconding has been aborted by a user request",
+        location
+      }
+    {}
+
+
+
+    [[nodiscard]] std::unique_ptr<base_exception> make_unique() override {
+      return std::make_unique<decoding_aborted>(std::move(*this));
+    }
+};
+
+
+
+
+
 class decode_error : public base_exception {
   public:
     decode_error(const decode_error&) = default;

@@ -15,8 +15,6 @@ namespace pixglot::details {
 
 class decoder {
   public:
-    enum class abort{};
-
     decoder(reader&, progress_access_token, const output_format*);
 
     [[nodiscard]] pixglot::image finish();

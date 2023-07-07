@@ -46,7 +46,7 @@ void decoder::frame_mark_ready_from_line(size_t y) {
 
 void decoder::progress(float f) {
   if (!token_.progress(f)) {
-    throw abort{};
+    throw decoding_aborted{};
   }
 }
 
@@ -94,7 +94,7 @@ void decoder::finish_frame() {
   make_format_compatible(*current_frame_, *format_);
 
   if (!token_.append_frame(image_.add_frame(std::move(*current_frame_)))) {
-    throw abort{};
+    throw decoding_aborted{};
   }
 
   current_frame_.reset();
