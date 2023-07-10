@@ -58,10 +58,12 @@ if get_option('ppm')
   config.set('PIXGLOT_WITH_PPM', 1)
 endif
 
-webp = dependency('libwebpdemux', required: get_option('webp'))
-if webp.found()
+webpdec = dependency('libwebpdecoder', required: get_option('webp'))
+webpdem = dependency('libwebpdemux',   required: get_option('webp'))
+if webpdec.found() and webpdem.found()
   sources      += 'src/codecs/webp.cpp'
-  dependencies += webp
+  dependencies += webpdec
+  dependencies += webpdem
   config.set('PIXGLOT_WITH_WEBP', 1)
 endif
 
