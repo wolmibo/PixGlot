@@ -25,6 +25,7 @@ class progress_access_token::shared_state {
       .proceed {proceed.load()},
 
       .callback      {std::exchange(callback, {})},
+      .callback_begin{std::exchange(callback_begin, {})},
       .callback_mutex{},
     };
   }
