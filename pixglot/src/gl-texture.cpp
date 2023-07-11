@@ -1,4 +1,5 @@
 #include "pixglot/gl-texture.hpp"
+#include "pixglot/exception.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -83,6 +84,43 @@ pixglot::gl_texture::gl_texture(size_t width, size_t height, pixel_format format
   id_    {create_texture(format_)}
 {
   teximage(*this, nullptr);
+}
+
+
+
+
+
+void pixglot::gl_texture::upload_lines(
+    const pixel_buffer& source,
+    size_t              y,
+    size_t              h
+) const {
+  if (source.format() != format()) {
+    throw bad_pixel_format{source.format(), format()};
+  }
+
+  if (source.width() != width()) {
+    throw base_exception{"width mismatch during texture upload"};
+  }
+
+  if (y + h > height()) {
+    throw index_out_of_range{y + h, height()};
+  }
+
+  bind();
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT,  utils::gl_unpack_alignment(source.stride()));
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, utils::gl_pixels_per_stride(source));
+
+  glTexSubImage2D(
+    GL_TEXTURE_2D,
+    0,
+    0, y,
+    width(), h,
+    pixglot::utils::gl_format(format()),
+    pixglot::utils::gl_type(format()),
+    source.data().subspan(y * source.stride(), h * source.stride()).data()
+  );
 }
 
 

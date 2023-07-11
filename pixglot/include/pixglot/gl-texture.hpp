@@ -43,6 +43,8 @@ class gl_texture {
 
     void update();
 
+    void upload_lines(const pixel_buffer&, size_t, size_t) const;
+
 
 
   private:
