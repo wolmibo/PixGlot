@@ -1,4 +1,6 @@
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/frame.hpp"
+#include "pixglot/pixel-buffer.hpp"
 
 using namespace pixglot::details;
 
@@ -91,6 +93,15 @@ void decoder::finish_frame() {
     throw std::runtime_error{"finish_frame called without previous begin_frame"};
   }
 
+  finish_upload();
+
+
+
+  pixel_target_.reset();
+  target_ = nullptr;
+
+
+
   make_format_compatible(*current_frame_, *format_);
 
   if (!token_.append_frame(image_.add_frame(std::move(*current_frame_)))) {
@@ -116,6 +127,20 @@ pixglot::frame& decoder::begin_frame(frame f) {
   }
   current_frame_.emplace(std::move(f));
 
+  if (format_->storage_type().require(storage_type::gl_texture)) {
+    pixel_target_ = std::move(current_frame_->pixels());
+    target_ = &(*pixel_target_);
+
+    current_frame_->reset(gl_texture{
+        pixel_target_->width(),
+        pixel_target_->height(),
+        pixel_target_->format()
+    });
+
+  } else {
+    target_ = &current_frame_->pixels();
+  }
+
   if (!token_.begin_frame(*current_frame_)) {
     throw decoding_aborted{};
   }
@@ -130,4 +155,28 @@ pixglot::frame& decoder::begin_frame(frame f) {
 pixglot::image decoder::finish() {
   token_.finish();
   return std::move(image_);
+}
+
+
+
+
+
+pixglot::pixel_buffer& decoder::target() {
+  if (target_ == nullptr) {
+    throw std::runtime_error{"no active target"};
+  }
+
+  return *target_;
+}
+
+
+
+
+
+void decoder::finish_upload() {
+  if (current_frame_->type() != storage_type::gl_texture) {
+    return;
+  }
+
+  current_frame_->texture().upload_lines(target(), 0, target().height());
 }

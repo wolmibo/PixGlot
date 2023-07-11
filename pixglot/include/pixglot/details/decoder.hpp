@@ -26,17 +26,12 @@ class decoder {
 
     void finish_frame(frame);
 
-    [[nodiscard]] pixel_buffer& target() {
-      return current_frame_.value().pixels();
-    }
+    [[nodiscard]] pixel_buffer& target();
 
     [[nodiscard]] pixglot::image& image() {
       return image_;
     }
 
-    [[nodiscard]] frame& current_frame() {
-      return current_frame_.value();
-    }
 
 
     void                 frame_total(size_t);
@@ -68,6 +63,12 @@ class decoder {
     size_t                        frame_index_{0};
 
     std::optional<frame>          current_frame_;
+    std::optional<pixel_buffer>   pixel_target_;
+    pixel_buffer*                 target_{};
+
+
+
+    void finish_upload();
 };
 
 }
