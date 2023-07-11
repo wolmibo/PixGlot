@@ -72,11 +72,20 @@ bool progress_access_token::progress(float f) {
 
 
 
+namespace {
+  template<typename Fnc, typename... Args>
+  void invoke_save(Fnc&& f, Args&& ...args) {
+    if (std::forward<Fnc>(f)) {
+      std::invoke(std::forward<Fnc>(f), std::forward<Args>(args)...);
+    }
+  }
+}
+
+
+
 bool progress_access_token::append_frame(frame& f) {
   std::lock_guard lock{state_->callback_mutex};
-  if (state_->callback) {
-    state_->callback(f);
-  }
+  invoke_save(state_->callback, f);
   return proceed();
 }
 
@@ -84,9 +93,7 @@ bool progress_access_token::append_frame(frame& f) {
 
 bool progress_access_token::begin_frame(const frame_view& f) {
   std::lock_guard lock{state_->callback_mutex};
-  if (state_->callback) {
-    state_->callback_begin(f);
-  }
+  invoke_save(state_->callback_begin, f);
   return proceed();
 }
 
