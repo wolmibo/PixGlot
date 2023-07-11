@@ -15,6 +15,7 @@
 namespace pixglot {
 
 class frame;
+class frame_view;
 
 
 
@@ -42,6 +43,7 @@ class progress_access_token {
 
     [[nodiscard]] bool progress(float);
     [[nodiscard]] bool append_frame(frame&);
+    [[nodiscard]] bool begin_frame(const frame_view&);
 
 
 
@@ -74,6 +76,7 @@ class progress_token {
 
 
 
+    void frame_begin_callback(std::move_only_function<void(const frame_view&)> = {});
     void frame_callback(std::move_only_function<void(frame&)> = {});
 
     [[nodiscard]] bool  finished() const;

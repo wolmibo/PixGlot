@@ -116,6 +116,10 @@ pixglot::frame& decoder::begin_frame(frame f) {
   }
   current_frame_.emplace(std::move(f));
 
+  if (!token_.begin_frame(*current_frame_)) {
+    throw decoding_aborted{};
+  }
+
   return *current_frame_;
 }
 

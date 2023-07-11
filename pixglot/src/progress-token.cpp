@@ -10,8 +10,9 @@ class progress_access_token::shared_state {
     std::atomic<bool>  finished{false};
     std::atomic<bool>  proceed {true};
 
-    std::move_only_function<void(frame&)> callback{};
-    std::mutex                            callback_mutex{};
+    std::move_only_function<void(frame&)>            callback{};
+    std::move_only_function<void(const frame_view&)> callback_begin{};
+    std::mutex                                       callback_mutex{};
 
 
 
@@ -81,6 +82,17 @@ bool progress_access_token::append_frame(frame& f) {
 
 
 
+bool progress_access_token::begin_frame(const frame_view& f) {
+  std::lock_guard lock{state_->callback_mutex};
+  if (state_->callback) {
+    state_->callback_begin(f);
+  }
+  return proceed();
+}
+
+
+
+
 
 
 progress_token::progress_token(progress_token&&) noexcept = default;
@@ -131,4 +143,13 @@ progress_access_token progress_token::access_token() {
 void progress_token::frame_callback(std::move_only_function<void(frame&)> callback) {
   std::lock_guard lock{state_->callback_mutex};
   state_->callback = std::move(callback);
+}
+
+
+
+void progress_token::frame_begin_callback(
+    std::move_only_function<void(const frame_view&)> callback
+) {
+  std::lock_guard lock{state_->callback_mutex};
+  state_->callback_begin = std::move(callback);
 }
