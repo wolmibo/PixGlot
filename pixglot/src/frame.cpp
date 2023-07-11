@@ -17,7 +17,7 @@ namespace {
 
 
 
-class frame::impl {
+class frame_view::impl {
   public:
     square_isometry     orientation{square_isometry::identity};
     pixglot::alpha_mode alpha_mode {alpha_mode::straight};
@@ -36,6 +36,57 @@ class frame::impl {
 
 
 
+frame_view::~frame_view() = default;
+
+frame_view::frame_view(const frame_view&) = default;
+frame_view::frame_view(frame_view&&) noexcept = default;
+frame_view& frame_view::operator=(const frame_view&) = default;
+frame_view& frame_view::operator=(frame_view&&) noexcept = default;
+
+frame_view::frame_view(std::shared_ptr<impl> imp) :
+  impl_{std::move(imp)}
+{}
+
+
+
+storage_type frame_view::type() const {
+  return static_cast<storage_type>(impl_->storage.index());
+}
+
+const gl_texture& frame_view::texture() const {
+  return std::get<gl_texture>(impl_->storage);
+}
+
+const pixel_buffer& frame_view::pixels() const {
+  return std::get<pixel_buffer>(impl_->storage);
+}
+
+
+
+pixel_format frame_view::format() const {
+  return std::visit([](auto&& arg) { return arg.format(); }, impl_->storage);
+}
+
+size_t frame_view::width() const {
+  return std::visit([](auto&& arg) { return arg.width(); }, impl_->storage);
+}
+
+size_t frame_view::height() const {
+  return std::visit([](auto&& arg) { return arg.height(); }, impl_->storage);
+}
+
+
+
+square_isometry     frame_view::orientation() const { return impl_->orientation; }
+microseconds        frame_view::duration()    const { return impl_->duration;    }
+float               frame_view::gamma()       const { return impl_->gamma;       }
+pixglot::alpha_mode frame_view::alpha_mode()  const { return impl_->alpha_mode;  }
+
+
+
+
+
+
 frame::~frame() = default;
 frame::frame(frame&&) noexcept = default;
 frame& frame::operator=(frame&&) noexcept = default;
@@ -43,23 +94,14 @@ frame& frame::operator=(frame&&) noexcept = default;
 
 
 frame::frame(pixel_buffer pixels) :
-  impl_{std::make_unique<impl>(std::move(pixels))}
+  frame_view{std::make_shared<impl>(std::move(pixels))}
 {}
 
 
 
 frame::frame(gl_texture texture) :
-  impl_{std::make_unique<impl>(std::move(texture))}
+  frame_view{std::make_shared<impl>(std::move(texture))}
 {}
-
-
-
-
-
-square_isometry     frame::orientation() const { return impl_->orientation; }
-microseconds        frame::duration()    const { return impl_->duration;    }
-float               frame::gamma()       const { return impl_->gamma;       }
-pixglot::alpha_mode frame::alpha_mode()  const { return impl_->alpha_mode;  }
 
 
 
@@ -70,12 +112,6 @@ void frame::alpha_mode (pixglot::alpha_mode alpha   ) { impl_->alpha_mode  = alp
 
 
 
-storage_type frame::type() const {
-  return static_cast<storage_type>(impl_->storage.index());
-}
-
-
-
 void frame::reset(pixel_buffer pixels ) { impl_->storage = std::move(pixels);  }
 void frame::reset(gl_texture   texture) { impl_->storage = std::move(texture); }
 
@@ -83,27 +119,3 @@ void frame::reset(gl_texture   texture) { impl_->storage = std::move(texture); }
 
 gl_texture&   frame::texture() { return std::get<gl_texture  >(impl_->storage); }
 pixel_buffer& frame::pixels()  { return std::get<pixel_buffer>(impl_->storage); }
-
-
-
-const gl_texture& frame::texture() const {
-  return std::get<gl_texture>(impl_->storage);
-}
-
-const pixel_buffer& frame::pixels() const {
-  return std::get<pixel_buffer>(impl_->storage);
-}
-
-
-
-pixel_format frame::format() const {
-  return std::visit([](auto&& arg) { return arg.format(); }, impl_->storage);
-}
-
-size_t frame::width() const {
-  return std::visit([](auto&& arg) { return arg.width(); }, impl_->storage);
-}
-
-size_t frame::height() const {
-  return std::visit([](auto&& arg) { return arg.height(); }, impl_->storage);
-}

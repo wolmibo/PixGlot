@@ -56,29 +56,20 @@ enum class storage_type {
 
 
 
-class frame {
+class frame_view {
+  friend class frame;
+
   public:
-    frame(const frame&)            = delete;
-    frame(frame&&) noexcept;
-    frame& operator=(const frame&) = delete;
-    frame& operator=(frame&&) noexcept;
+    frame_view(const frame_view&);
+    frame_view(frame_view&&) noexcept;
+    frame_view& operator=(const frame_view&);
+    frame_view& operator=(frame_view&&) noexcept;
 
-    ~frame();
-
-    frame(pixel_buffer);
-    frame(gl_texture);
+    ~frame_view();
 
 
 
     [[nodiscard]] storage_type type() const;
-
-
-
-    void reset(pixel_buffer);
-    void reset(gl_texture);
-
-    [[nodiscard]] gl_texture&   texture();
-    [[nodiscard]] pixel_buffer& pixels();
 
     [[nodiscard]] const gl_texture&   texture() const;
     [[nodiscard]] const pixel_buffer& pixels()  const;
@@ -91,17 +82,6 @@ class frame {
     [[nodiscard]] size_t height() const;
 
 
-
-    template<typename Fnc>
-    auto visit_storage(Fnc&& function) {
-      switch (type()) {
-        default:
-        case storage_type::pixel_buffer:
-          return std::invoke(std::forward<Fnc>(function), pixels());
-        case storage_type::gl_texture:
-          return std::invoke(std::forward<Fnc>(function), texture());
-      }
-    }
 
     template<typename Fnc>
     auto visit_storage(Fnc&& function) const {
@@ -123,16 +103,70 @@ class frame {
 
 
 
+  private:
+    class impl;
+    std::shared_ptr<impl> impl_;
+
+    frame_view(std::shared_ptr<impl>);
+};
+
+
+
+
+
+class frame : public frame_view  {
+  public:
+    frame(const frame&)            = delete;
+    frame(frame&&) noexcept;
+    frame& operator=(const frame&) = delete;
+    frame& operator=(frame&&) noexcept;
+
+    ~frame();
+
+    frame(pixel_buffer);
+    frame(gl_texture);
+
+
+
+    void reset(pixel_buffer);
+    void reset(gl_texture);
+
+
+
+    using frame_view::texture;
+    using frame_view::pixels;
+
+    [[nodiscard]] gl_texture&   texture();
+    [[nodiscard]] pixel_buffer& pixels();
+
+
+
+    using frame_view::visit_storage;
+
+    template<typename Fnc>
+    auto visit_storage(Fnc&& function) {
+      switch (type()) {
+        default:
+        case storage_type::pixel_buffer:
+          return std::invoke(std::forward<Fnc>(function), pixels());
+        case storage_type::gl_texture:
+          return std::invoke(std::forward<Fnc>(function), texture());
+      }
+    }
+
+
+
+    using frame_view::orientation;
+    using frame_view::duration;
+    using frame_view::gamma;
+    using frame_view::alpha_mode;
+
+
+
     void orientation(square_isometry);
     void duration   (std::chrono::microseconds);
     void gamma      (float);
     void alpha_mode (pixglot::alpha_mode);
-
-
-
-  private:
-    class impl;
-    std::experimental::propagate_const<std::shared_ptr<impl>> impl_;
 };
 
 [[nodiscard]] std::string to_string(const frame&);
