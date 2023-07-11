@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <experimental/propagate_const>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -69,52 +70,48 @@ class frame {
 
 
 
-    [[nodiscard]] storage_type type() const {
-      return static_cast<storage_type>(storage_.index());
-    }
+    [[nodiscard]] storage_type type() const;
 
 
 
-    void reset(pixel_buffer pixels ) { storage_ = std::move(pixels);  }
-    void reset(gl_texture   texture) { storage_ = std::move(texture); }
+    void reset(pixel_buffer);
+    void reset(gl_texture);
+
+    [[nodiscard]] gl_texture&   texture();
+    [[nodiscard]] pixel_buffer& pixels();
+
+    [[nodiscard]] const gl_texture&   texture() const;
+    [[nodiscard]] const pixel_buffer& pixels()  const;
 
 
 
-    [[nodiscard]] gl_texture&   texture() { return std::get<gl_texture  >(storage_); }
-    [[nodiscard]] pixel_buffer& pixels()  { return std::get<pixel_buffer>(storage_); }
+    [[nodiscard]] pixel_format format() const;
 
-    [[nodiscard]] const gl_texture& texture() const {
-      return std::get<gl_texture>(storage_);
-    }
-
-    [[nodiscard]] const pixel_buffer& pixels() const {
-      return std::get<pixel_buffer>(storage_);
-    }
-
-
-
-    [[nodiscard]] pixel_format format() const {
-      return std::visit([](auto&& arg) { return arg.format(); }, storage_);
-    }
-
-    [[nodiscard]] size_t width() const {
-      return std::visit([](auto&& arg) { return arg.width(); }, storage_);
-    }
-
-    [[nodiscard]] size_t height() const {
-      return std::visit([](auto&& arg) { return arg.height(); }, storage_);
-    }
+    [[nodiscard]] size_t width()  const;
+    [[nodiscard]] size_t height() const;
 
 
 
     template<typename Fnc>
     auto visit_storage(Fnc&& function) {
-      return std::visit(std::forward<Fnc>(function), storage_);
+      switch (type()) {
+        default:
+        case storage_type::pixel_buffer:
+          return std::invoke(std::forward<Fnc>(function), pixels());
+        case storage_type::gl_texture:
+          return std::invoke(std::forward<Fnc>(function), texture());
+      }
     }
 
     template<typename Fnc>
     auto visit_storage(Fnc&& function) const {
-      return std::visit(std::forward<Fnc>(function), storage_);
+      switch (type()) {
+        default:
+        case storage_type::pixel_buffer:
+          return std::invoke(std::forward<Fnc>(function), pixels());
+        case storage_type::gl_texture:
+          return std::invoke(std::forward<Fnc>(function), texture());
+      }
     }
 
 
@@ -134,14 +131,8 @@ class frame {
 
 
   private:
-    using pixel_storage = std::variant<
-      pixel_buffer,
-      gl_texture
-    >;
-    pixel_storage storage_;
-
     class impl;
-    std::experimental::propagate_const<std::unique_ptr<impl>> impl_;
+    std::experimental::propagate_const<std::shared_ptr<impl>> impl_;
 };
 
 [[nodiscard]] std::string to_string(const frame&);
