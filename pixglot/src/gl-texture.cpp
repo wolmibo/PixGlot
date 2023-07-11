@@ -66,6 +66,11 @@ pixglot::gl_texture::gl_texture(const pixel_buffer& buffer) :
 
   id_    {create_texture(format_)}
 {
+  if (width_ > 0 && height_ > 0 && byte_size(format_.format) > 1 &&
+      buffer.endian() != std::endian::native) {
+    throw base_exception{"trying to upload data with wrong byte order"};
+  }
+
   glPixelStorei(GL_UNPACK_ALIGNMENT,  utils::gl_unpack_alignment(buffer.stride()));
   glPixelStorei(GL_UNPACK_ROW_LENGTH, utils::gl_pixels_per_stride(buffer));
 
@@ -105,6 +110,11 @@ void pixglot::gl_texture::upload_lines(
 
   if (y + h > height()) {
     throw index_out_of_range{y + h, height()};
+  }
+
+  if (h > 0 && width() > 0 && byte_size(format().format) > 1 &&
+      source.endian() != std::endian::native) {
+    throw base_exception{"trying to upload data with wrong byte order"};
   }
 
   bind();
