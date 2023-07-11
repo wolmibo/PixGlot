@@ -103,6 +103,10 @@ class frame_view {
 
 
 
+    [[nodiscard]] size_t id() const;
+
+
+
   private:
     class impl;
     std::shared_ptr<impl> impl_;

@@ -84,6 +84,13 @@ pixglot::alpha_mode frame_view::alpha_mode()  const { return impl_->alpha_mode; 
 
 
 
+size_t frame_view::id() const {
+  //NOLINTNEXTLINE(*-reinterpret-cast)
+  return size_t{reinterpret_cast<std::uintptr_t>(impl_.get())};
+}
+
+
+
 
 
 
