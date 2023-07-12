@@ -1,4 +1,5 @@
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/conversions.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-buffer.hpp"
 
@@ -16,7 +17,14 @@ decoder::decoder(
   reader_{&read},
   token_ {std::move(token)},
   format_{format}
-{}
+{
+  if (format_->storage_type().require(storage_type::gl_texture)) {
+    format_replacement_.emplace(*format);
+    format_replacement_->endian(std::endian::native);
+
+    format_ = &(*format_replacement_);
+  }
+}
 
 
 
@@ -174,9 +182,11 @@ pixglot::pixel_buffer& decoder::target() {
 
 
 void decoder::finish_upload() {
-  if (current_frame_->type() != storage_type::gl_texture) {
+  if (current_frame_->type() != storage_type::gl_texture || !pixel_target_) {
     return;
   }
 
-  current_frame_->texture().upload_lines(target(), 0, target().height());
+  convert_endian(*pixel_target_, std::endian::native);
+
+  current_frame_->texture().upload_lines(*pixel_target_, 0, target().height());
 }

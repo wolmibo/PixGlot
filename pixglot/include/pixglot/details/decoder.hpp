@@ -57,6 +57,9 @@ class decoder {
     reader*                       reader_;
     progress_access_token         token_;
     pixglot::image                image_;
+
+    std::optional<pixglot::output_format>
+                                  format_replacement_;
     const pixglot::output_format* format_;
 
     size_t                        frame_total_{1};
@@ -65,7 +68,6 @@ class decoder {
     std::optional<frame>          current_frame_;
     std::optional<pixel_buffer>   pixel_target_;
     pixel_buffer*                 target_{};
-
 
 
     void finish_upload();
