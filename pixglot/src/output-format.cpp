@@ -56,11 +56,11 @@ class output_format::impl {
     }
 
 
-    
+
     [[nodiscard]] bool satisfied_by(const image& img) const {
       return std::ranges::all_of(img.frames(), [this](const auto& f) {
           return satisfied_by(f);
-      }); 
+      });
     }
 
 
@@ -71,6 +71,7 @@ class output_format::impl {
         orientation.satisfied_by(f.orientation()) &&
         storage_type.satisfied_by(f.type()) &&
         (f.type() != storage_type::pixel_buffer ||
+         byte_size(f.format().format) == 1 ||
          endian.satisfied_by(f.pixels().endian())) &&
         (f.alpha_mode() == alpha_mode::none ||
          alpha_mode.satisfied_by(f.alpha_mode()));
@@ -333,11 +334,16 @@ namespace {
     if (f.type() == storage_type::gl_texture) {
       details::convert(f.texture(), target_format, premultiply, gamma, transform);
     } else {
-      auto target_endian = fmt.endian().required() ? 
+      auto target_endian = fmt.endian().required() ?
         std::optional{*fmt.endian()} : std::nullopt;
 
       details::convert(f.pixels(), target_endian,
           target_format, premultiply, gamma, transform);
+
+      if (byte_size(f.format().format) == 1 &&
+          fmt.endian().preferred()) {
+        f.pixels().endian(*fmt.endian());
+      }
     }
   }
 
