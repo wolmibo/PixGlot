@@ -2,7 +2,10 @@
 #include "pixglot/conversions.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-buffer.hpp"
+
 #include <utility>
+
+#include <GL/gl.h>
 
 using namespace pixglot::details;
 
@@ -73,10 +76,14 @@ namespace {
 
 void decoder::frame_mark_ready_until_line(size_t y) {
   if (direction_compatible(direction::up, upload_direction_) &&
-      wants_upload(current_frame_, target())) {
+      wants_upload(current_frame_, target()) &&
+      token_.upload_requested()) {
     upload_direction_ = std::to_underlying(direction::up);
 
     current_frame_->texture().upload_lines(target(), uploaded_, y - uploaded_);
+    if (token_.flush_uploads()) {
+      glFlush();
+    }
 
     uploaded_ = y;
   }
@@ -90,17 +97,22 @@ void decoder::frame_mark_ready_from_line(size_t y) {
   auto height = target().height();
 
   if (direction_compatible(direction::down, upload_direction_) &&
-      wants_upload(current_frame_, target())) {
+      wants_upload(current_frame_, target()) &&
+      token_.upload_requested()) {
 
     if (upload_direction_ == std::to_underlying(direction::unset)) {
       uploaded_ = height;
+      upload_direction_ = std::to_underlying(direction::down);
     }
 
-    upload_direction_ = std::to_underlying(direction::down);
+    if (y < uploaded_) {
+      current_frame_->texture().upload_lines(target(), y, uploaded_ - y);
+      if (token_.flush_uploads()) {
+        glFlush();
+      }
 
-    current_frame_->texture().upload_lines(target(), y, uploaded_ - y);
-
-    uploaded_ = y;
+      uploaded_ = y;
+    }
   }
 
   progress(height - y, height, frame_index_, frame_total_);

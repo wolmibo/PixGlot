@@ -46,6 +46,10 @@ class progress_access_token {
     [[nodiscard]] bool begin_frame(const frame_view&);
 
 
+    [[nodiscard]] bool upload_requested();
+    [[nodiscard]] bool flush_uploads() const;
+
+
 
   private:
     class shared_state;
@@ -83,6 +87,11 @@ class progress_token {
     [[nodiscard]] float progress() const;
 
     void stop();
+
+
+
+    void upload_available() const;
+    void flush_uploads(bool = true) const;
 
 
 

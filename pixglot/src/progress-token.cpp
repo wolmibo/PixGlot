@@ -10,6 +10,9 @@ class progress_access_token::shared_state {
     std::atomic<bool>  finished{false};
     std::atomic<bool>  proceed {true};
 
+    std::atomic<bool>  upload       {false};
+    std::atomic<bool>  flush_uploads{false};
+
     std::move_only_function<void(frame&)>            callback{};
     std::move_only_function<void(const frame_view&)> callback_begin{};
     std::mutex                                       callback_mutex{};
@@ -23,6 +26,9 @@ class progress_access_token::shared_state {
       .progress{progress.load()},
       .finished{finished.load()},
       .proceed {proceed.load()},
+
+      .upload       {upload.load()},
+      .flush_uploads{flush_uploads.load()},
 
       .callback      {std::exchange(callback, {})},
       .callback_begin{std::exchange(callback_begin, {})},
@@ -70,6 +76,16 @@ bool progress_access_token::progress(float f) {
 }
 
 
+
+bool progress_access_token::upload_requested() {
+  return state_->upload.exchange(false);
+}
+
+
+
+bool progress_access_token::flush_uploads() const {
+  return state_->flush_uploads;
+}
 
 
 
@@ -160,4 +176,18 @@ void progress_token::frame_begin_callback(
 ) {
   std::lock_guard lock{state_->callback_mutex};
   state_->callback_begin = std::move(callback);
+}
+
+
+
+
+
+void progress_token::upload_available() const {
+  state_->upload = true;
+}
+
+
+
+void progress_token::flush_uploads(bool flush) const {
+  state_->flush_uploads = flush;
 }
