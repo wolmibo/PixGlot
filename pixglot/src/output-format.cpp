@@ -339,6 +339,11 @@ namespace {
 
       details::convert(f.pixels(), target_endian,
           target_format, premultiply, gamma, transform);
+
+      if (byte_size(f.format().format) == 1 &&
+          fmt.endian().preferred()) {
+        f.pixels().endian(*fmt.endian());
+      }
     }
   }
 
