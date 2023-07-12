@@ -2,6 +2,7 @@
 #include "pixglot/conversions.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-buffer.hpp"
+#include <utility>
 
 using namespace pixglot::details;
 
@@ -38,7 +39,48 @@ void decoder::frame_total(size_t count) {
 
 
 
+namespace {
+  enum class direction : int {
+    no_upload,
+
+    unset,
+    up,
+    down,
+  };
+
+
+
+
+  [[nodiscard]] bool wants_upload(
+      const std::optional<pixglot::frame>& f,
+      const pixglot::pixel_buffer&         buf
+  ) {
+    return f && f->type() == pixglot::storage_type::gl_texture &&
+      (buf.endian() == std::endian::native || byte_size(buf.format().format) == 1);
+  }
+
+
+
+  [[nodiscard]] bool direction_compatible(direction dir, int value) {
+    auto val = static_cast<direction>(value);
+    return val == direction::unset || val == dir;
+  }
+}
+
+
+
+
+
 void decoder::frame_mark_ready_until_line(size_t y) {
+  if (direction_compatible(direction::up, upload_direction_) &&
+      wants_upload(current_frame_, target())) {
+    upload_direction_ = std::to_underlying(direction::up);
+
+    current_frame_->texture().upload_lines(target(), uploaded_, y - uploaded_);
+
+    uploaded_ = y;
+  }
+
   progress(y, target().height(), frame_index_, frame_total_);
 }
 
@@ -46,6 +88,20 @@ void decoder::frame_mark_ready_until_line(size_t y) {
 
 void decoder::frame_mark_ready_from_line(size_t y) {
   auto height = target().height();
+
+  if (direction_compatible(direction::down, upload_direction_) &&
+      wants_upload(current_frame_, target())) {
+
+    if (upload_direction_ == std::to_underlying(direction::unset)) {
+      uploaded_ = height;
+    }
+
+    upload_direction_ = std::to_underlying(direction::down);
+
+    current_frame_->texture().upload_lines(target(), y, uploaded_ - y);
+
+    uploaded_ = y;
+  }
 
   progress(height - y, height, frame_index_, frame_total_);
 }
@@ -145,9 +201,15 @@ pixglot::frame& decoder::begin_frame(frame f) {
         pixel_target_->format()
     });
 
+    upload_direction_ = std::to_underlying(direction::unset);
+
   } else {
     target_ = &current_frame_->pixels();
+
+    upload_direction_ = std::to_underlying(direction::no_upload);
   }
+
+  uploaded_ = 0;
 
   if (!token_.begin_frame(*current_frame_)) {
     throw decoding_aborted{};
@@ -188,5 +250,16 @@ void decoder::finish_upload() {
 
   convert_endian(*pixel_target_, std::endian::native);
 
-  current_frame_->texture().upload_lines(*pixel_target_, 0, target().height());
+  switch (static_cast<direction>(upload_direction_)) {
+    case direction::up:
+      current_frame_->texture().upload_lines(target(), uploaded_,
+          target().height() - uploaded_);
+      break;
+    case direction::down:
+      current_frame_->texture().upload_lines(target(), 0, uploaded_);
+      break;
+    default:
+      current_frame_->texture().upload_lines(target(), 0, target().height());
+      break;
+  }
 }

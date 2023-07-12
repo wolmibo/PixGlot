@@ -69,6 +69,9 @@ class decoder {
     std::optional<pixel_buffer>   pixel_target_;
     pixel_buffer*                 target_{};
 
+    size_t                        uploaded_{};
+    int                           upload_direction_{};
+
 
     void finish_upload();
 };
