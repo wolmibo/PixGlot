@@ -78,6 +78,7 @@ namespace {
       avif_rgb_image(avif_rgb_image&&)      = delete;
 
       ~avif_rgb_image() {
+        rgb_.pixels = nullptr;
         avifRGBImageFreePixels(&rgb_);
       }
 
@@ -87,8 +88,22 @@ namespace {
         rgb_.format = (image->alphaPlane == nullptr && !out.fill_alpha().prefers(true))
                         ? AVIF_RGB_FORMAT_RGB : AVIF_RGB_FORMAT_RGBA;
         try_satisfy_preferences(out);
+      }
 
-        allocate_pixels();
+
+
+
+
+      frame& begin_frame(details::decoder* decoder) {
+        auto& frame = decoder->begin_frame(pixel_buffer{
+            rgb_.width, rgb_.height, determine_pixel_format()});
+
+        rgb_.pixels = utils::byte_pointer_cast<uint8_t>(decoder->target().data().data());
+        rgb_.rowBytes = decoder->target().stride();
+
+        frame.alpha_mode(get_alpha_mode());
+
+        return frame;
       }
 
 
@@ -101,29 +116,10 @@ namespace {
 
 
 
-      [[nodiscard]] pixel_buffer take_pixels() {
-        rgb_.pixels = nullptr;
-        return std::move(std::exchange(pixels_, {})).value();
-      }
-
-
-
-      [[nodiscard]] alpha_mode to_alpha_mode() const {
-        if (avifRGBFormatHasAlpha(rgb_.format) == AVIF_FALSE) {
-          return alpha_mode::none;
-        }
-
-        return rgb_.alphaPremultiplied != 0 ?
-          alpha_mode::premultiplied : alpha_mode::straight;
-      }
-
-
-
 
 
     private:
-      avifRGBImage                rgb_{};
-      std::optional<pixel_buffer> pixels_;
+      avifRGBImage  rgb_{};
 
 
 
@@ -164,10 +160,13 @@ namespace {
 
 
 
-      void allocate_pixels() {
-        pixels_.emplace(rgb_.width, rgb_.height, determine_pixel_format());
-        rgb_.pixels   = utils::byte_pointer_cast<uint8_t>(pixels_->data().data());
-        rgb_.rowBytes = pixels_->stride();
+      [[nodiscard]] alpha_mode get_alpha_mode() const {
+        if (avifRGBFormatHasAlpha(rgb_.format) == AVIF_FALSE) {
+          return alpha_mode::none;
+        }
+
+        return rgb_.alphaPremultiplied != 0 ?
+          alpha_mode::premultiplied : alpha_mode::straight;
       }
 
 
@@ -262,16 +261,16 @@ namespace {
           decoder_->progress(++prog, task_count);
 
           avif_rgb_image rgb{dec_->image, decoder_->output_format()};
-          assert_avif(avifImageYUVToRGB(dec_->image, rgb.get()),
-            "avifImageYUVToRGB");
 
-          frame frame{rgb.take_pixels()};
+          auto& frame = rgb.begin_frame(decoder_);
           frame.orientation(isometry_from(dec_->image));
-          frame.alpha_mode (rgb.to_alpha_mode());
           frame.duration   (std::chrono::microseconds{
                               static_cast<long int>(dec_->duration) * time_multi});
 
-          decoder_->finish_frame(std::move(frame));
+          assert_avif(avifImageYUVToRGB(dec_->image, rgb.get()),
+            "avifImageYUVToRGB");
+
+          decoder_->finish_frame();
 
           decoder_->progress(++prog, task_count);
         }
