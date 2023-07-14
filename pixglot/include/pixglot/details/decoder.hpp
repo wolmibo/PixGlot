@@ -24,7 +24,7 @@ class decoder {
     frame& begin_frame(frame);
     void finish_frame();
 
-    void finish_frame(frame);
+
 
     [[nodiscard]] pixel_buffer& target();
 

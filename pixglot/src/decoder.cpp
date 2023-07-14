@@ -155,15 +155,6 @@ void decoder::warn(std::string msg) {
 
 
 
-void decoder::finish_frame(frame f) {
-  begin_frame(std::move(f));
-  finish_frame();
-}
-
-
-
-
-
 void decoder::finish_frame() {
   if (!current_frame_) {
     throw std::runtime_error{"finish_frame called without previous begin_frame"};
