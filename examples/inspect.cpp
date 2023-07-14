@@ -1,10 +1,13 @@
-#include "pixglot/frame.hpp"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <thread>
 
 #include <pixglot/decode.hpp>
+#include <pixglot/frame.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
 
@@ -16,6 +19,41 @@ std::atomic<size_t>         frame_counter{0};
 std::vector<microseconds>   frame_times;
 std::optional<microseconds> header_time;
 steady_clock::time_point    timestamp;
+
+
+
+void print_times() {
+  if (header_time) {
+    std::cout << "  header time:    " << std::right << std::setw(12) <<
+      header_time->count() << "µs\n";
+  }
+
+  if (frame_times.size() >= 10) {
+    std::cout << "  avg frame time: " << std::right << std::setw(12) <<
+      static_cast<uint64_t>(
+          std::accumulate(frame_times.begin(), frame_times.end(),
+            microseconds{0}).count() /
+          static_cast<float>(frame_times.size()))
+      << "µs\n";
+
+    auto [min, max] = std::ranges::minmax(frame_times);
+
+    std::cout << "  min frame time: " << std::setw(12) << min.count() << "µs\n";
+    std::cout << "  max frame time: " << std::setw(12) << max.count() << "µs\n";
+
+  } else {
+
+    for (size_t i = 0; i < frame_times.size(); ++i) {
+      std::cout << "  frame #" << i << " time:  " << std::setw(12) <<
+        frame_times[i].count() << "µs\n";
+    }
+  }
+
+  std::cout << std::flush;
+}
+
+
+
 
 
 
@@ -165,6 +203,10 @@ int main(int argc, char** argv) {
     //NOLINTNEXTLINE(*pointer-arithmetic)
     std::cout << '\n' << std::filesystem::path{argv[1]}.filename().native()
       << '\n' << std::endl;
+
+    print_times();
+
+    std::cout << '\n';
 
     print_image(image);
 
