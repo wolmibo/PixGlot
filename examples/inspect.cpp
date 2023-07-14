@@ -5,12 +5,29 @@
 
 #include <pixglot/decode.hpp>
 
+using namespace std::chrono;
 
 
-std::atomic<size_t> frame_counter{0};
 
-void on_frame(pixglot::frame& /*unused*/) {
+std::atomic<size_t>         frame_counter{0};
+std::vector<microseconds>   frame_times;
+std::optional<microseconds> header_time;
+steady_clock::time_point    timestamp;
+
+
+
+void on_frame_finish(pixglot::frame& /*unused*/) {
   frame_counter++;
+
+  frame_times.emplace_back(duration_cast<microseconds>(steady_clock::now() - timestamp));
+}
+
+void on_frame_start(const pixglot::frame_view& /*unused*/) {
+  if (!header_time) {
+    header_time = duration_cast<microseconds>(steady_clock::now() - timestamp);
+  }
+
+  timestamp = steady_clock::now();
 }
 
 
@@ -54,11 +71,14 @@ int main(int argc, char** argv) {
 
   try {
     pixglot::progress_token token;
-    token.frame_callback(on_frame);
+    token.frame_begin_callback(on_frame_start);
+    token.frame_callback(on_frame_finish);
 
     auto at = token.access_token();
 
     std::jthread pthread{progress_loop, std::move(token)};
+
+    timestamp = steady_clock::now();
 
     //NOLINTNEXTLINE(*pointer-arithmetic)
     auto image{pixglot::decode(pixglot::reader{argv[1]}, std::move(at))};
