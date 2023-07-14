@@ -1,9 +1,12 @@
+#include "pixglot/frame.hpp"
 #include <atomic>
 #include <chrono>
 #include <iostream>
 #include <thread>
 
 #include <pixglot/decode.hpp>
+#include <pixglot/pixel-format.hpp>
+#include <pixglot/square-isometry.hpp>
 
 using namespace std::chrono;
 
@@ -13,6 +16,21 @@ std::atomic<size_t>         frame_counter{0};
 std::vector<microseconds>   frame_times;
 std::optional<microseconds> header_time;
 steady_clock::time_point    timestamp;
+
+
+
+std::string_view str(bool value) {
+  return value ? "yes" : "no";
+}
+
+std::string_view str(std::endian endian) {
+  switch (endian) {
+    case std::endian::big:    return "big";
+    case std::endian::little: return "little";
+    default:                  return "<unknown byteorder>";
+  }
+}
+
 
 
 
@@ -61,6 +79,65 @@ void progress_loop(pixglot::progress_token ptoken) {
 
 
 
+void print_image(const pixglot::image& image) {
+  for (const auto& str: image.warnings()) {
+    std::cout << "  ⚠ " << str << '\n';
+  }
+
+  if (image.has_warnings()) {
+    std::cout << '\n';
+  }
+
+  std::cout << "  animated:    " << str(image.animated()) << '\n';
+  std::cout << "  frames:      " << image.size() << '\n';
+
+  if (!image.empty()) {
+    std::cout << '\n';
+  }
+
+  for (const auto& f: image.frames()) {
+
+    std::cout << "  • ";
+    std::cout << f.width() << "×" << f.height() << ", ";
+
+    std::cout << pixglot::to_string(f.format());
+    if (pixglot::byte_size(f.format().format) > 1) {
+      if (f.type() == pixglot::storage_type::pixel_buffer) {
+        std::cout << '(' << str(f.pixels().endian()) << "), ";
+      } else {
+        std::cout << "(native), ";
+      }
+    } else {
+      std::cout << ", ";
+    }
+
+    std::cout << "γ=" << f.gamma();
+
+    if (f.orientation() != pixglot::square_isometry::identity) {
+      std::cout << ", " << pixglot::to_string(f.orientation());
+    }
+
+    if (pixglot::has_alpha(f.format().channels)) {
+      switch (f.alpha_mode()) {
+        case pixglot::alpha_mode::none:          std::cout << ", no alpha"; break;
+        case pixglot::alpha_mode::straight:      std::cout << ", straight"; break;
+        case pixglot::alpha_mode::premultiplied: std::cout << ", premultiplied"; break;
+
+        default: std::cout << ", unknown alpha"; break;
+      }
+    }
+
+    if (f.duration() > microseconds{0}) {
+      std::cout << ", " << f.duration().count() << "µs";
+    }
+
+    std::cout << '\n';
+  }
+
+
+  std::cout << std::flush;
+}
+
 
 
 int main(int argc, char** argv) {
@@ -85,8 +162,11 @@ int main(int argc, char** argv) {
 
     pthread.join();
 
+    //NOLINTNEXTLINE(*pointer-arithmetic)
+    std::cout << '\n' << std::filesystem::path{argv[1]}.filename().native()
+      << '\n' << std::endl;
 
-    std::cout << pixglot::to_string(image) << std::endl;
+    print_image(image);
 
   } catch (std::exception& ex) {
     std::cerr << "***Error*** " << ex.what() << std::endl;
