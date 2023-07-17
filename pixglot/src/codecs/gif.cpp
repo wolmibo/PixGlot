@@ -1,5 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
+#include "pixglot/input-plane-info.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
 
 #include <chrono>
@@ -354,7 +355,7 @@ namespace {
 
         width_  = gif_->SWidth;  //NOLINT(*initializer)
         height_ = gif_->SHeight; //NOLINT(*initializer)
-        
+
         decoder_->frame_total(gif_->ImageCount);
       }
 
@@ -392,10 +393,20 @@ namespace {
           }
         }
 
-        auto& frame = decoder_->begin_frame(
-            pixel_buffer{width_, height_, rgba<u8>::format()});
+        frame frame{pixel_buffer{width_, height_, rgba<u8>::format()}};
+
+        frame.input_plane().color_model(color_model::palette);
+        frame.input_plane().color_model_format({
+            data_source_format::u8,
+            data_source_format::u8,
+            data_source_format::u8,
+            meta.alpha() ? data_source_format::index : data_source_format::none
+        });
+
         frame.alpha_mode(get_preferred_alpha_mode());
         frame.duration  (meta.duration());
+
+        decoder_->begin_frame(std::move(frame));
 
         transfer_pixels_over_background(*decoder_, img, palette, *background);
 
