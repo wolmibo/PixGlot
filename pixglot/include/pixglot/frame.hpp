@@ -55,6 +55,8 @@ enum class storage_type {
 
 
 
+class input_plane_info;
+
 class frame_view {
   friend class frame;
 
@@ -79,6 +81,10 @@ class frame_view {
 
     [[nodiscard]] size_t width()  const;
     [[nodiscard]] size_t height() const;
+
+
+
+    [[nodiscard]] const input_plane_info& input_plane() const;
 
 
 
@@ -141,6 +147,12 @@ class frame : public frame_view  {
 
     [[nodiscard]] gl_texture&   texture();
     [[nodiscard]] pixel_buffer& pixels();
+
+
+
+    using frame_view::input_plane;
+
+    [[nodiscard]] input_plane_info& input_plane();
 
 
 
