@@ -126,7 +126,7 @@ void print_ipi(const pixglot::input_plane_info& ipi) {
   }
 
   if (ipi.has_alpha()) {
-    std::cout << "+α";
+    std::cout << 'a';
   }
 
   bool uniform_color = !ipi.has_color() ||
