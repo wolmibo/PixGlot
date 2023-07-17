@@ -2,6 +2,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
+#include "pixglot/input-plane-info.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -405,11 +406,13 @@ namespace {
         auto pf = make_colorspace_compatible();
 
         jpeg_start_decompress(cinfo_.get()); {
-          pixel_buffer pixels{cinfo_->image_width, cinfo_->image_height, pf};
-
-          auto& frame = decoder_->begin_frame(std::move(pixels));
+          frame frame{pixel_buffer{cinfo_->image_width, cinfo_->image_height, pf}};
           frame.alpha_mode (alpha_mode::none);
           frame.orientation(orientation_);
+
+          set_pixel_source_format(frame.input_plane());
+
+          decoder_->begin_frame(std::move(frame));
 
           transfer_data(decoder_->target());
 
@@ -524,6 +527,36 @@ namespace {
         }
 
         return TRUE;
+      }
+
+
+
+      void set_pixel_source_format(input_plane_info& ipi) const {
+        switch (cinfo_->jpeg_color_space) {
+          case JCS_GRAYSCALE: ipi.color_model(color_model::value); break;
+          case JCS_RGB:       ipi.color_model(color_model::rgb);   break;
+          case JCS_YCbCr:     ipi.color_model(color_model::yuv);   break;
+
+          default: ipi.color_model(color_model::unknown); break;
+        }
+
+        auto x = cinfo_->max_h_samp_factor;
+        auto y = cinfo_->max_v_samp_factor;
+
+        if (x == 2 && y == 1) {
+          ipi.subsampling(chroma_subsampling::cs422);
+        } else if (x == 2 && y == 2) {
+          ipi.subsampling(chroma_subsampling::cs420);
+        } else {
+          ipi.subsampling(chroma_subsampling::cs444);
+        }
+
+
+        auto color_depth = static_cast<data_source_format>(cinfo_->data_precision);
+
+        ipi.color_model_format({color_depth, color_depth, color_depth,
+                                data_source_format::none});
+
       }
   };
 }
