@@ -1,5 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
+#include "pixglot/input-plane-info.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -86,7 +87,7 @@ namespace {
     const Channel* blue {nullptr};
     const Channel* alpha{nullptr};
 
-    void set_channel(const std::string_view name, const Channel* c) {
+    void set_channel(std::string_view name, const Channel* c) {
       if      (name == "R") { red   = c; }
       else if (name == "G") { green = c; }
       else if (name == "B") { blue  = c; }
@@ -103,6 +104,16 @@ namespace {
       case PixelType::HALF:  return data_format::f16;
       case PixelType::UINT:  return data_format::u32;
       default:               return data_format::f32;
+    }
+  }
+
+
+
+  [[nodiscard]] data_source_format convert_data_source_format(PixelType ptype) {
+    switch (ptype) {
+      case PixelType::HALF:  return data_source_format::f16;
+      case PixelType::UINT:  return data_source_format::u32;
+      default:               return data_source_format::f32;
     }
   }
 
@@ -316,6 +327,29 @@ namespace {
 
 
 
+  void set_pixel_source_format(input_plane_info& ipi, const exr_frame& frame_source) {
+    if (const auto* channel = std::get_if<const Channel*>(&frame_source.second)) {
+      ipi.color_model(color_model::value);
+      ipi.color_model_format({
+        convert_data_source_format((*channel)->type),
+        convert_data_source_format((*channel)->type),
+        convert_data_source_format((*channel)->type),
+        data_source_format::none,
+      });
+
+    } else if (const auto* image =
+               std::get_if<exr_image_frame>(&frame_source.second)) {
+      ipi.color_model(color_model::rgb);
+      ipi.color_model_format({
+        convert_data_source_format(image->red->type),
+        convert_data_source_format(image->green->type),
+        convert_data_source_format(image->blue->type),
+        convert_data_source_format(image->alpha->type)
+      });
+    }
+  }
+
+
 
 
 
@@ -355,16 +389,19 @@ namespace {
 
 
       void decode_frame(const exr_frame& frame_source) {
-        pixel_buffer buffer{
+        frame frame{pixel_buffer{
           width_,
           height_,
           determine_pixel_format(frame_source, decoder_->output_format())
-        };
+        }};
 
-        auto& frame = decoder_->begin_frame(std::move(buffer));
+        set_pixel_source_format(frame.input_plane(), frame_source);
+
         frame.gamma(gamma_linear);
         frame.alpha_mode(has_alpha(frame.format().channels) ?
             alpha_mode::premultiplied : alpha_mode::none);
+
+        decoder_->begin_frame(std::move(frame));
 
 
 
