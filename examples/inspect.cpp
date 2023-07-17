@@ -104,8 +104,8 @@ void on_frame_start(const pixglot::frame_view& /*unused*/) {
 
 
 
-void progress_loop(pixglot::progress_token ptoken) {
-  while (!ptoken.finished()) {
+void progress_loop(const std::stop_token& stoken, pixglot::progress_token ptoken) {
+  while (!stoken.stop_requested() && !ptoken.finished()) {
     std::this_thread::sleep_for(std::chrono::milliseconds{25});
 
     std::cout << '\r' << progressbar(ptoken.progress())
