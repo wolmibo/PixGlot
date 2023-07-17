@@ -10,6 +10,7 @@ sources = [
   'src/frame.cpp',
   'src/gl-texture.cpp',
   'src/image.cpp',
+  'src/input-plane-info.cpp',
   'src/output-format.cpp',
   'src/pixel-buffer.cpp',
   'src/pixel-format.cpp',

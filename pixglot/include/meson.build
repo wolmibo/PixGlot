@@ -8,6 +8,7 @@ headers = [
   'pixglot/frame.hpp',
   'pixglot/gl-texture.hpp',
   'pixglot/image.hpp',
+  'pixglot/input-plane-info.hpp',
   'pixglot/output-format.hpp',
   'pixglot/pixel-buffer.hpp',
   'pixglot/pixel-format-conversion.hpp',
