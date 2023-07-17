@@ -47,6 +47,7 @@ std::string pixglot::to_string(chroma_subsampling css) {
 
 std::string_view pixglot::stringify(data_source_format dsf) {
   switch (dsf) {
+    case data_source_format::ascii: return "ascii";
     case data_source_format::index: return "index";
     case data_source_format::none:  return "none";
     case data_source_format::u1:    return "u1";
@@ -74,13 +75,14 @@ std::string pixglot::to_string(data_source_format dsf) {
 
 
 bool pixglot::is_float(data_source_format dsf) {
-  return (std::to_underlying(dsf) & data_source_format_float_mask) != 0;
+  return std::to_underlying(dsf) > 0 &&
+    (std::to_underlying(dsf) & data_source_format_float_mask) != 0;
 }
 
 
 
 size_t pixglot::bit_count(data_source_format dsf) {
-  if (dsf == data_source_format::index) {
+  if (std::to_underlying(dsf) <= 0) {
     return 0;
   }
 
@@ -98,6 +100,7 @@ pixglot::data_format pixglot::to_data_format(data_source_format dsf) {
     case data_source_format::u4:
     case data_source_format::u8:
       return data_format::u8;
+    case data_source_format::ascii:
     case data_source_format::u10:
     case data_source_format::u12:
     case data_source_format::u16:
@@ -112,6 +115,21 @@ pixglot::data_format pixglot::to_data_format(data_source_format dsf) {
   }
 
   return data_format::f32;
+}
+
+
+
+pixglot::data_source_format pixglot::data_source_format_from(data_format df) {
+  switch (df) {
+    case data_format::u8:  return data_source_format::u8;
+    case data_format::u16: return data_source_format::u16;
+    case data_format::u32: return data_source_format::u32;
+
+    case data_format::f16: return data_source_format::f16;
+    case data_format::f32: return data_source_format::f32;
+  }
+
+  return data_source_format::none;
 }
 
 

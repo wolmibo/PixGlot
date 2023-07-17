@@ -45,6 +45,7 @@ enum class chroma_subsampling {
 static constexpr int data_source_format_float_mask {1 << 30};
 
 enum class data_source_format : int {
+  ascii = -2,
   index = -1,
 
   none = 0,
@@ -62,13 +63,14 @@ enum class data_source_format : int {
   f32 = 32 | data_source_format_float_mask
 };
 
-[[nodiscard]] std::string_view stringify(data_source_format);
-[[nodiscard]] std::string      to_string(data_source_format);
+[[nodiscard]] std::string_view   stringify(data_source_format);
+[[nodiscard]] std::string        to_string(data_source_format);
 
-[[nodiscard]] bool             is_float (data_source_format);
-[[nodiscard]] size_t           bit_count(data_source_format);
+[[nodiscard]] bool               is_float (data_source_format);
+[[nodiscard]] size_t             bit_count(data_source_format);
 
-[[nodiscard]] data_format      to_data_format(data_source_format);
+[[nodiscard]] data_format        to_data_format(data_source_format);
+[[nodiscard]] data_source_format data_source_format_from(data_format);
 
 
 

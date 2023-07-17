@@ -2,6 +2,7 @@
 #include "pixglot/conversions.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
+#include "pixglot/input-plane-info.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
 #include "pixglot/pixel-format.hpp"
@@ -394,7 +395,30 @@ namespace {
 
 
 
+    void fill_pixel_source_format(input_plane_info& ipi) const {
+      ipi.color_model(has_color(format.channels) ? color_model::rgb : color_model::value);
+
+      auto dsf = source_format();
+      ipi.color_model_format({dsf, dsf, dsf, data_source_format::none});
+    }
+
+
+
     private:
+      [[nodiscard]] data_source_format source_format() const {
+        if (ascii) {
+          return data_source_format::ascii;
+        }
+
+        if (type == ppm_type::bits) {
+          return data_source_format::u1;
+        }
+
+        return data_source_format_from(format.format);
+      }
+
+
+
       void parse_range(std::string_view range_str) {
         if (type == ppm_type::integer) {
           auto rcand = parse_u32(range_str, 0xffff);
@@ -478,8 +502,12 @@ namespace {
 
 
       void decode() {
-        auto& frame = decoder_->begin_frame(pixel_buffer{header_.width, header_.height,
-            header_.format, current_endianess()});
+        frame frame_init{pixel_buffer{header_.width, header_.height, header_.format,
+                         current_endianess()}};
+
+        header_.fill_pixel_source_format(frame_init.input_plane());
+
+        auto& frame = decoder_->begin_frame(std::move(frame_init));
 
         frame.orientation(current_orientation());
         frame.alpha_mode (alpha_mode::none);
