@@ -1,3 +1,4 @@
+#include "pixglot/input-plane-info.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -117,6 +118,45 @@ void progress_loop(pixglot::progress_token ptoken) {
 
 
 
+void print_ipi(const pixglot::input_plane_info& ipi) {
+  std::cout << pixglot::stringify(ipi.color_model());
+
+  if (ipi.color_model() == pixglot::color_model::yuv) {
+    std::cout << pixglot::stringify(ipi.subsampling());
+  }
+
+  if (ipi.has_alpha()) {
+    std::cout << "+α";
+  }
+
+  bool uniform_color = !ipi.has_color() ||
+    ipi.color_model() == pixglot::color_model::palette ||
+      (ipi.color_model_format()[0] == ipi.color_model_format()[1] &&
+      ipi.color_model_format()[1] == ipi.color_model_format()[2]);
+
+  std::cout << '_';
+
+  if (uniform_color) {
+    std::cout << pixglot::stringify(ipi.color_model_format()[0]);
+  } else {
+    std::cout << pixglot::stringify(ipi.color_model_format()[0]) << '_';
+    std::cout << pixglot::stringify(ipi.color_model_format()[1]) << '_';
+    std::cout << pixglot::stringify(ipi.color_model_format()[2]);
+  }
+
+  if (ipi.has_alpha() &&
+      (!uniform_color || ipi.color_model_format()[3] != ipi.color_model_format()[0])) {
+
+    if (ipi.color_model_format()[3] == pixglot::data_source_format::index) {
+      std::cout << "_indexed α";
+    } else {
+      std::cout << '_' << pixglot::stringify(ipi.color_model_format()[3]);
+    }
+  }
+}
+
+
+
 void print_image(const pixglot::image& image) {
   for (const auto& str: image.warnings()) {
     std::cout << "  ⚠ " << str << '\n';
@@ -168,6 +208,9 @@ void print_image(const pixglot::image& image) {
     if (f.duration() > microseconds{0}) {
       std::cout << ", " << f.duration().count() << "µs";
     }
+
+    std::cout << ", ";
+    print_ipi(f.input_plane());
 
     std::cout << '\n';
   }
