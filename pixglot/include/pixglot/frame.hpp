@@ -9,7 +9,6 @@
 #include "pixglot/square-isometry.hpp"
 
 #include <chrono>
-#include <experimental/propagate_const>
 #include <functional>
 #include <string>
 #include <string_view>
