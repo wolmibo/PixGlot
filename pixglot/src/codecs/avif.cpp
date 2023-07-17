@@ -1,5 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
+#include "pixglot/input-plane-info.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <avif/avif.h>
@@ -70,7 +71,46 @@ namespace {
 
 
 
-  struct avif_rgb_image {
+
+
+  void set_pixel_source_format(input_plane_info& ipi, avifImage* image) {
+    auto color_depth = static_cast<data_source_format>(image->depth);
+
+    ipi.color_model(color_model::yuv);
+
+    switch (image->yuvFormat) {
+      case AVIF_PIXEL_FORMAT_YUV400:
+        ipi.color_model(color_model::value);
+        break;
+      case AVIF_PIXEL_FORMAT_YUV444:
+        ipi.subsampling(chroma_subsampling::cs444);
+        break;
+      case AVIF_PIXEL_FORMAT_YUV422:
+        ipi.subsampling(chroma_subsampling::cs422);
+        break;
+      case AVIF_PIXEL_FORMAT_YUV420:
+        ipi.subsampling(chroma_subsampling::cs420);
+        break;
+      default:
+        color_depth = data_source_format::none;
+        ipi.color_model(color_model::value);
+        break;
+    }
+
+    auto alpha_depth{data_source_format::none};
+
+    if (image->imageOwnsAlphaPlane != AVIF_FALSE) {
+      alpha_depth = color_depth;
+    }
+
+    ipi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
+  }
+
+
+
+
+
+  class avif_rgb_image {
     public:
       avif_rgb_image& operator=(const avif_rgb_image&) = delete;
       avif_rgb_image& operator=(avif_rgb_image&&)      = delete;
@@ -82,8 +122,10 @@ namespace {
         avifRGBImageFreePixels(&rgb_);
       }
 
-      explicit avif_rgb_image(avifImage* image, const output_format& out) {
-        avifRGBImageSetDefaults(&rgb_, image);
+      explicit avif_rgb_image(avifImage* image, const output_format& out) :
+        image_{image}
+      {
+        avifRGBImageSetDefaults(&rgb_, image_);
 
         rgb_.format = (image->alphaPlane == nullptr && !out.fill_alpha().prefers(true))
                         ? AVIF_RGB_FORMAT_RGB : AVIF_RGB_FORMAT_RGBA;
@@ -95,8 +137,11 @@ namespace {
 
 
       frame& begin_frame(details::decoder* decoder) {
-        auto& frame = decoder->begin_frame(pixel_buffer{
-            rgb_.width, rgb_.height, determine_pixel_format()});
+        frame frame_init{pixel_buffer{rgb_.width, rgb_.height, determine_pixel_format()}};
+
+        set_pixel_source_format(frame_init.input_plane(), image_);
+
+        auto& frame = decoder->begin_frame(std::move(frame_init));
 
         rgb_.pixels = utils::byte_pointer_cast<uint8_t>(decoder->target().data().data());
         rgb_.rowBytes = decoder->target().stride();
@@ -119,6 +164,7 @@ namespace {
 
 
     private:
+      avifImage*    image_;
       avifRGBImage  rgb_{};
 
 
