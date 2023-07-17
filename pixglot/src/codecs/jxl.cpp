@@ -1,6 +1,8 @@
 #include "pixglot/codecs-magic.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
+#include "pixglot/input-plane-info.hpp"
+#include "pixglot/pixel-buffer.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -86,6 +88,22 @@ namespace {
       static_cast<uint64_t>(d)) /
       static_cast<uint64_t>(info.animation.tps_denominator)
     };
+  }
+
+
+
+
+
+  [[nodiscard]] data_source_format find_format(uint32_t bits, uint32_t exponent_bits) {
+    if (exponent_bits == 0) {
+      return static_cast<data_source_format>(bits);
+    }
+
+    if (bits <= 16) {
+      return data_source_format::f16;
+    }
+
+    return data_source_format::f32;
   }
 
 
@@ -224,12 +242,17 @@ namespace {
       void on_frame() {
         decoder_->frame_total(decoder_->frame_total() + 1);
 
-        auto& frame = decoder_->begin_frame(pixel_buffer{info_.xsize, info_.ysize,
-            select_pixel_format(info_), endian_strategy_});
+        frame frame{pixel_buffer{info_.xsize, info_.ysize,
+          select_pixel_format(info_), endian_strategy_}};
+
+        set_pixel_source_format(frame.input_plane());
 
         frame.orientation(unwrap_orientation(convert_orientation(info_.orientation)));
         frame.duration   (convert_duration(info_, frame_header_.duration));
         frame.alpha_mode (get_alpha_mode(info_));
+
+        decoder_->begin_frame(std::move(frame));
+
 
         auto format = convert_pixel_format(decoder_->target().format());
 
@@ -362,6 +385,25 @@ namespace {
           return alpha_strategy_;
         }
         return alpha_mode::none;
+      }
+
+
+
+
+
+      void set_pixel_source_format(input_plane_info& ipi) const {
+        auto color_depth = find_format(info_.bits_per_sample,
+            info_.exponent_bits_per_sample);
+
+        auto alpha_depth = find_format(info_.alpha_bits, info_.alpha_exponent_bits);
+
+        if (info_.num_color_channels > 1) {
+          ipi.color_model(color_model::unknown);
+        } else {
+          ipi.color_model(color_model::value);
+        }
+
+        ipi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
       }
   };
 }

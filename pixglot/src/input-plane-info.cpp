@@ -6,6 +6,7 @@
 
 std::string_view pixglot::stringify(color_model cm) {
   switch (cm) {
+    case color_model::unknown: return "unknown";
     case color_model::yuv:     return "yuv";
     case color_model::rgb:     return "rgb";
     case color_model::palette: return "palette";

@@ -16,6 +16,7 @@ namespace pixglot {
 
 
 enum class color_model {
+  unknown,
   yuv,
   rgb,
   palette,
