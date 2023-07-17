@@ -95,3 +95,28 @@ frame& image::add_frame(pixglot::frame frame) {
 
   return impl_->frames.back();
 }
+
+
+
+
+
+std::string pixglot::to_string(const image& img) {
+  std::string buffer = "{";
+  for (size_t i = 0; i < img.size(); ++i) {
+    if (i > 0) {
+      buffer += ", ";
+    }
+    buffer += to_string(img.frame(i));
+  }
+  buffer += std::string{"} [animated="} + (img.animated() ? "y" : "n") + "; warnings: {";
+  auto warnings = img.warnings();
+  for (size_t i = 0; i < warnings.size(); ++i) {
+    if (i > 0) {
+      buffer += ", ";
+    }
+    buffer += warnings[i];
+  }
+  buffer += "}]";
+
+  return buffer;
+}

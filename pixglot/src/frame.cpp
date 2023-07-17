@@ -126,3 +126,36 @@ void frame::reset(gl_texture   texture) { impl_->storage = std::move(texture); }
 
 gl_texture&   frame::texture() { return std::get<gl_texture  >(impl_->storage); }
 pixel_buffer& frame::pixels()  { return std::get<pixel_buffer>(impl_->storage); }
+
+
+
+
+
+
+std::string_view pixglot::stringify(alpha_mode a) {
+  switch (a) {
+    case alpha_mode::none:          return "none";
+    case alpha_mode::straight:      return "straight";
+    case alpha_mode::premultiplied: return "premultiplied";
+  }
+  return "<invalid alpha_mode>";
+}
+
+
+
+std::string_view pixglot::stringify(storage_type t) {
+  switch (t) {
+    case storage_type::pixel_buffer: return "pixel buffer";
+    case storage_type::gl_texture:   return "gl texture";
+  }
+  return "<invalid pixel_target>";
+}
+
+
+
+std::string pixglot::to_string(const frame& f) {
+  return f.visit_storage([](auto&& arg) { return to_string(arg); })
+    + " [trafo=" + to_string(f.orientation())
+    + "; alpha=" + to_string(f.alpha_mode())
+    + "; gamma=" + std::to_string(f.gamma()) + "]";
+}

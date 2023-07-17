@@ -56,3 +56,42 @@ std::optional<codec> pixglot::determine_codec(
     return {};
   }
 }
+
+
+
+
+
+std::string_view pixglot::stringify(codec c) {
+  switch (c) {
+    case codec::jpeg: return "jpeg";
+    case codec::png:  return "png";
+    case codec::avif: return "avif";
+    case codec::exr:  return "exr";
+    case codec::ppm:  return "ppm";
+    case codec::webp: return "webp";
+    case codec::gif:  return "gif";
+    case codec::jxl:  return "jxl";
+  }
+
+  return "<invalid codec>";
+}
+
+
+
+std::vector<std::string_view> pixglot::mime_types(codec c) {
+  switch (c) {
+    case codec::jpeg: return {"image/jpeg"};
+    case codec::png:  return {"image/png"};
+    case codec::avif: return {"image/avif"};
+    case codec::exr:  return {"image/x-exr"};
+    case codec::ppm:  return {
+      "image/x-portable-bitmap",
+      "image/x-portable-graymap",
+      "image/x-portable-pixmap"
+    };
+    case codec::webp: return {"image/webp"};
+    case codec::gif:  return {"image/gif"};
+    case codec::jxl:  return {"image/jxl"};
+  }
+  return {};
+}

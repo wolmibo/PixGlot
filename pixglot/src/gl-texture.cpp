@@ -283,3 +283,12 @@ pixglot::pixel_buffer pixglot::gl_texture::download() {
 void pixglot::gl_texture::bind() const {
   glBindTexture(GL_TEXTURE_2D, id_.id);
 }
+
+
+
+
+
+std::string pixglot::to_string(const gl_texture& texture) {
+  return std::to_string(texture.width()) + "x" + std::to_string(texture.height())
+    + "@" + to_string(texture.format()) + "(gl=" + std::to_string(texture.id()) + ")";
+}
