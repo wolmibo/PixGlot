@@ -109,8 +109,12 @@ namespace {
 
 
 
-  [[nodiscard]] data_source_format convert_data_source_format(PixelType ptype) {
-    switch (ptype) {
+  [[nodiscard]] data_source_format data_source_format_channel(const Channel* channel) {
+    if (channel == nullptr) {
+      return data_source_format::none;
+    }
+
+    switch (channel->type) {
       case PixelType::HALF:  return data_source_format::f16;
       case PixelType::UINT:  return data_source_format::u32;
       default:               return data_source_format::f32;
@@ -331,9 +335,9 @@ namespace {
     if (const auto* channel = std::get_if<const Channel*>(&frame_source.second)) {
       ipi.color_model(color_model::value);
       ipi.color_model_format({
-        convert_data_source_format((*channel)->type),
-        convert_data_source_format((*channel)->type),
-        convert_data_source_format((*channel)->type),
+        data_source_format_channel(*channel),
+        data_source_format_channel(*channel),
+        data_source_format_channel(*channel),
         data_source_format::none,
       });
 
@@ -341,10 +345,10 @@ namespace {
                std::get_if<exr_image_frame>(&frame_source.second)) {
       ipi.color_model(color_model::rgb);
       ipi.color_model_format({
-        convert_data_source_format(image->red->type),
-        convert_data_source_format(image->green->type),
-        convert_data_source_format(image->blue->type),
-        convert_data_source_format(image->alpha->type)
+        data_source_format_channel(image->red),
+        data_source_format_channel(image->green),
+        data_source_format_channel(image->blue),
+        data_source_format_channel(image->alpha)
       });
     }
   }
