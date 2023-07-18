@@ -101,10 +101,12 @@ class frame_view {
 
 
 
-    [[nodiscard]] square_isometry           orientation() const;
-    [[nodiscard]] std::chrono::microseconds duration()    const;
-    [[nodiscard]] float                     gamma()       const;
-    [[nodiscard]] pixglot::alpha_mode       alpha_mode()  const;
+    [[nodiscard]] square_isometry                 orientation() const;
+    [[nodiscard]] std::chrono::microseconds       duration()    const;
+    [[nodiscard]] float                           gamma()       const;
+    [[nodiscard]] pixglot::alpha_mode             alpha_mode()  const;
+
+    [[nodiscard]] std::optional<std::string_view> name() const;
 
 
 
@@ -176,12 +178,17 @@ class frame : public frame_view  {
     using frame_view::gamma;
     using frame_view::alpha_mode;
 
+    using frame_view::name;
+
 
 
     void orientation(square_isometry);
     void duration   (std::chrono::microseconds);
     void gamma      (float);
     void alpha_mode (pixglot::alpha_mode);
+
+    void name(std::string);
+    void clear_name();
 };
 
 [[nodiscard]] std::string to_string(const frame&);

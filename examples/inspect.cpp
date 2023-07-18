@@ -176,6 +176,11 @@ void print_image(const pixglot::image& image) {
   for (const auto& f: image.frames()) {
 
     std::cout << "  • ";
+
+    if (auto name = f.name()) {
+      std::cout << '"' << *name << "\", ";
+    }
+
     std::cout << f.width() << "×" << f.height() << ", ";
 
     std::cout << pixglot::to_string(f.format());

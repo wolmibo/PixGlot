@@ -20,14 +20,16 @@ namespace {
 
 class frame_view::impl {
   public:
-    square_isometry     orientation{square_isometry::identity};
-    pixglot::alpha_mode alpha_mode {alpha_mode::straight};
-    float               gamma      {gamma_s_rgb};
-    microseconds        duration   {0};
+    square_isometry            orientation{square_isometry::identity};
+    pixglot::alpha_mode        alpha_mode {alpha_mode::straight};
+    float                      gamma      {gamma_s_rgb};
+    microseconds               duration   {0};
 
-    pixel_storage       storage;
+    pixel_storage              storage;
 
-    input_plane_info    input_plane;
+    input_plane_info           input_plane;
+
+    std::optional<std::string> name;
 
 
     impl(pixel_storage store) :
@@ -86,6 +88,10 @@ microseconds            frame_view::duration()    const { return impl_->duration
 float                   frame_view::gamma()       const { return impl_->gamma;       }
 pixglot::alpha_mode     frame_view::alpha_mode()  const { return impl_->alpha_mode;  }
 
+std::optional<std::string_view> frame_view::name() const {
+  return impl_->name;
+}
+
 
 
 size_t frame_view::id() const {
@@ -120,6 +126,9 @@ void frame::orientation(square_isometry     iso     ) { impl_->orientation = iso
 void frame::duration   (microseconds        duration) { impl_->duration    = duration; }
 void frame::gamma      (float               gamma   ) { impl_->gamma       = gamma;    }
 void frame::alpha_mode (pixglot::alpha_mode alpha   ) { impl_->alpha_mode  = alpha;    }
+
+void frame::name       (std::string         name    ) { impl_->name = std::move(name); }
+void frame::clear_name ()                             { impl_->name.reset();           }
 
 
 
