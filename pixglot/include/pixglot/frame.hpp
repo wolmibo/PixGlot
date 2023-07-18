@@ -122,6 +122,8 @@ class frame_view {
     frame_view(std::shared_ptr<impl>);
 };
 
+[[nodiscard]] std::string to_string(const frame_view&);
+
 
 
 

@@ -184,7 +184,7 @@ std::string_view pixglot::stringify(storage_type t) {
 
 
 namespace {
-  [[nodiscard]] std::string storage_type_to_string(const frame& f) {
+  [[nodiscard]] std::string storage_type_to_string(const frame_view& f) {
     if (f.type() == storage_type::no_pixels) {
       return std::to_string(f.width()) + 'x' + std::to_string(f.height()) +
         '@' + to_string(f.format());
@@ -196,9 +196,15 @@ namespace {
 
 
 
-std::string pixglot::to_string(const frame& f) {
+std::string pixglot::to_string(const frame_view& f) {
   return storage_type_to_string(f)
     + " [trafo=" + to_string(f.orientation())
     + "; alpha=" + to_string(f.alpha_mode())
     + "; gamma=" + std::to_string(f.gamma()) + "]";
+}
+
+
+
+std::string pixglot::to_string(const frame& f) {
+  return to_string(dynamic_cast<const frame_view&>(f));
 }
