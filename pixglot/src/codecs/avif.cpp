@@ -137,20 +137,20 @@ namespace {
 
 
       frame& begin_frame(details::decoder* decoder) {
-        frame frame_init{pixel_buffer{rgb_.width, rgb_.height, determine_pixel_format()}};
-
-        set_frame_source_info(frame_init.source_info(), image_);
-
-        auto& frame = decoder->begin_frame(std::move(frame_init));
-
-        rgb_.pixels = utils::byte_pointer_cast<uint8_t>(decoder->target().data().data());
-        rgb_.rowBytes = decoder->target().stride();
-
+        auto& frame = decoder->begin_frame(rgb_.width, rgb_.height,
+            determine_pixel_format());
         frame.alpha_mode(get_alpha_mode());
 
         return frame;
       }
 
+
+
+
+      void set_pixel_buffer(pixel_buffer& buffer) {
+        rgb_.pixels   = utils::byte_pointer_cast<uint8_t>(buffer.data().data());
+        rgb_.rowBytes = buffer.stride();
+      }
 
 
 
@@ -211,7 +211,7 @@ namespace {
           return alpha_mode::none;
         }
 
-        return rgb_.alphaPremultiplied != 0 ?
+        return rgb_.alphaPremultiplied != AVIF_FALSE ?
           alpha_mode::premultiplied : alpha_mode::straight;
       }
 
@@ -309,12 +309,21 @@ namespace {
           avif_rgb_image rgb{dec_->image, decoder_->output_format()};
 
           auto& frame = rgb.begin_frame(decoder_);
+          set_frame_source_info(frame.source_info(), dec_->image);
           frame.orientation(isometry_from(dec_->image));
           frame.duration   (std::chrono::microseconds{
                               static_cast<long int>(dec_->duration) * time_multi});
 
-          assert_avif(avifImageYUVToRGB(dec_->image, rgb.get()),
-            "avifImageYUVToRGB");
+          if (decoder_->wants_pixel_transfer()) {
+            decoder_->begin_pixel_transfer();
+
+            rgb.set_pixel_buffer(decoder_->target());
+
+            assert_avif(avifImageYUVToRGB(dec_->image, rgb.get()),
+              "avifImageYUVToRGB");
+
+            decoder_->finish_pixel_transfer();
+          }
 
           decoder_->finish_frame();
 

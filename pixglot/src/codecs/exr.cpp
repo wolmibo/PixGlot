@@ -408,24 +408,29 @@ namespace {
 
 
       void decode_frame(const exr_frame& frame_source) {
-        frame frame{pixel_buffer{
-          width_,
-          height_,
-          determine_pixel_format(frame_source, decoder_->output_format())
-        }};
+        auto& frame = decoder_->begin_frame(width_, height_,
+            determine_pixel_format(frame_source, decoder_->output_format()));
 
         set_frame_source_info(frame.source_info(), frame_source);
         set_frame_name(frame, frame_source);
-
 
         frame.gamma(gamma_linear);
         frame.alpha_mode(has_alpha(frame.format().channels) ?
             alpha_mode::premultiplied : alpha_mode::none);
 
-        decoder_->begin_frame(std::move(frame));
+        if (decoder_->wants_pixel_transfer()) {
+          decoder_->begin_pixel_transfer();
+          set_frame_buffer(frame_source);
+          transfer_pixels();
+          decoder_->finish_pixel_transfer();
+        }
+
+        decoder_->finish_frame();
+      }
 
 
 
+      void set_frame_buffer(const exr_frame& frame_source) {
         FrameBuffer frame_buffer;
 
         auto& target = decoder_->target();
@@ -472,12 +477,6 @@ namespace {
         }
 
         input_.setFrameBuffer(frame_buffer);
-
-
-
-        transfer_pixels();
-
-        decoder_->finish_frame();
       }
 
 

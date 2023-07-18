@@ -145,35 +145,30 @@ namespace {
       void decode() {
         png_read_info(png.ptr, png.info);
 
-        auto ipi = create_frame_source_info(png);
+        auto fsi = create_frame_source_info(png);
 
-        pixel_buffer buffer{
-          png_get_image_width(png.ptr, png.info),
-          png_get_image_height(png.ptr, png.info),
-          pixel_format {
-            .format   = make_format_compatible(),
-            .channels = make_color_channels_compatible()
-          }
+        pixel_format format {
+          .format   = make_format_compatible(),
+          .channels = make_color_channels_compatible()
         };
 
-        if (buffer.empty()) {
-          throw decode_error{codec::png,
-            "unable to obtain image format (or image is empty)"};
+        auto& frame = decoder_->begin_frame(
+            png_get_image_width(png.ptr, png.info),
+            png_get_image_height(png.ptr, png.info),
+            format,
+            make_endian_compatible(format.format)
+        );
+
+        frame.alpha_mode(make_alpha_mode_compatible(format.channels));
+        frame.source_info() = std::move(fsi);
+
+        if (decoder_->wants_pixel_transfer()) {
+          png_read_update_info(png.ptr, png.info);
+
+          decoder_->begin_pixel_transfer();
+          transfer_data(decoder_->target());
+          decoder_->finish_pixel_transfer();
         }
-
-        buffer.endian(make_endian_compatible(buffer.format().format));
-
-        auto alpha = make_alpha_mode_compatible(buffer.format().channels);
-
-        png_read_update_info(png.ptr, png.info);
-
-        frame frame_init{std::move(buffer)};
-        frame_init.source_info() = std::move(ipi);
-
-        auto& frame = decoder_->begin_frame(std::move(frame_init));
-        frame.alpha_mode(alpha);
-
-        transfer_data(decoder_->target());
 
         decoder_->finish_frame();
       }

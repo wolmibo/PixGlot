@@ -2,6 +2,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <webp/demux.h>
@@ -165,13 +166,6 @@ namespace {
 
 
 
-      [[nodiscard]] alpha_mode alpha() const {
-        return (config_.output.colorspace == MODE_rgbA ?
-          alpha_mode::premultiplied : alpha_mode::straight);
-      }
-
-
-
       [[nodiscard]] WebPDecoderConfig* get() {
         return &config_;
       }
@@ -208,10 +202,15 @@ namespace {
             decoder_->warn("fragment does not contain full frame");
           }
 
-          frame frame_init = create_pixel_buffer(&webp_frame);
-          frame_init.source_info().color_model(color_model::yuv);
-          frame_init.source_info().subsampling(chroma_subsampling::cs420);
-          frame_init.source_info().color_model_format({
+          auto& frame = decoder_->begin_frame(
+              saturating_cast(webp_frame.width),
+              saturating_cast(webp_frame.height),
+              rgba<u8>::format()
+          );
+
+          frame.source_info().color_model(color_model::yuv);
+          frame.source_info().subsampling(chroma_subsampling::cs420);
+          frame.source_info().color_model_format({
               data_source_format::u8,
               data_source_format::u8,
               data_source_format::u8,
@@ -219,19 +218,23 @@ namespace {
                 data_source_format::u8 : data_source_format::none
           });
 
-          auto& frame = decoder_->begin_frame(std::move(frame_init));
           frame.duration(std::chrono::microseconds{webp_frame.duration * 1000});
+          frame.alpha_mode(
+              decoder_->output_format().alpha_mode().prefers(alpha_mode::premultiplied) ?
+              alpha_mode::premultiplied :
+              alpha_mode::straight
+          );
 
-          webp_decoder_config config{&webp_frame, decoder_->target(),
-                decoder_->output_format().alpha_mode()
-                  .prefers(alpha_mode::premultiplied)};
+          if (decoder_->wants_pixel_transfer()) {
+            decoder_->begin_pixel_transfer();
+            webp_decoder_config config{&webp_frame, decoder_->target(),
+              frame.alpha_mode() == alpha_mode::premultiplied};
 
-          frame.alpha_mode(config.alpha());
-
-
-          if (WebPDecode(webp_frame.fragment.bytes, webp_frame.fragment.size,
-                config.get()) != VP8_STATUS_OK) {
-            throw decode_error{codec::webp, "unable to decode frame"};
+            if (WebPDecode(webp_frame.fragment.bytes, webp_frame.fragment.size,
+                  config.get()) != VP8_STATUS_OK) {
+              throw decode_error{codec::webp, "unable to decode frame"};
+            }
+            decoder_->finish_pixel_transfer();
           }
 
           decoder_->finish_frame();

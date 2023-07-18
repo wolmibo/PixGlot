@@ -405,20 +405,24 @@ namespace {
 
         auto pf = make_colorspace_compatible();
 
-        jpeg_start_decompress(cinfo_.get()); {
-          frame frame{pixel_buffer{cinfo_->image_width, cinfo_->image_height, pf}};
-          frame.alpha_mode (alpha_mode::none);
-          frame.orientation(orientation_);
+        auto& frame = decoder_->begin_frame(cinfo_->image_width, cinfo_->image_height,
+                                            pf);
 
-          set_frame_source_info(frame.source_info());
+        frame.alpha_mode (alpha_mode::none);
+        frame.orientation(orientation_);
 
-          decoder_->begin_frame(std::move(frame));
+        set_frame_source_info(frame.source_info());
 
+        if (decoder_->wants_pixel_transfer()) {
+          decoder_->begin_pixel_transfer();
+
+          jpeg_start_decompress(cinfo_.get());
           transfer_data(decoder_->target());
+          jpeg_finish_decompress(cinfo_.get());
 
-          decoder_->finish_frame();
-
-        } jpeg_finish_decompress(cinfo_.get());
+          decoder_->finish_pixel_transfer();
+        }
+        decoder_->finish_frame();
       }
 
 

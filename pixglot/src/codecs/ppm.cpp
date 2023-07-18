@@ -502,20 +502,23 @@ namespace {
 
 
       void decode() {
-        frame frame_init{pixel_buffer{header_.width, header_.height, header_.format,
-                         current_endianess()}};
+        auto& frame = decoder_->begin_frame(header_.width, header_.height,
+            header_.format, current_endianess());
 
-        header_.fill_frame_source_info(frame_init.source_info());
-
-        auto& frame = decoder_->begin_frame(std::move(frame_init));
+        header_.fill_frame_source_info(frame.source_info());
 
         frame.orientation(current_orientation());
         frame.alpha_mode (alpha_mode::none);
 
-        if (header_.ascii) {
-          transfer_ascii(decoder_->target());
-        } else {
-          transfer_binary(decoder_->target());
+
+        if (decoder_->wants_pixel_transfer()) {
+          decoder_->begin_pixel_transfer();
+          if (header_.ascii) {
+            transfer_ascii(decoder_->target());
+          } else {
+            transfer_binary(decoder_->target());
+          }
+          decoder_->finish_pixel_transfer();
         }
 
         decoder_->finish_frame();

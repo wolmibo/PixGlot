@@ -210,6 +210,10 @@ namespace {
 
 
       void on_full_image() {
+        if (decoder_->wants_pixel_transfer()) {
+          decoder_->finish_pixel_transfer();
+        }
+
         decoder_->finish_frame();
       }
 
@@ -223,6 +227,10 @@ namespace {
           const void* pixels
       ) {
         auto* self = static_cast<jxl_decoder*>(opaque);
+
+        if (!self->decoder_->wants_pixel_transfer()) {
+          return;
+        }
 
         if (x + num_pixels > self->decoder_->target().width()) {
           throw decode_error{codec::jxl, "trying to write pixels out of bounds"};
@@ -242,8 +250,8 @@ namespace {
       void on_frame() {
         decoder_->frame_total(decoder_->frame_total() + 1);
 
-        frame frame{pixel_buffer{info_.xsize, info_.ysize,
-          select_pixel_format(info_), endian_strategy_}};
+        auto& frame = decoder_->begin_frame(info_.xsize, info_.ysize,
+          select_pixel_format(info_), endian_strategy_);
 
         set_frame_source_info(frame.source_info());
 
@@ -251,10 +259,9 @@ namespace {
         frame.duration   (convert_duration(info_, frame_header_.duration));
         frame.alpha_mode (get_alpha_mode(info_));
 
-        decoder_->begin_frame(std::move(frame));
+        decoder_->begin_pixel_transfer();
 
-
-        auto format = convert_pixel_format(decoder_->target().format());
+        auto format = convert_pixel_format(frame.format());
 
         assert_jxl(JxlDecoderGetFrameHeader(jxl_.get(), &frame_header_),
           "unable to obtain frame header");

@@ -1,5 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/conversions.hpp"
+#include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/pixel-buffer.hpp"
 
@@ -160,13 +161,9 @@ void decoder::finish_frame() {
     throw std::runtime_error{"finish_frame called without previous begin_frame"};
   }
 
-  finish_upload();
-
-
 
   pixel_target_.reset();
   target_ = nullptr;
-
 
 
   make_format_compatible(*current_frame_, *format_);
@@ -187,38 +184,70 @@ void decoder::finish_frame() {
 
 
 
-pixglot::frame& decoder::begin_frame(frame f) {
+
+bool decoder::wants_pixel_transfer() const {
+  return !format_->storage_type().prefers(storage_type::no_pixels);
+}
+
+
+
+
+
+pixglot::frame& decoder::begin_frame(
+    size_t       width,
+    size_t       height,
+    pixel_format format,
+    std::endian  endian
+) {
   if (current_frame_) {
     throw std::runtime_error{
       "begin_frame called but previous frame has not been finished"};
   }
-  current_frame_.emplace(std::move(f));
 
-  if (format_->storage_type().require(storage_type::gl_texture)) {
-    pixel_target_ = std::move(current_frame_->pixels());
+
+
+  if (!wants_pixel_transfer()) {
+    current_frame_.emplace(width, height, format);
+    pixel_target_.reset();
+
+    target_ = nullptr;
+
+  } else if (format_->storage_type().require(storage_type::gl_texture)) {
+    current_frame_.emplace(gl_texture{width, height, format});
+    pixel_target_.emplace(width, height, format, endian);
+
     target_ = &(*pixel_target_);
 
-    current_frame_->reset(gl_texture{
-        pixel_target_->width(),
-        pixel_target_->height(),
-        pixel_target_->format()
-    });
-
-    upload_direction_ = std::to_underlying(direction::unset);
-
   } else {
-    target_ = &current_frame_->pixels();
+    current_frame_.emplace(pixel_buffer{width, height, format, endian});
+    pixel_target_.reset();
 
-    upload_direction_ = std::to_underlying(direction::no_upload);
+    target_ = &current_frame_->pixels();
   }
 
-  uploaded_ = 0;
+  return *current_frame_;
+}
+
+
+
+
+
+void decoder::begin_pixel_transfer() {
+  if (!current_frame_) {
+    throw std::runtime_error{"begin_pixel_transfer called without active frame"};
+  }
 
   if (!token_.begin_frame(*current_frame_)) {
     throw decoding_aborted{};
   }
 
-  return *current_frame_;
+  if (pixel_target_ && current_frame_->type() == storage_type::gl_texture) {
+    upload_direction_ = std::to_underlying(direction::unset);
+  } else {
+    upload_direction_ = std::to_underlying(direction::no_upload);
+  }
+
+  uploaded_ = 0;
 }
 
 
@@ -246,7 +275,7 @@ pixglot::pixel_buffer& decoder::target() {
 
 
 
-void decoder::finish_upload() {
+void decoder::finish_pixel_transfer() {
   if (current_frame_->type() != storage_type::gl_texture || !pixel_target_) {
     return;
   }

@@ -20,9 +20,14 @@ class decoder {
     [[nodiscard]] pixglot::image finish();
 
 
+    [[nodiscard]] bool wants_pixel_transfer() const;
 
-    frame& begin_frame(frame);
-    void finish_frame();
+
+
+    frame& begin_frame(size_t, size_t, pixel_format, std::endian = std::endian::native);
+    void   begin_pixel_transfer();
+    void   finish_pixel_transfer();
+    void   finish_frame();
 
 
 
@@ -71,9 +76,6 @@ class decoder {
 
     size_t                        uploaded_{};
     int                           upload_direction_{};
-
-
-    void finish_upload();
 };
 
 }

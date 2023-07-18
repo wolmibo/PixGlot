@@ -386,14 +386,7 @@ namespace {
         gif_meta meta{img};
         gif_palette palette{current_color_map(img), meta.alpha(), gif_->SBackGroundColor};
 
-        if (!background) {
-          background.emplace(width_, height_, rgba<u8>::format());
-          for (size_t y = 0; y < background->height(); ++y) {
-            std::ranges::fill(background->row<rgba<u8>>(y), palette.background());
-          }
-        }
-
-        frame frame{pixel_buffer{width_, height_, rgba<u8>::format()}};
+        auto& frame = decoder_->begin_frame(width_, height_, rgba<u8>::format());
 
         frame.source_info().color_model(color_model::palette);
         frame.source_info().color_model_format({
@@ -406,23 +399,35 @@ namespace {
         frame.alpha_mode(get_preferred_alpha_mode());
         frame.duration  (meta.duration());
 
-        decoder_->begin_frame(std::move(frame));
 
-        transfer_pixels_over_background(*decoder_, img, palette, *background);
+        if (decoder_->wants_pixel_transfer()) {
+          decoder_->begin_pixel_transfer();
 
-        switch (meta.dispose_mode()) {
-          case dispose::background: {
-            gif_rect rect{img.ImageDesc};
-            for (size_t y = 0; y < rect.y + rect.height; ++y) {
-              auto row = background->row<rgba<u8>>(y).subspan(rect.x, rect.width);
-              std::ranges::fill(row, palette.background());
+          if (!background) {
+            background.emplace(width_, height_, rgba<u8>::format());
+            for (size_t y = 0; y < background->height(); ++y) {
+              std::ranges::fill(background->row<rgba<u8>>(y), palette.background());
             }
-          } break;
-          case dispose::previous:
-            break;
-          case dispose::leave_in_place:
-            background = decoder_->target();
-            break;
+          }
+
+          transfer_pixels_over_background(*decoder_, img, palette, *background);
+
+          switch (meta.dispose_mode()) {
+            case dispose::background: {
+              gif_rect rect{img.ImageDesc};
+              for (size_t y = 0; y < rect.y + rect.height; ++y) {
+                auto row = background->row<rgba<u8>>(y).subspan(rect.x, rect.width);
+                std::ranges::fill(row, palette.background());
+              }
+            } break;
+            case dispose::previous:
+              break;
+            case dispose::leave_in_place:
+              background = decoder_->target();
+              break;
+          }
+
+          decoder_->finish_pixel_transfer();
         }
 
         decoder_->finish_frame();
