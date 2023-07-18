@@ -1,5 +1,6 @@
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/details/no-pixels.hpp"
 
 using namespace pixglot;
 using std::chrono::microseconds;
@@ -11,7 +12,8 @@ using std::chrono::microseconds;
 namespace {
   using pixel_storage = std::variant<
     pixel_buffer,
-    gl_texture
+    gl_texture,
+    details::no_pixels
   >;
 }
 
@@ -122,6 +124,12 @@ frame::frame(gl_texture texture) :
 
 
 
+frame::frame(size_t width, size_t height, pixel_format format) :
+  frame_view{std::make_shared<impl>(details::no_pixels{width, height, format})}
+{}
+
+
+
 void frame::orientation(square_isometry     iso     ) { impl_->orientation = iso;      }
 void frame::duration   (microseconds        duration) { impl_->duration    = duration; }
 void frame::gamma      (float               gamma   ) { impl_->gamma       = gamma;    }
@@ -134,6 +142,10 @@ void frame::clear_name ()                             { impl_->name.reset();    
 
 void frame::reset(pixel_buffer pixels ) { impl_->storage = std::move(pixels);  }
 void frame::reset(gl_texture   texture) { impl_->storage = std::move(texture); }
+
+void frame::reset(size_t width, size_t height, pixel_format format) {
+  impl_->storage = details::no_pixels{width, height, format};
+}
 
 
 
@@ -162,6 +174,7 @@ std::string_view pixglot::stringify(storage_type t) {
   switch (t) {
     case storage_type::pixel_buffer: return "pixel buffer";
     case storage_type::gl_texture:   return "gl texture";
+    case storage_type::no_pixels:    return "no pixels";
   }
   return "<invalid pixel_target>";
 }

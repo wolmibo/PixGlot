@@ -42,7 +42,8 @@ static constexpr float gamma_linear{1.f};
 
 enum class storage_type {
   pixel_buffer = 0,
-  gl_texture   = 1
+  gl_texture   = 1,
+  no_pixels    = 2,
 };
 
 [[nodiscard]] std::string_view stringify(storage_type);
@@ -134,11 +135,13 @@ class frame : public frame_view  {
 
     ~frame();
 
+    frame(size_t, size_t, pixel_format = {});
     frame(pixel_buffer);
     frame(gl_texture);
 
 
 
+    void reset(size_t, size_t, pixel_format = {});
     void reset(pixel_buffer);
     void reset(gl_texture);
 
