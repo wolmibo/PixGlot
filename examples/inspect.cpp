@@ -1,10 +1,8 @@
 #include <algorithm>
-#include <atomic>
 #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
-#include <thread>
 
 #include <pixglot/decode.hpp>
 #include <pixglot/frame.hpp>
@@ -13,48 +11,6 @@
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
 
-using namespace std::chrono;
-
-
-
-std::atomic<size_t>         frame_counter{0};
-std::vector<microseconds>   frame_times;
-std::optional<microseconds> header_time;
-steady_clock::time_point    timestamp;
-
-
-
-void print_times() {
-  if (header_time) {
-    std::cout << "  header time:    " << std::right << std::setw(12) <<
-      header_time->count() << "µs\n";
-  }
-
-  if (frame_times.size() >= 10) {
-    std::cout << "  avg frame time: " << std::right << std::setw(12) <<
-      static_cast<uint64_t>(
-          std::accumulate(frame_times.begin(), frame_times.end(),
-            microseconds{0}).count() /
-          static_cast<float>(frame_times.size()))
-      << "µs\n";
-
-    auto [min, max] = std::ranges::minmax(frame_times);
-
-    std::cout << "  min frame time: " << std::setw(12) << min.count() << "µs\n";
-    std::cout << "  max frame time: " << std::setw(12) << max.count() << "µs\n";
-
-  } else {
-
-    for (size_t i = 0; i < frame_times.size(); ++i) {
-      std::cout << "  frame #" << i << " time:  " << std::setw(12) <<
-        frame_times[i].count() << "µs\n";
-    }
-  }
-
-  std::cout << std::flush;
-}
-
-
 
 
 
@@ -62,6 +18,10 @@ void print_times() {
 std::string_view str(bool value) {
   return value ? "yes" : "no";
 }
+
+
+
+
 
 std::string_view str(std::endian endian) {
   switch (endian) {
@@ -72,50 +32,6 @@ std::string_view str(std::endian endian) {
 }
 
 
-
-
-void on_frame_finish(pixglot::frame& /*unused*/) {
-  frame_counter++;
-
-  frame_times.emplace_back(duration_cast<microseconds>(steady_clock::now() - timestamp));
-}
-
-void on_frame_start(const pixglot::frame_view& /*unused*/) {
-  if (!header_time) {
-    header_time = duration_cast<microseconds>(steady_clock::now() - timestamp);
-  }
-
-  timestamp = steady_clock::now();
-}
-
-
-
-[[nodiscard]] std::string progressbar(float value) {
-  size_t discrete_progress = value * 30;
-
-  std::string output = '[' + std::string(discrete_progress, '=');
-
-  if (discrete_progress < 30) {
-    output += '>' + std::string(29 - discrete_progress, ' ');
-  }
-
-  output.push_back(']');
-  return output;
-}
-
-
-
-void progress_loop(const std::stop_token& stoken, pixglot::progress_token ptoken) {
-  while (!stoken.stop_requested() && !ptoken.finished()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{25});
-
-    std::cout << '\r' << progressbar(ptoken.progress())
-      << " (" << frame_counter << " frame(s))" << std::flush;
-  }
-
-  std::cout << '\r' << progressbar(1.f)
-    << " (" << frame_counter << " frame(s))" << std::endl;
-}
 
 
 
@@ -155,6 +71,9 @@ void print_ipi(const pixglot::frame_source_info& fsi) {
     }
   }
 }
+
+
+
 
 
 
@@ -211,7 +130,7 @@ void print_image(const pixglot::image& image) {
       }
     }
 
-    if (f.duration() > microseconds{0}) {
+    if (f.duration() > std::chrono::microseconds{0}) {
       std::cout << ", " << f.duration().count() << "µs";
     }
 
@@ -227,6 +146,8 @@ void print_image(const pixglot::image& image) {
 
 
 
+
+
 int main(int argc, char** argv) {
   if (argc != 2) {
     //NOLINTNEXTLINE(*pointer-arithmetic)
@@ -234,31 +155,15 @@ int main(int argc, char** argv) {
   }
 
   try {
-    pixglot::progress_token token;
-    token.frame_begin_callback(on_frame_start);
-    token.frame_callback(on_frame_finish);
-
-    auto at = token.access_token();
-
     pixglot::output_format output_format;
     output_format.storage_type(pixglot::storage_type::no_pixels);
-
-    std::jthread pthread{progress_loop, std::move(token)};
-
-    timestamp = steady_clock::now();
+    //
+    //NOLINTNEXTLINE(*pointer-arithmetic)
+    auto image{pixglot::decode(pixglot::reader{argv[1]}, {}, output_format)};
 
     //NOLINTNEXTLINE(*pointer-arithmetic)
-    auto image{pixglot::decode(pixglot::reader{argv[1]}, std::move(at), output_format)};
-
-    pthread.join();
-
-    //NOLINTNEXTLINE(*pointer-arithmetic)
-    std::cout << '\n' << std::filesystem::path{argv[1]}.filename().native()
+    std::cout << std::filesystem::path{argv[1]}.filename().native()
       << '\n' << std::endl;
-
-    print_times();
-
-    std::cout << '\n';
 
     print_image(image);
 
