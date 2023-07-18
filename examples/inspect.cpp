@@ -9,6 +9,7 @@
 #include <pixglot/output-format.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
+#include <source_location>
 
 
 
@@ -153,6 +154,12 @@ void print_help(const std::filesystem::path& name) {
 
 
 
+std::ostream& operator<<(std::ostream& out, const std::source_location& location) {
+  out << location.file_name() << ':' << location.line() << ':' << location.column();
+  return out;
+}
+
+
 int main(int argc, const char* argv[]) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
@@ -192,11 +199,13 @@ int main(int argc, const char* argv[]) {
       print_image(image);
 
     } catch (const pixglot::base_exception& ex) {
-      std::cerr << "***Error*** " << ex.message() << std::endl;
+      std::cerr << "  ✖ " << ex.message() << '\n';
+      std::cerr << "    " << ex.location() << '\n';
+      std::cerr << "    " << ex.location().function_name() << std::endl;
       error_count++;
 
     } catch (std::exception& ex) {
-      std::cerr << "***Error*** " << ex.what() << std::endl;
+      std::cerr << "  ✖ " << ex.what() << std::endl;
       error_count++;
     }
   }
