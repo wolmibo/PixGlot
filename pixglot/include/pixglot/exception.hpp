@@ -33,8 +33,7 @@ class base_exception : public std::exception {
       const std::source_location& location   = std::source_location::current()
     ) :
       what_    {what},
-      message_ {std::string{"`"} + location.function_name() + "` "
-                + what + ": " + additional},
+      message_ {what + ": " + additional},
       location_{location}
     {}
 
