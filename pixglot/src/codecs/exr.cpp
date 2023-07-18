@@ -230,6 +230,21 @@ namespace {
 
 
 
+  void set_frame_name(frame& dest_frame, const exr_frame& source_frame) {
+    if (source_frame.first.empty()) {
+      return;
+    }
+
+    if (std::holds_alternative<const Channel*>(source_frame.second)) {
+      dest_frame.name(source_frame.first);
+
+    } else if (source_frame.first.ends_with(".R") && source_frame.first.size() > 2) {
+      dest_frame.name(source_frame.first.substr(0, source_frame.first.size() - 2));
+    }
+  }
+
+
+
   [[nodiscard]] std::vector<exr_frame> exr_determine_frames(InputFile& file) {
     std::vector<exr_frame> list;
 
@@ -400,6 +415,8 @@ namespace {
         }};
 
         set_pixel_source_format(frame.input_plane(), frame_source);
+        set_frame_name(frame, frame_source);
+
 
         frame.gamma(gamma_linear);
         frame.alpha_mode(has_alpha(frame.format().channels) ?
