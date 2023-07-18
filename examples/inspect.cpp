@@ -9,6 +9,7 @@
 #include <pixglot/decode.hpp>
 #include <pixglot/frame.hpp>
 #include <pixglot/frame-source-info.hpp>
+#include <pixglot/output-format.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
 
@@ -239,12 +240,15 @@ int main(int argc, char** argv) {
 
     auto at = token.access_token();
 
+    pixglot::output_format output_format;
+    output_format.storage_type(pixglot::storage_type::no_pixels);
+
     std::jthread pthread{progress_loop, std::move(token)};
 
     timestamp = steady_clock::now();
 
     //NOLINTNEXTLINE(*pointer-arithmetic)
-    auto image{pixglot::decode(pixglot::reader{argv[1]}, std::move(at))};
+    auto image{pixglot::decode(pixglot::reader{argv[1]}, std::move(at), output_format)};
 
     pthread.join();
 
