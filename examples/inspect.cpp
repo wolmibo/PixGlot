@@ -1,4 +1,3 @@
-#include "pixglot/input-plane-info.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -9,6 +8,7 @@
 
 #include <pixglot/decode.hpp>
 #include <pixglot/frame.hpp>
+#include <pixglot/frame-source-info.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
 
@@ -118,39 +118,39 @@ void progress_loop(const std::stop_token& stoken, pixglot::progress_token ptoken
 
 
 
-void print_ipi(const pixglot::input_plane_info& ipi) {
-  std::cout << pixglot::stringify(ipi.color_model());
+void print_ipi(const pixglot::frame_source_info& fsi) {
+  std::cout << pixglot::stringify(fsi.color_model());
 
-  if (ipi.color_model() == pixglot::color_model::yuv) {
-    std::cout << pixglot::stringify(ipi.subsampling());
+  if (fsi.color_model() == pixglot::color_model::yuv) {
+    std::cout << pixglot::stringify(fsi.subsampling());
   }
 
-  if (ipi.has_alpha()) {
+  if (fsi.has_alpha()) {
     std::cout << 'a';
   }
 
-  bool uniform_color = !ipi.has_color() ||
-    ipi.color_model() == pixglot::color_model::palette ||
-      (ipi.color_model_format()[0] == ipi.color_model_format()[1] &&
-      ipi.color_model_format()[1] == ipi.color_model_format()[2]);
+  bool uniform_color = !fsi.has_color() ||
+    fsi.color_model() == pixglot::color_model::palette ||
+      (fsi.color_model_format()[0] == fsi.color_model_format()[1] &&
+      fsi.color_model_format()[1] == fsi.color_model_format()[2]);
 
   std::cout << '_';
 
   if (uniform_color) {
-    std::cout << pixglot::stringify(ipi.color_model_format()[0]);
+    std::cout << pixglot::stringify(fsi.color_model_format()[0]);
   } else {
-    std::cout << pixglot::stringify(ipi.color_model_format()[0]) << '_';
-    std::cout << pixglot::stringify(ipi.color_model_format()[1]) << '_';
-    std::cout << pixglot::stringify(ipi.color_model_format()[2]);
+    std::cout << pixglot::stringify(fsi.color_model_format()[0]) << '_';
+    std::cout << pixglot::stringify(fsi.color_model_format()[1]) << '_';
+    std::cout << pixglot::stringify(fsi.color_model_format()[2]);
   }
 
-  if (ipi.has_alpha() &&
-      (!uniform_color || ipi.color_model_format()[3] != ipi.color_model_format()[0])) {
+  if (fsi.has_alpha() &&
+      (!uniform_color || fsi.color_model_format()[3] != fsi.color_model_format()[0])) {
 
-    if (ipi.color_model_format()[3] == pixglot::data_source_format::index) {
+    if (fsi.color_model_format()[3] == pixglot::data_source_format::index) {
       std::cout << "_indexed α";
     } else {
-      std::cout << '_' << pixglot::stringify(ipi.color_model_format()[3]);
+      std::cout << '_' << pixglot::stringify(fsi.color_model_format()[3]);
     }
   }
 }
@@ -215,7 +215,7 @@ void print_image(const pixglot::image& image) {
     }
 
     std::cout << ", ";
-    print_ipi(f.input_plane());
+    print_ipi(f.source_info());
 
     std::cout << '\n';
   }

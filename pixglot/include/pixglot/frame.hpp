@@ -55,7 +55,7 @@ enum class storage_type {
 
 
 
-class input_plane_info;
+class frame_source_info;
 
 class frame_view {
   friend class frame;
@@ -84,7 +84,7 @@ class frame_view {
 
 
 
-    [[nodiscard]] const input_plane_info& input_plane() const;
+    [[nodiscard]] const frame_source_info& source_info() const;
 
 
 
@@ -152,9 +152,9 @@ class frame : public frame_view  {
 
 
 
-    using frame_view::input_plane;
+    using frame_view::source_info;
 
-    [[nodiscard]] input_plane_info& input_plane();
+    [[nodiscard]] frame_source_info& source_info();
 
 
 

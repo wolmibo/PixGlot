@@ -1,6 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <utility>
@@ -94,17 +94,17 @@ namespace {
 
 
 
-  input_plane_info pixel_source_format(const png_guard& png) {
-    input_plane_info ipi;
+  frame_source_info create_frame_source_info(const png_guard& png) {
+    frame_source_info fsi;
 
     auto color_type = png_get_color_type(png.ptr, png.info);
 
     if ((color_type & PNG_COLOR_MASK_PALETTE) != 0) {
-      ipi.color_model(color_model::palette);
+      fsi.color_model(color_model::palette);
     } else if ((color_type & PNG_COLOR_MASK_COLOR) != 0) {
-      ipi.color_model(color_model::rgb);
+      fsi.color_model(color_model::rgb);
     } else {
-      ipi.color_model(color_model::value);
+      fsi.color_model(color_model::value);
     }
 
     auto color_depth =
@@ -115,16 +115,16 @@ namespace {
     if ((color_type & PNG_COLOR_MASK_ALPHA) != 0) {
       alpha_depth = color_depth;
     } else if (png_get_valid(png.ptr, png.info, PNG_INFO_tRNS) != 0) {
-      if (ipi.color_model() == color_model::palette) {
+      if (fsi.color_model() == color_model::palette) {
         alpha_depth = data_source_format::u8;
       } else {
         alpha_depth = data_source_format::index;
       }
     }
 
-    ipi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
+    fsi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
 
-    return ipi;
+    return fsi;
   }
 
 
@@ -145,7 +145,7 @@ namespace {
       void decode() {
         png_read_info(png.ptr, png.info);
 
-        auto ipi = pixel_source_format(png);
+        auto ipi = create_frame_source_info(png);
 
         pixel_buffer buffer{
           png_get_image_width(png.ptr, png.info),
@@ -168,7 +168,7 @@ namespace {
         png_read_update_info(png.ptr, png.info);
 
         frame frame_init{std::move(buffer)};
-        frame_init.input_plane() = std::move(ipi);
+        frame_init.source_info() = std::move(ipi);
 
         auto& frame = decoder_->begin_frame(std::move(frame_init));
         frame.alpha_mode(alpha);

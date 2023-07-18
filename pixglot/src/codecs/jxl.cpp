@@ -1,7 +1,7 @@
 #include "pixglot/codecs-magic.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -245,7 +245,7 @@ namespace {
         frame frame{pixel_buffer{info_.xsize, info_.ysize,
           select_pixel_format(info_), endian_strategy_}};
 
-        set_pixel_source_format(frame.input_plane());
+        set_frame_source_info(frame.source_info());
 
         frame.orientation(unwrap_orientation(convert_orientation(info_.orientation)));
         frame.duration   (convert_duration(info_, frame_header_.duration));
@@ -391,19 +391,19 @@ namespace {
 
 
 
-      void set_pixel_source_format(input_plane_info& ipi) const {
+      void set_frame_source_info(frame_source_info& fsi) const {
         auto color_depth = find_format(info_.bits_per_sample,
             info_.exponent_bits_per_sample);
 
         auto alpha_depth = find_format(info_.alpha_bits, info_.alpha_exponent_bits);
 
         if (info_.num_color_channels > 1) {
-          ipi.color_model(color_model::unknown);
+          fsi.color_model(color_model::unknown);
         } else {
-          ipi.color_model(color_model::value);
+          fsi.color_model(color_model::value);
         }
 
-        ipi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
+        fsi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
       }
   };
 }

@@ -2,7 +2,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -410,7 +410,7 @@ namespace {
           frame.alpha_mode (alpha_mode::none);
           frame.orientation(orientation_);
 
-          set_pixel_source_format(frame.input_plane());
+          set_frame_source_info(frame.source_info());
 
           decoder_->begin_frame(std::move(frame));
 
@@ -531,30 +531,30 @@ namespace {
 
 
 
-      void set_pixel_source_format(input_plane_info& ipi) const {
+      void set_frame_source_info(frame_source_info& fsi) const {
         switch (cinfo_->jpeg_color_space) {
-          case JCS_GRAYSCALE: ipi.color_model(color_model::value); break;
-          case JCS_RGB:       ipi.color_model(color_model::rgb);   break;
-          case JCS_YCbCr:     ipi.color_model(color_model::yuv);   break;
+          case JCS_GRAYSCALE: fsi.color_model(color_model::value); break;
+          case JCS_RGB:       fsi.color_model(color_model::rgb);   break;
+          case JCS_YCbCr:     fsi.color_model(color_model::yuv);   break;
 
-          default: ipi.color_model(color_model::unknown); break;
+          default: fsi.color_model(color_model::unknown); break;
         }
 
         auto x = cinfo_->max_h_samp_factor;
         auto y = cinfo_->max_v_samp_factor;
 
         if (x == 2 && y == 1) {
-          ipi.subsampling(chroma_subsampling::cs422);
+          fsi.subsampling(chroma_subsampling::cs422);
         } else if (x == 2 && y == 2) {
-          ipi.subsampling(chroma_subsampling::cs420);
+          fsi.subsampling(chroma_subsampling::cs420);
         } else {
-          ipi.subsampling(chroma_subsampling::cs444);
+          fsi.subsampling(chroma_subsampling::cs444);
         }
 
 
         auto color_depth = static_cast<data_source_format>(cinfo_->data_precision);
 
-        ipi.color_model_format({color_depth, color_depth, color_depth,
+        fsi.color_model_format({color_depth, color_depth, color_depth,
                                 data_source_format::none});
 
       }

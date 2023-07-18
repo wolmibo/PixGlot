@@ -1,7 +1,7 @@
 #include "pixglot/buffer.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <webp/demux.h>
@@ -209,9 +209,9 @@ namespace {
           }
 
           frame frame_init = create_pixel_buffer(&webp_frame);
-          frame_init.input_plane().color_model(color_model::yuv);
-          frame_init.input_plane().subsampling(chroma_subsampling::cs420);
-          frame_init.input_plane().color_model_format({
+          frame_init.source_info().color_model(color_model::yuv);
+          frame_init.source_info().subsampling(chroma_subsampling::cs420);
+          frame_init.source_info().color_model_format({
               data_source_format::u8,
               data_source_format::u8,
               data_source_format::u8,

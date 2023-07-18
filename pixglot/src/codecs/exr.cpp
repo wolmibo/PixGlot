@@ -1,6 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -346,10 +346,10 @@ namespace {
 
 
 
-  void set_pixel_source_format(input_plane_info& ipi, const exr_frame& frame_source) {
+  void set_frame_source_info(frame_source_info& fsi, const exr_frame& frame_source) {
     if (const auto* channel = std::get_if<const Channel*>(&frame_source.second)) {
-      ipi.color_model(color_model::value);
-      ipi.color_model_format({
+      fsi.color_model(color_model::value);
+      fsi.color_model_format({
         data_source_format_channel(*channel),
         data_source_format_channel(*channel),
         data_source_format_channel(*channel),
@@ -358,8 +358,8 @@ namespace {
 
     } else if (const auto* image =
                std::get_if<exr_image_frame>(&frame_source.second)) {
-      ipi.color_model(color_model::rgb);
-      ipi.color_model_format({
+      fsi.color_model(color_model::rgb);
+      fsi.color_model_format({
         data_source_format_channel(image->red),
         data_source_format_channel(image->green),
         data_source_format_channel(image->blue),
@@ -414,7 +414,7 @@ namespace {
           determine_pixel_format(frame_source, decoder_->output_format())
         }};
 
-        set_pixel_source_format(frame.input_plane(), frame_source);
+        set_frame_source_info(frame.source_info(), frame_source);
         set_frame_name(frame, frame_source);
 
 

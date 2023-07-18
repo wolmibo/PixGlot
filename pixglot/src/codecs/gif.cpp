@@ -1,6 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
 
 #include <chrono>
@@ -395,8 +395,8 @@ namespace {
 
         frame frame{pixel_buffer{width_, height_, rgba<u8>::format()}};
 
-        frame.input_plane().color_model(color_model::palette);
-        frame.input_plane().color_model_format({
+        frame.source_info().color_model(color_model::palette);
+        frame.source_info().color_model_format({
             data_source_format::u8,
             data_source_format::u8,
             data_source_format::u8,

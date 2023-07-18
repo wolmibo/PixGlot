@@ -2,7 +2,7 @@
 #include "pixglot/conversions.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
 #include "pixglot/pixel-format.hpp"
@@ -395,11 +395,11 @@ namespace {
 
 
 
-    void fill_pixel_source_format(input_plane_info& ipi) const {
-      ipi.color_model(has_color(format.channels) ? color_model::rgb : color_model::value);
+    void fill_frame_source_info(frame_source_info& fsi) const {
+      fsi.color_model(has_color(format.channels) ? color_model::rgb : color_model::value);
 
       auto dsf = source_format();
-      ipi.color_model_format({dsf, dsf, dsf, data_source_format::none});
+      fsi.color_model_format({dsf, dsf, dsf, data_source_format::none});
     }
 
 
@@ -505,7 +505,7 @@ namespace {
         frame frame_init{pixel_buffer{header_.width, header_.height, header_.format,
                          current_endianess()}};
 
-        header_.fill_pixel_source_format(frame_init.input_plane());
+        header_.fill_frame_source_info(frame_init.source_info());
 
         auto& frame = decoder_->begin_frame(std::move(frame_init));
 

@@ -1,5 +1,5 @@
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 
 using namespace pixglot;
 using std::chrono::microseconds;
@@ -27,7 +27,7 @@ class frame_view::impl {
 
     pixel_storage              storage;
 
-    input_plane_info           input_plane;
+    frame_source_info          source_info;
 
     std::optional<std::string> name;
 
@@ -81,12 +81,12 @@ size_t frame_view::height() const {
 }
 
 
-const input_plane_info& frame_view::input_plane() const { return impl_->input_plane; }
+const frame_source_info& frame_view::source_info() const { return impl_->source_info; }
 
-square_isometry         frame_view::orientation() const { return impl_->orientation; }
-microseconds            frame_view::duration()    const { return impl_->duration;    }
-float                   frame_view::gamma()       const { return impl_->gamma;       }
-pixglot::alpha_mode     frame_view::alpha_mode()  const { return impl_->alpha_mode;  }
+square_isometry          frame_view::orientation() const { return impl_->orientation; }
+microseconds             frame_view::duration()    const { return impl_->duration;    }
+float                    frame_view::gamma()       const { return impl_->gamma;       }
+pixglot::alpha_mode      frame_view::alpha_mode()  const { return impl_->alpha_mode;  }
 
 std::optional<std::string_view> frame_view::name() const {
   return impl_->name;
@@ -137,10 +137,10 @@ void frame::reset(gl_texture   texture) { impl_->storage = std::move(texture); }
 
 
 
-gl_texture&       frame::texture()     { return std::get<gl_texture  >(impl_->storage); }
-pixel_buffer&     frame::pixels()      { return std::get<pixel_buffer>(impl_->storage); }
+gl_texture&        frame::texture()     { return std::get<gl_texture  >(impl_->storage); }
+pixel_buffer&      frame::pixels()      { return std::get<pixel_buffer>(impl_->storage); }
 
-input_plane_info& frame::input_plane() { return impl_->input_plane; }
+frame_source_info& frame::source_info() { return impl_->source_info; }
 
 
 

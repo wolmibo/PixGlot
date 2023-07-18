@@ -1,4 +1,4 @@
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 
 
 
@@ -137,9 +137,9 @@ pixglot::data_source_format pixglot::data_source_format_from(data_format df) {
 
 
 
-using ipi = pixglot::input_plane_info;
+using fsi = pixglot::frame_source_info;
 
-class ipi::impl {
+class fsi::impl {
   public:
     pixglot::color_model color_model{pixglot::color_model::value};
     chroma_subsampling   subsampling{pixglot::chroma_subsampling::cs444};
@@ -151,27 +151,27 @@ class ipi::impl {
 
 
 
-ipi::input_plane_info(const input_plane_info& rhs) :
+fsi::frame_source_info(const frame_source_info& rhs) :
   impl_{std::make_unique<impl>(*rhs.impl_)}
 {}
 
-ipi::input_plane_info(input_plane_info&&) noexcept = default;
+fsi::frame_source_info(frame_source_info&&) noexcept = default;
 
-ipi& ipi::operator=(const input_plane_info& rhs) {
+fsi& fsi::operator=(const frame_source_info& rhs) {
   impl_ = std::make_unique<impl>(*rhs.impl_);
 
   return *this;
 }
 
-ipi& ipi::operator=(input_plane_info&&) noexcept = default;
+fsi& fsi::operator=(frame_source_info&&) noexcept = default;
 
-ipi::~input_plane_info() = default;
-
-
+fsi::~frame_source_info() = default;
 
 
 
-ipi::input_plane_info() :
+
+
+fsi::frame_source_info() :
   impl_{std::make_unique<impl>()}
 {}
 
@@ -179,30 +179,30 @@ ipi::input_plane_info() :
 
 
 
-bool ipi::has_color() const {
+bool fsi::has_color() const {
   return impl_->color_model != pixglot::color_model::value;
 }
 
 
 
-bool ipi::has_alpha() const {
+bool fsi::has_alpha() const {
   return impl_->color_channel_format[3] != data_source_format::none;
 }
 
 
 
-pixglot::color_model        ipi::color_model() const { return impl_->color_model; }
-pixglot::chroma_subsampling ipi::subsampling() const { return impl_->subsampling; }
+pixglot::color_model        fsi::color_model() const { return impl_->color_model; }
+pixglot::chroma_subsampling fsi::subsampling() const { return impl_->subsampling; }
 
-const std::array<pixglot::data_source_format, 4>& ipi::color_model_format() const {
+const std::array<pixglot::data_source_format, 4>& fsi::color_model_format() const {
   return impl_->color_channel_format;
 }
 
 
 
-void ipi::color_model(pixglot::color_model model) { impl_->color_model = model; }
-void ipi::subsampling(chroma_subsampling     css) { impl_->subsampling = css;   }
+void fsi::color_model(pixglot::color_model model) { impl_->color_model = model; }
+void fsi::subsampling(chroma_subsampling     css) { impl_->subsampling = css;   }
 
-void ipi::color_model_format(std::array<data_source_format, 4> dsf) {
+void fsi::color_model_format(std::array<data_source_format, 4> dsf) {
   impl_->color_channel_format = dsf;
 }

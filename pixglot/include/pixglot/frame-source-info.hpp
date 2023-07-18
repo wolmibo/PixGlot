@@ -1,8 +1,8 @@
 // Copyright (c) 2023 wolmibo
 // SPDX-License-Identifier: MIT
 
-#ifndef PIXGLOT_INPUT_PLANE_INFO_HPP_INCLUDED
-#define PIXGLOT_INPUT_PLANE_INFO_HPP_INCLUDED
+#ifndef PIXGLOT_FRAME_SOURCE_INFO_HPP_INCLUDED
+#define PIXGLOT_FRAME_SOURCE_INFO_HPP_INCLUDED
 
 #include "pixglot/pixel-format.hpp"
 
@@ -78,16 +78,16 @@ enum class data_source_format : int {
 
 
 
-class input_plane_info {
+class frame_source_info {
   public:
-    input_plane_info(const input_plane_info&);
-    input_plane_info(input_plane_info&&) noexcept;
-    input_plane_info& operator=(const input_plane_info&);
-    input_plane_info& operator=(input_plane_info&&) noexcept;
+    frame_source_info(const frame_source_info&);
+    frame_source_info(frame_source_info&&) noexcept;
+    frame_source_info& operator=(const frame_source_info&);
+    frame_source_info& operator=(frame_source_info&&) noexcept;
 
-    ~input_plane_info();
+    ~frame_source_info();
 
-    input_plane_info();
+    frame_source_info();
 
 
 
@@ -116,4 +116,4 @@ class input_plane_info {
 
 }
 
-#endif // PIXGLOT_INPUT_PLANE_INFO_HPP_INCLUDED
+#endif // PIXGLOT_FRAME_SOURCE_INFO_HPP_INCLUDED

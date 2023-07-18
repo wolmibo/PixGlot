@@ -1,6 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
-#include "pixglot/input-plane-info.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <avif/avif.h>
@@ -73,27 +73,27 @@ namespace {
 
 
 
-  void set_pixel_source_format(input_plane_info& ipi, avifImage* image) {
+  void set_frame_source_info(frame_source_info& fsi, avifImage* image) {
     auto color_depth = static_cast<data_source_format>(image->depth);
 
-    ipi.color_model(color_model::yuv);
+    fsi.color_model(color_model::yuv);
 
     switch (image->yuvFormat) {
       case AVIF_PIXEL_FORMAT_YUV400:
-        ipi.color_model(color_model::value);
+        fsi.color_model(color_model::value);
         break;
       case AVIF_PIXEL_FORMAT_YUV444:
-        ipi.subsampling(chroma_subsampling::cs444);
+        fsi.subsampling(chroma_subsampling::cs444);
         break;
       case AVIF_PIXEL_FORMAT_YUV422:
-        ipi.subsampling(chroma_subsampling::cs422);
+        fsi.subsampling(chroma_subsampling::cs422);
         break;
       case AVIF_PIXEL_FORMAT_YUV420:
-        ipi.subsampling(chroma_subsampling::cs420);
+        fsi.subsampling(chroma_subsampling::cs420);
         break;
       default:
         color_depth = data_source_format::none;
-        ipi.color_model(color_model::value);
+        fsi.color_model(color_model::value);
         break;
     }
 
@@ -103,7 +103,7 @@ namespace {
       alpha_depth = color_depth;
     }
 
-    ipi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
+    fsi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
   }
 
 
@@ -139,7 +139,7 @@ namespace {
       frame& begin_frame(details::decoder* decoder) {
         frame frame_init{pixel_buffer{rgb_.width, rgb_.height, determine_pixel_format()}};
 
-        set_pixel_source_format(frame_init.input_plane(), image_);
+        set_frame_source_info(frame_init.source_info(), image_);
 
         auto& frame = decoder->begin_frame(std::move(frame_init));
 
