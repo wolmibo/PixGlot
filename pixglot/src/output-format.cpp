@@ -327,13 +327,15 @@ namespace {
       float                gamma,
       square_isometry      transform
   ) {
-    if (fmt.storage_type().required()) {
+    if (fmt.storage_type().required() ||
+        fmt.storage_type().prefers(storage_type::no_pixels)) {
       convert_storage(f, *fmt.storage_type());
     }
 
     if (f.type() == storage_type::gl_texture) {
       details::convert(f.texture(), target_format, premultiply, gamma, transform);
-    } else {
+
+    } else if (f.type() == storage_type::pixel_buffer) {
       auto target_endian = fmt.endian().required() ?
         std::optional{*fmt.endian()} : std::nullopt;
 
