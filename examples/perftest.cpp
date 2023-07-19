@@ -1,3 +1,4 @@
+#include "pixglot/conversions.hpp"
 #include "pixglot/square-isometry.hpp"
 #include <chrono>
 #include <iomanip>
@@ -18,7 +19,12 @@ enum class event {
   image_begin,
   frame_begin,
   frame_finish,
-  image_finish
+  image_finish,
+  conversions_begin,
+  conversion_storage_type,
+  conversion_orientation,
+  conversion_endian,
+  conversions_finish,
 };
 
 
@@ -101,8 +107,44 @@ void print_time_tree(std::span<const pixglot::frame> frames) {
           << f.width() << "×" << f.height() << ' ' << pixglot::to_string(f.format())
           << ")\n";
         }
+        break;
+      case event::conversions_begin:
+        std::cout << "conversions begin\n";
+        break;
+      case event::conversions_finish:
+        std::cout << "conversion finish\n";
+        break;
+      case event::conversion_endian:
+        std::cout << "  ├─ convert endian\n";
+        break;
+      case event::conversion_orientation:
+        std::cout << "  ├─ convert orientation\n";
+        break;
+      case event::conversion_storage_type:
+        std::cout << "  ├─ convert storage_type\n";
+        break;
     }
   }
+}
+
+
+
+
+
+
+void apply_conversion(pixglot::image& img, std::endian endian) {
+  pixglot::convert_endian(img, endian);
+  emit_event(event::conversion_endian);
+}
+
+void apply_conversion(pixglot::image& img, pixglot::square_isometry ori) {
+  pixglot::convert_orientation(img, ori);
+  emit_event(event::conversion_orientation);
+}
+
+void apply_conversion(pixglot::image& img, pixglot::storage_type st) {
+  pixglot::convert_storage(img, st);
+  emit_event(event::conversion_storage_type);
 }
 
 
@@ -194,6 +236,15 @@ END_STR_TO_ENUM(endian)
 
 
 
+using operations = std::variant<
+  std::endian,
+  pixglot::storage_type,
+  pixglot::square_isometry
+>;
+
+
+
+
 
 void print_help(const std::filesystem::path& name) {
   std::cout <<
@@ -226,6 +277,10 @@ void print_help(const std::filesystem::path& name) {
     "  --enforce                          enforce the requested format\n"
     "  --standard-format                  standard format (rgba_u8, all trafos applied)\n"
     "\n"
+    "  --convert-target=<target>          convert to storage type\n"
+    "  --convert-orientation=<ori>        convert to orientaion\n"
+    "  --convert-endian=<endian>          convert to endian\n"
+    "\n"
     "Enum values:\n"
     "  <target>:   no_pixels, pixel_buffer, gl_texture\n"
     "  <ori>:      identity, flip_x, rotate_cw, rotate_half, rotate_ccw, flip_y,\n"
@@ -244,7 +299,7 @@ void print_help(const std::filesystem::path& name) {
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  static std::array<option, 20> long_options = {
+  static std::array<option, 23> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
 
     option{"target",               required_argument, nullptr, 1000},
@@ -267,6 +322,11 @@ int main(int argc, char** argv) {
 
     option{"enforce",              no_argument,       nullptr, 3001},
     option{"standard-format",      no_argument,       nullptr, 3002},
+
+    option{"convert-target",       required_argument, nullptr, 4000},
+    option{"convert-orientation",  required_argument, nullptr, 4001},
+    option{"convert-endian",       required_argument, nullptr, 4002},
+
     option{nullptr,                0,                 nullptr, 0},
   };
 
@@ -277,6 +337,8 @@ int main(int argc, char** argv) {
   bool help           {false};
   bool enforce        {false};
   bool standard_format{false};
+
+  std::vector<operations> ops;
 
   int c{-1};
   while ((c = getopt_long(args.size(), args.data(), "h",
@@ -304,6 +366,10 @@ int main(int argc, char** argv) {
 
       case 3001: enforce         = true; break;
       case 3002: standard_format = true; break;
+
+      case 4000: ops.emplace_back(storage_type_from_string(optarg));    break;
+      case 4001: ops.emplace_back(square_isometry_from_string(optarg)); break;
+      case 4002: ops.emplace_back(endian_from_string(optarg));          break;
     }
   }
 
@@ -338,6 +404,14 @@ int main(int argc, char** argv) {
     emit_event(event::image_begin);
     auto image{pixglot::decode(reader, std::move(at), of)};
     emit_event(event::image_finish);
+
+    if (!ops.empty()) {
+      emit_event(event::conversions_begin);
+      for (const auto& op: ops) {
+        std::visit([&image](auto&& arg) { apply_conversion(image, arg); }, op);
+      }
+      emit_event(event::conversions_finish);
+    }
 
     for (const auto& warn: image.warnings()) {
       std::cout << "⚠ " << warn << '\n';
