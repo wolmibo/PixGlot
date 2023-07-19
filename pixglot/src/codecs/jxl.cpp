@@ -254,6 +254,7 @@ namespace {
           select_pixel_format(info_), endian_strategy_);
 
         set_frame_source_info(frame.source_info());
+        set_frame_name(frame);
 
         frame.orientation(unwrap_orientation(convert_orientation(info_.orientation)));
         frame.duration   (convert_duration(info_, frame_header_.duration));
@@ -411,6 +412,25 @@ namespace {
         }
 
         fsi.color_model_format({color_depth, color_depth, color_depth, alpha_depth});
+      }
+
+
+
+      void set_frame_name(frame& f) const {
+        if (frame_header_.name_length == 0) {
+          return;
+        }
+
+        std::vector<char> buffer(frame_header_.name_length + 1);
+
+        if (JxlDecoderGetFrameName(jxl_.get(), buffer.data(), buffer.size())
+            != JXL_DEC_SUCCESS) {
+          decoder_->warn("unable to obain frame name");
+        }
+
+        buffer.back() = '0';
+
+        f.name(buffer.data());
       }
   };
 }
