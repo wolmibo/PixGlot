@@ -1,17 +1,20 @@
-#include "pixglot/conversions.hpp"
-#include "pixglot/square-isometry.hpp"
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 #include <getopt.h>
 
+#include <pixglot/conversions.hpp>
 #include <pixglot/decode.hpp>
 #include <pixglot/frame.hpp>
 #include <pixglot/output-format.hpp>
+#include <pixglot/pixel-format.hpp>
 #include <pixglot/preference.hpp>
 #include <pixglot/progress-token.hpp>
+#include <pixglot/square-isometry.hpp>
+#include <pixglot/utils/cast.hpp>
 
 
 
@@ -25,6 +28,9 @@ enum class event {
   conversion_orientation,
   conversion_endian,
   conversions_finish,
+  save_image_begin,
+  save_frame_finish,
+  save_image_finish,
 };
 
 
@@ -108,6 +114,7 @@ void print_time_tree(std::span<const pixglot::frame> frames) {
           << ")\n";
         }
         break;
+
       case event::conversions_begin:
         std::cout << "conversions begin\n";
         break;
@@ -122,6 +129,16 @@ void print_time_tree(std::span<const pixglot::frame> frames) {
         break;
       case event::conversion_storage_type:
         std::cout << "  ├─ convert storage_type\n";
+        break;
+
+      case event::save_image_begin:
+        std::cout << "save image begin\n";
+        break;
+      case event::save_frame_finish:
+        std::cout << "  ├─ save frame finish\n";
+        break;
+      case event::save_image_finish:
+        std::cout << "save image finish\n";
         break;
     }
   }
@@ -145,6 +162,101 @@ void apply_conversion(pixglot::image& img, pixglot::square_isometry ori) {
 void apply_conversion(pixglot::image& img, pixglot::storage_type st) {
   pixglot::convert_storage(img, st);
   emit_event(event::conversion_storage_type);
+}
+
+
+
+
+
+
+void save_frame(const pixglot::frame& frame, const std::filesystem::path& outpath) {
+  if (frame.type() != pixglot::storage_type::pixel_buffer) {
+    throw std::runtime_error{"can only output pixel_buffer"};
+  }
+
+  if (pixglot::has_alpha(frame.format().channels)) {
+    throw std::runtime_error{"cannot output to ppm with alpha channel"};
+  }
+
+  if (frame.format().format == pixglot::data_format::f16 ||
+      frame.format().format == pixglot::data_format::u32 ||
+      (frame.format().format == pixglot::data_format::u16 &&
+       frame.pixels().endian() != std::endian::big)) {
+    throw std::runtime_error{"can only output data-format u8, u16(big), f32"};
+  }
+
+  char header{'4'};
+  std::string max_brightness;
+
+
+  switch (frame.format().format) {
+    case pixglot::data_format::u8:
+      header = pixglot::has_color(frame.format().channels) ? '6' : '5';
+      max_brightness = "255";
+      break;
+    case pixglot::data_format::u16:
+      header = pixglot::has_color(frame.format().channels) ? '6' : '5';
+      max_brightness = "65535";
+      break;
+    case pixglot::data_format::f32:
+      header = pixglot::has_color(frame.format().channels) ? 'F' : 'f';
+      max_brightness = frame.pixels().endian() == std::endian::little ? "-1.0" : "1.0";
+      break;
+    default:
+      throw std::runtime_error{"unsupported format for ppm output"};
+  }
+
+
+  std::ofstream output{outpath};
+  output << 'P' << header << '\n';
+  output << frame.width() << ' ' << frame.height() << '\n';
+  output << max_brightness << '\n';
+
+  for (size_t y = 0; y < frame.height(); ++y) {
+    auto row = frame.pixels().row_bytes(y);
+
+    output.write(pixglot::utils::byte_pointer_cast<const char>(row.data()), row.size());
+  }
+
+
+  emit_event(event::save_frame_finish);
+}
+
+
+
+[[nodiscard]] std::filesystem::path ppm_extension(pixglot::pixel_format format) {
+  if (format.format == pixglot::data_format::f32) {
+    return ".pfm";
+  }
+
+  if (!pixglot::has_color(format.channels)) {
+    return ".pgm";
+  }
+
+  return ".ppm";
+}
+
+
+
+void save_image(const pixglot::image& img, std::filesystem::path outpath) {
+  if (img.empty()) {
+    return;
+  }
+
+  if (img.size() == 1) {
+    save_frame(img.frame(),
+        outpath.replace_extension(ppm_extension(img.frame().format())));
+    return;
+  }
+
+  for (size_t i = 0; i < img.size(); ++i) {
+    const auto& f = img.frame(i);
+    std::stringstream output;
+    output << std::setw(4) << std::setfill('0') << std::right << i <<
+      ppm_extension(img.frame(i).format());
+
+    save_frame(f, outpath.replace_extension(output.str()));
+  }
 }
 
 
@@ -256,6 +368,8 @@ void print_help(const std::filesystem::path& name) {
     "Available options:\n"
     "  -h, --help                         show this help and exit\n"
     "\n"
+    "  -o, --output=<file>                write image as ppm to <file>\n"
+    "\n"
     "  --target=<target>                  set the target\n"
     "  --orientation=<ori>                set the orientation\n"
     "  --alpha-mode=<am>                  set the alpha-mode\n"
@@ -299,8 +413,10 @@ void print_help(const std::filesystem::path& name) {
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  static std::array<option, 23> long_options = {
+  static std::array<option, 24> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
+
+    option{"output",               required_argument, nullptr, 'o'},
 
     option{"target",               required_argument, nullptr, 1000},
     option{"orientation",          required_argument, nullptr, 1001},
@@ -340,11 +456,15 @@ int main(int argc, char** argv) {
 
   std::vector<operations> ops;
 
+  std::optional<std::filesystem::path> output_file;
+
   int c{-1};
-  while ((c = getopt_long(args.size(), args.data(), "h",
+  while ((c = getopt_long(args.size(), args.data(), "ho:",
                           long_options.data(), nullptr)) != -1) {
     switch (c) {
       case 'h': help = true; break;
+
+      case 'o': output_file.emplace(optarg); break;
 
       case 1000: of.storage_type(storage_type_from_string(optarg));    break;
       case 1001: of.orientation (square_isometry_from_string(optarg)); break;
@@ -411,6 +531,12 @@ int main(int argc, char** argv) {
         std::visit([&image](auto&& arg) { apply_conversion(image, arg); }, op);
       }
       emit_event(event::conversions_finish);
+    }
+
+    if (output_file) {
+      emit_event(event::save_image_begin);
+      save_image(image, *output_file);
+      emit_event(event::save_image_finish);
     }
 
     for (const auto& warn: image.warnings()) {
