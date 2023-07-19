@@ -1,11 +1,15 @@
-#include "pixglot/progress-token.hpp"
 #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <vector>
 
+#include <getopt.h>
+
 #include <pixglot/decode.hpp>
 #include <pixglot/frame.hpp>
+#include <pixglot/output-format.hpp>
+#include <pixglot/preference.hpp>
+#include <pixglot/progress-token.hpp>
 
 
 
@@ -112,7 +116,13 @@ void print_help(const std::filesystem::path& name) {
     "Usage: " << name.filename().native() << " [options] <image>\n"
     "\n"
     "Available options:\n"
-    "  -h, --help              show this help and exit\n"
+    "  -h, --help                             show this help and exit\n"
+    "\n"
+    "  -t, --prefer-target=<target>           set the preferred output target\n"
+    "  -T, --target=<target>                  set the output target\n"
+    "\n"
+    "Enum values:\n"
+    "  <target>: no-pixels, pixel-buffer, gl-texture\n"
 
     << std::flush;
 }
@@ -125,20 +135,53 @@ std::ostream& operator<<(std::ostream& out, const std::source_location& location
 }
 
 
+
+[[nodiscard]] pixglot::storage_type storage_type_from_string(std::string_view str) {
+  if (str == "no-pixels"   ) return pixglot::storage_type::no_pixels;
+  if (str == "pixel-buffer") return pixglot::storage_type::pixel_buffer;
+  if (str == "gl-texture"  ) return pixglot::storage_type::gl_texture;
+
+  throw std::runtime_error{"unknown storage type " + std::string{str}};
+}
+
+
+
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  std::optional<std::filesystem::path> file;
+  bool help{false};
+  pixglot::output_format output_format;
 
-  bool help = (args.size() == 1);
+  static std::array<option, 5> long_options = {
+    option{"help",          no_argument,       nullptr, 'h'},
+    option{"prefer-target", required_argument, nullptr, 't'},
+    option{"target",        required_argument, nullptr, 'T'},
+    option{nullptr,         0,                 nullptr, 0},
+  };
 
-  for (std::string_view arg: args.subspan(1)) {
-    if (arg == "-h" || arg == "--help") {
-      help = true;
-      continue;
+  auto pref = pixglot::preference_level::prefer;
+
+  int c{-1};
+  while ((c = getopt_long(args.size(), args.data(), "ht:T:",
+                          long_options.data(), nullptr)) != -1) {
+    switch (c) {
+      case 'h':
+        help = true;
+        break;
+      case 't':
+        if (optarg == nullptr) throw std::runtime_error{"missing argument"};
+        output_format.storage_type(storage_type_from_string(optarg));
+        break;
+      case 'T':
+        if (optarg == nullptr) throw std::runtime_error{"missing argument"};
+        output_format.storage_type({storage_type_from_string(optarg), pref});
+        break;
     }
+  }
 
-    file.emplace(arg);
+  std::optional<std::filesystem::path> file;
+  if (optind < argc) {
+    file.emplace(args[optind++]);
   }
 
   if (help || !file) {
@@ -155,7 +198,7 @@ int main(int argc, char** argv) {
     auto at = tok.access_token();
 
     emit_event(event::image_begin);
-    auto image{pixglot::decode(reader, std::move(at))};
+    auto image{pixglot::decode(reader, std::move(at), output_format)};
     emit_event(event::image_finish);
 
     for (const auto& warn: image.warnings()) {
