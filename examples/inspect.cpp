@@ -2,6 +2,9 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <source_location>
+
+#include <getopt.h>
 
 #include <pixglot/decode.hpp>
 #include <pixglot/frame.hpp>
@@ -9,7 +12,6 @@
 #include <pixglot/output-format.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
-#include <source_location>
 
 
 
@@ -137,6 +139,12 @@ void print_image(const pixglot::image& image) {
 
 
 
+std::ostream& operator<<(std::ostream& out, const std::source_location& location) {
+  out << location.file_name() << ':' << location.line() << ':' << location.column();
+  return out;
+}
+
+
 
 void print_help(const std::filesystem::path& name) {
   std::cout <<
@@ -154,30 +162,29 @@ void print_help(const std::filesystem::path& name) {
 
 
 
-std::ostream& operator<<(std::ostream& out, const std::source_location& location) {
-  out << location.file_name() << ':' << location.line() << ':' << location.column();
-  return out;
-}
-
-
-int main(int argc, const char* argv[]) {
+int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  std::vector<std::filesystem::path> files;
-  files.reserve(args.size() - 1);
+  static std::array<option, 1> long_options = {
+    option{"help",                 no_argument,       nullptr, 'h'},
+  };
 
-  bool help = (args.size() == 1);
+  bool help  {false};
 
-  for (std::string_view arg: args.subspan(1)) {
-    if (arg == "-h" || arg == "--help") {
-      help = true;
-      continue;
+  int c{-1};
+  while ((c = getopt_long(args.size(), args.data(), "h",
+                          long_options.data(), nullptr)) != -1) {
+    switch (c) {
+      case 'h': help = true; break;
     }
-
-    files.emplace_back(arg);
   }
 
-  if (help) {
+  std::vector<std::filesystem::path> files;
+  while (optind < argc) {
+    files.emplace_back(args[optind++]);
+  }
+
+  if (help || files.empty()) {
     print_help(args[0]);
     return 0;
   }
