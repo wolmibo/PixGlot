@@ -109,6 +109,10 @@ void print_image(const pixglot::image& image) {
     if (fsf != fmt) {
       std::cout << "(→" << fmt << ")";
     }
+    if (f.type() == pixglot::storage_type::pixel_buffer &&
+        pixglot::byte_size(f.format().format) > 1) {
+      std::cout << '(' << str(f.pixels().endian()) << ')';
+    }
 
     std::cout << ", γ=" << f.gamma();
 
