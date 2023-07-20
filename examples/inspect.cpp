@@ -156,6 +156,7 @@ void print_help(const std::filesystem::path& name) {
     "\n"
     "Available options:\n"
     "  -h, --help              show this help and exit\n"
+    "  -d, --decode            fully decode the image(s)\n"
 
     << std::flush;
 }
@@ -165,17 +166,20 @@ void print_help(const std::filesystem::path& name) {
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  static std::array<option, 1> long_options = {
+  static std::array<option, 2> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
+    option{"decode",               no_argument,       nullptr, 'd'},
   };
 
   bool help  {false};
+  bool decode{false};
 
   int c{-1};
-  while ((c = getopt_long(args.size(), args.data(), "h",
+  while ((c = getopt_long(args.size(), args.data(), "hd",
                           long_options.data(), nullptr)) != -1) {
     switch (c) {
-      case 'h': help = true; break;
+      case 'h': help   = true; break;
+      case 'd': decode = true; break;
     }
   }
 
@@ -193,7 +197,9 @@ int main(int argc, char** argv) {
   int error_count{0};
 
   pixglot::output_format output_format;
-  output_format.storage_type(pixglot::storage_type::no_pixels);
+  if (!decode) {
+    output_format.storage_type(pixglot::storage_type::no_pixels);
+  }
 
 
   for (const auto& file: files) {
