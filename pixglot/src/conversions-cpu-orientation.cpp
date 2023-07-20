@@ -95,14 +95,14 @@ namespace {
   void transpose_sized(const pixel_buffer& source, pixel_buffer& target) {
     std::vector<std::span<chunk_type<ChunkSize>>> target_rows;
     target_rows.reserve(target.height());
-    for (size_t y = 0; y < target_rows.size(); ++y) {
+    for (size_t y = 0; y < target.height(); ++y) {
       target_rows.emplace_back(chunked<ChunkSize>(target.row_bytes(y)));
     }
 
     for (size_t y = 0; y < source.height(); ++y) {
       auto srow = chunked<ChunkSize>(source.row_bytes(y));
 
-      for (size_t x = 0; x < srow.size(); ++x) {
+      for (size_t x = 0; x < source.width(); ++x) {
         target_rows[x][y] = srow[x];
       }
     }
