@@ -195,7 +195,8 @@ namespace pixglot::details {
 
       default: {
         pixel_buffer source{std::move(pixels)};
-        pixels = pixel_buffer{source.height(), source.width(), source.format()};
+        pixels = pixel_buffer{source.height(), source.width(),
+          source.format(), source.endian()};
 
         transform_flips_xy(source, pixels, orientation);
       } break;

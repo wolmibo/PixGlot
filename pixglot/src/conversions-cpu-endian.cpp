@@ -12,12 +12,23 @@ namespace {
       x = std::byteswap(x);
     }
   }
+
+
+
+  [[nodiscard]] std::endian swap(std::endian endian) {
+    if (endian == std::endian::little) {
+      return std::endian::big;
+    }
+    return std::endian::little;
+  }
 }
 
 
 
 namespace pixglot::details {
   void apply_byte_swap(pixglot::pixel_buffer& pb) {
+    pb.endian(swap(pb.endian()));
+
     if (byte_size(pb.format().format) < 2) {
       return;
     }

@@ -89,7 +89,6 @@ void pixglot::convert_endian(frame& f, std::endian target) {
 void pixglot::convert_endian(pixel_buffer& pb, std::endian tgt) {
   if (pb.endian() != tgt) {
     details::apply_byte_swap(pb);
-    pb.endian(tgt);
   }
 }
 
