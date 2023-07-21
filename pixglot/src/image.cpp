@@ -1,4 +1,5 @@
 #include "pixglot/image.hpp"
+#include "pixglot/metadata.hpp"
 
 #include <chrono>
 #include <optional>
@@ -14,6 +15,8 @@ class image::impl {
   public:
     std::vector<pixglot::frame> frames;
     std::vector<std::string>    warnings;
+
+    pixglot::metadata           metadata;
 
     bool                        animated{false};
 };
@@ -73,6 +76,9 @@ std::span<const std::string> image::warnings() const { return impl_->warnings; }
 bool image::has_warnings() const {
   return !impl_->warnings.empty();
 }
+
+const pixglot::metadata& image::metadata() const { return impl_->metadata; }
+      pixglot::metadata& image::metadata()       { return impl_->metadata; }
 
 
 

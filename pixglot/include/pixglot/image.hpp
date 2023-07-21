@@ -15,6 +15,7 @@
 
 namespace pixglot {
 
+class metadata;
 
 class image {
   public:
@@ -55,6 +56,9 @@ class image {
     [[nodiscard]] bool                         animated()      const;
     [[nodiscard]] std::span<const std::string> warnings()      const;
     [[nodiscard]] bool                         has_warnings()  const;
+
+    [[nodiscard]] const pixglot::metadata&     metadata()      const;
+    [[nodiscard]] pixglot::metadata&           metadata();
 
 
 
