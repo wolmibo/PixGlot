@@ -4,6 +4,8 @@
 #ifndef PIXGLOT_METADATA_HPP_INCLUDED
 #define PIXGLOT_METADATA_HPP_INCLUDED
 
+#include "pixglot/square-isometry.hpp"
+
 #include <memory>
 #include <optional>
 #include <span>
@@ -59,6 +61,10 @@ class metadata {
     class impl;
     std::unique_ptr<impl> impl_;
 };
+
+
+
+[[nodiscard]] std::optional<square_isometry> orientation_from_metadata(const metadata&);
 
 }
 

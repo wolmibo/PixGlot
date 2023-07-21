@@ -3,6 +3,7 @@
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
+#include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <utility>
@@ -185,6 +186,9 @@ namespace {
         frame.source_info() = std::move(fsi);
 
         fill_metadata(decoder_->image().metadata());
+
+        frame.orientation(orientation_from_metadata(decoder_->image().metadata())
+                          .value_or(square_isometry::identity));
 
         if (decoder_->wants_pixel_transfer()) {
           png_read_update_info(png.ptr, png.info);
