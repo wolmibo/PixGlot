@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
@@ -9,6 +10,9 @@
 #include <png.h>
 
 using namespace pixglot;
+
+
+bool fill_xmp_metadata(char*, details::decoder&);
 
 
 
@@ -213,10 +217,17 @@ namespace {
         }
 
         for (const auto& png_text: std::span{text, static_cast<size_t>(num_text)}) {
-          md.emplace(
-              save_string(png_text.key, 79),
-              save_string(png_text.text)
-          );
+          auto key   = save_string(png_text.key, 79);
+          auto value = save_string(png_text.text);
+#ifdef PIXGLOT_WITH_XMP
+          if (key.starts_with("XML:") && key.contains("xmp")) {
+            if (fill_xmp_metadata(value.data(), *decoder_)) {
+              md.emplace(std::move(key), "<parsed xmp data>");
+              continue;
+            }
+          }
+#endif
+          md.emplace(std::move(key), std::move(value));
         }
       }
 

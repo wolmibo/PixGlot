@@ -84,6 +84,12 @@ if giflib.found()
   config.set('PIXGLOT_WITH_GIF', 1)
 endif
 
+if (cpp.has_header('rapidxml.h', required: get_option('xmp')))
+  sources      += 'src/metadata/xmp.cpp'
+  config.set('PIXGLOT_WITH_XMP', 1)
+endif
+
+
 
 cfg = configure_file(output: 'config.hpp', configuration: config)
 

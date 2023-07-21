@@ -7,6 +7,8 @@ option('webp', type: 'feature', value: 'auto')
 option('gif',  type: 'feature', value: 'auto')
 option('jxl',  type: 'feature', value: 'auto')
 
+option('xmp',  type: 'feature', value: 'auto')
+
 option('install_as_subproject', type: 'boolean', value: true,
   description: 'Install if this is a subproject')
 
