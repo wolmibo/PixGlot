@@ -8,6 +8,8 @@
 using namespace rapidxml;
 using namespace std::string_view_literals;
 
+using namespace pixglot;
+
 
 
 
@@ -96,7 +98,7 @@ namespace {
 
 
 
-  void fill_rdf_description(xml_node<>* desc, pixglot::metadata& md) {
+  void fill_rdf_description(xml_node<>* desc, std::vector<metadata::key_value>& md) {
     for (auto* field = desc->first_node(); field != nullptr;
          field = field->next_sibling()) {
 
@@ -107,7 +109,7 @@ namespace {
       }
 
 
-      md.emplace(field->name(), format_value(field));
+      md.emplace_back(field->name(), format_value(field));
     }
   }
 }
@@ -116,7 +118,7 @@ namespace {
 
 
 
-bool fill_xmp_metadata(char* str, pixglot::details::decoder& dec) {
+bool fill_xmp_metadata(char* str, details::decoder& dec) {
   try {
     xml_document<> doc;
     doc.parse<0>(str);
@@ -126,6 +128,8 @@ bool fill_xmp_metadata(char* str, pixglot::details::decoder& dec) {
     if (root == nullptr || root->name() != "x:xmpmeta"sv) {
       return false;
     }
+
+    std::vector<metadata::key_value> md;
 
     for (auto* node = root->first_node(); node != nullptr; node = node->next_sibling()) {
 
@@ -137,10 +141,12 @@ bool fill_xmp_metadata(char* str, pixglot::details::decoder& dec) {
            desc = desc->next_sibling()) {
 
         if (desc->name() == "rdf:Description"sv) {
-          fill_rdf_description(desc, dec.image().metadata());
+          fill_rdf_description(desc, md);
         }
       }
     }
+
+    dec.image().metadata().append_move(md);
 
     return true;
 

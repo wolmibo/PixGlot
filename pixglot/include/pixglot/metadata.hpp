@@ -40,6 +40,7 @@ class metadata {
 
 
     void emplace(std::string, std::string);
+    void append_move(std::span<key_value>);
 
 
 

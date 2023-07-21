@@ -110,3 +110,15 @@ void md::emplace(std::string key, std::string value) {
 
   impl_->entries_.emplace(it, std::move(key), std::move(value));
 }
+
+
+
+void md::append_move(std::span<key_value> list) {
+  impl_->entries_.reserve(size() + list.size());
+
+  for (auto& pair: list) {
+    impl_->entries_.emplace_back(std::move(pair));
+  }
+
+  std::ranges::sort(impl_->entries_, {}, &key_value::first);
+}
