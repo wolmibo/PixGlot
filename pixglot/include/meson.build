@@ -9,6 +9,7 @@ headers = [
   'pixglot/frame-source-info.hpp',
   'pixglot/gl-texture.hpp',
   'pixglot/image.hpp',
+  'pixglot/metadata.hpp',
   'pixglot/output-format.hpp',
   'pixglot/pixel-buffer.hpp',
   'pixglot/pixel-format-conversion.hpp',

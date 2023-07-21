@@ -11,6 +11,7 @@ sources = [
   'src/frame-source-info.cpp',
   'src/gl-texture.cpp',
   'src/image.cpp',
+  'src/metadata.cpp',
   'src/output-format.cpp',
   'src/pixel-buffer.cpp',
   'src/pixel-format.cpp',
