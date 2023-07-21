@@ -86,18 +86,37 @@ std::string_view str(std::endian endian) {
 
 
 
+template<typename T>
+void print_meta_item(const std::string& key, T&& value, size_t width) {
+  std::cout << "  " << std::left << std::setw(width) << (key + ": ")
+    << std::forward<T>(value) << '\n';
+}
+
+
+
+
 
 void print_image(const pixglot::image& image) {
   for (const auto& str: image.warnings()) {
     std::cout << "  ⚠ " << str << '\n';
   }
 
-  for (const auto& [key, value]: image.metadata()) {
-    std::cout << "  " << std::left << std::setw(13) << (key + ": ") << value << '\n';
+  size_t width = 10;
+
+  if (!image.metadata().empty()) {
+    width = std::max(width, std::ranges::max(image.metadata(), {}, [](const auto& arg) {
+      return arg.first.size();
+    }).first.size());
+
+    width = std::min<size_t>(width, 40);
   }
 
-  std::cout << "  animated:    " << str(image.animated()) << '\n';
-  std::cout << "  frames:      " << image.size() << '\n';
+  for (const auto& [key, value]: image.metadata()) {
+    print_meta_item(key, value, width);
+  }
+
+  print_meta_item("animated", str(image.animated()), width);
+  print_meta_item("frames",   image.size(), width);
 
   for (const auto& f: image.frames()) {
     std::cout << "  • ";
