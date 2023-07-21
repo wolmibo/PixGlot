@@ -10,6 +10,7 @@
 #include <pixglot/frame.hpp>
 #include <pixglot/frame-source-info.hpp>
 #include <pixglot/output-format.hpp>
+#include <pixglot/metadata.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
 
@@ -89,6 +90,10 @@ std::string_view str(std::endian endian) {
 void print_image(const pixglot::image& image) {
   for (const auto& str: image.warnings()) {
     std::cout << "  ⚠ " << str << '\n';
+  }
+
+  for (const auto& [key, value]: image.metadata()) {
+    std::cout << "  " << std::left << std::setw(13) << (key + ": ") << value << '\n';
   }
 
   std::cout << "  animated:    " << str(image.animated()) << '\n';
