@@ -1,6 +1,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <utility>
@@ -94,6 +95,23 @@ namespace {
 
 
 
+  std::string save_string(png_charp ptr, size_t max = 0) {
+    if (ptr == nullptr) { return ""; }
+
+    if (max == 0) {
+      return ptr;
+    }
+
+    png_charp end = ptr;
+    for (size_t i = 0; i < max && *end != 0; ++i, ++end) {}
+
+    return std::string{ptr, end};
+  }
+
+
+
+
+
   frame_source_info create_frame_source_info(const png_guard& png) {
     frame_source_info fsi;
 
@@ -162,6 +180,8 @@ namespace {
         frame.alpha_mode(make_alpha_mode_compatible(format.channels));
         frame.source_info() = std::move(fsi);
 
+        fill_metadata(decoder_->image().metadata());
+
         if (decoder_->wants_pixel_transfer()) {
           png_read_update_info(png.ptr, png.info);
 
@@ -178,6 +198,29 @@ namespace {
     private:
       details::decoder* decoder_;
       png_guard         png;
+
+
+
+      void fill_metadata(metadata& md) const {
+        png_textp text{nullptr};
+        int       num_text{0};
+
+        png_get_text(png.ptr, png.info, &text, &num_text);
+
+        if (num_text < 0) {
+          decoder_->warn("negative number of text blocks");
+          return;
+        }
+
+        for (const auto& png_text: std::span{text, static_cast<size_t>(num_text)}) {
+          md.emplace(
+              save_string(png_text.key, 79),
+              save_string(png_text.text)
+          );
+        }
+      }
+
+
 
 
 
