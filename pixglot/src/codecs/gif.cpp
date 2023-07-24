@@ -433,6 +433,10 @@ namespace {
         frame.duration  (meta.duration());
 
 
+        fill_block_metadata(frame.metadata(),
+            {img.ExtensionBlocks, saturating_cast(img.ExtensionBlockCount)});
+
+
         if (decoder_->wants_pixel_transfer()) {
           decoder_->begin_pixel_transfer();
 
@@ -499,19 +503,33 @@ namespace {
 
 
 
+
       void fill_global_metadata() {
         std::vector<metadata::key_value> out {
           {"gif.par", std::to_string(pixel_aspect_ratio(gif_->AspectByte))}
         };
 
+        decoder_->image().metadata().append_move(out);
+
+
+        fill_block_metadata(decoder_->image().metadata(),
+            {gif_->ExtensionBlocks, saturating_cast(gif_->ExtensionBlockCount)});
+      }
+
+
+
+
+
+      void fill_block_metadata(metadata& md, std::span<const ExtensionBlock> blocks) {
         size_t comment  {0};
         size_t plaintext{0};
 #ifdef PIXGLOT_WITH_XMP
         size_t xmp      {0};
 #endif
 
-        for (const auto& block: std::span{gif_->ExtensionBlocks,
-                                          saturating_cast(gif_->ExtensionBlockCount)}) {
+        std::vector<metadata::key_value> out;
+
+        for (const auto& block: blocks) {
           switch (block.Function) {
             case COMMENT_EXT_FUNC_CODE:
               out.emplace_back(counted_name("comment", comment++),
@@ -528,8 +546,7 @@ namespace {
                 auto all = details::string_view_from(block.Bytes, block.ByteCount);
                 auto data = all.substr(11);
                 if (all.substr(0, 11) == "XMP DataXMP" &&
-                    details::fill_xmp_metadata(data, decoder_->image().metadata(),
-                                               *decoder_)) {
+                    details::fill_xmp_metadata(data, md, *decoder_)) {
 
                   out.emplace_back("pixglot." + counted_name("xmp", xmp++) + ".raw",
                                    data);
@@ -540,7 +557,7 @@ namespace {
           }
         }
 
-        decoder_->image().metadata().append_move(out);
+        md.append_move(out);
       }
   };
 
