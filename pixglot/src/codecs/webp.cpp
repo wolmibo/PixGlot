@@ -303,7 +303,7 @@ namespace {
 
 #ifdef PIXGLOT_WITH_XMP
         if ((flags & XMP_FLAG) != 0) {
-          if (WebPDemuxGetChunk(demux_.get(), "XMP", 1, iter.get()) != WEBP_MUX_OK) {
+          if (WebPDemuxGetChunk(demux_.get(), "XMP ", 1, iter.get()) != WEBP_MUX_OK) {
             decoder_->warn("unable to obtain xmp data");
           }
 
