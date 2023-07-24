@@ -1,6 +1,9 @@
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/string-bytes.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <avif/avif.h>
@@ -314,6 +317,8 @@ namespace {
           frame.duration   (std::chrono::microseconds{
                               static_cast<long int>(dec_->duration) * time_multi});
 
+          fill_metadata(frame.metadata(), *dec_->image);
+
           if (decoder_->wants_pixel_transfer()) {
             decoder_->begin_pixel_transfer();
 
@@ -347,6 +352,24 @@ namespace {
           throw decode_error{codec::avif,
             message + ": " + avifResultToString(res), location};
         }
+      }
+
+
+
+
+
+      void fill_metadata(metadata& md, const avifImage& img) {
+#ifdef PIXGLOT_WITH_XMP
+        if (img.xmp.size > 0) {
+          auto str = details::string_from(img.xmp.data, img.xmp.size);
+
+          if (!details::fill_xmp_metadata(str, md, *decoder_)) {
+            decoder_->warn("found invalid xmp data");
+          }
+
+          md.emplace("pixglot.xmp.raw", std::move(str));
+        }
+#endif
       }
   };
 }
