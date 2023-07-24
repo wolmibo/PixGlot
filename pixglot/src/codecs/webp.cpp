@@ -194,6 +194,8 @@ namespace {
         data_   {decoder_->input()},
         demux_  {WebPDemux(&data_.get())}
       {
+        decoder_->image().codec(codec::webp);
+
         if (!demux_) {
           throw decode_error{codec::webp, "unable to parse webp"};
         }

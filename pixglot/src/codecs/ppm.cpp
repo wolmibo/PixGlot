@@ -404,6 +404,21 @@ namespace {
 
 
 
+
+
+    [[nodiscard]] std::string_view mime_type() const {
+      if (has_color(format.channels)) {
+        return "image/x-portable-pixmap";
+      }
+
+      return type == ppm_type::bits ?
+        "image/x-portable-bitmap" : "image/x-portable-graymap";
+    }
+
+
+
+
+
     private:
       [[nodiscard]] data_source_format source_format() const {
         if (ascii) {
@@ -497,7 +512,9 @@ namespace {
         decoder_{&decoder},
         reader_ {decoder_->input()},
         header_ {reader_}
-      {}
+      {
+        decoder_->image().codec(codec::ppm, std::string{header_.mime_type()});
+      }
 
 
 

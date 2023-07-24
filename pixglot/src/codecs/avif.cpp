@@ -289,6 +289,8 @@ namespace {
         reader_ {decoder_->input()},
         dec_    {avifDecoderCreate(), avifDecoderDestroy}
       {
+        decoder_->image().codec(codec::avif);
+
         avifDecoderSetIO(dec_.get(), reader_.avif_io());
       }
 

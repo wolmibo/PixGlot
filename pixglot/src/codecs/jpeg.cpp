@@ -214,6 +214,8 @@ namespace {
         cinfo_  {new jpeg_decompress_struct()},
         src_mgr_{decoder_->input()}
       {
+        decoder_->image().codec(codec::jpeg);
+
         cinfo_->client_data = this;
 
         init_error();

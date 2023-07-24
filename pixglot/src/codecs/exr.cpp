@@ -499,7 +499,9 @@ namespace {
         data_window_{input_.header().dataWindow()},
         width_      {static_cast<size_t>(data_window_.max.x - data_window_.min.x + 1)},
         height_     {static_cast<size_t>(data_window_.max.y - data_window_.min.y + 1)}
-      {}
+      {
+        decoder_->image().codec(codec::exr);
+      }
 
 
 

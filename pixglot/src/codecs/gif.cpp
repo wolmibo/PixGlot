@@ -382,6 +382,8 @@ namespace {
         decoder_{&decoder},
         gif_    {decoder_->input()}
       {
+        decoder_->image().codec(codec::gif);
+
         gif_.slurp();
 
         width_  = gif_->SWidth;  //NOLINT(*initializer)

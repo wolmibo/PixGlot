@@ -18,6 +18,9 @@ class image::impl {
 
     pixglot::metadata           metadata;
 
+    pixglot::codec              codec{codec::ppm};
+    std::string                 mime_type;
+
     bool                        animated{false};
 };
 
@@ -82,6 +85,11 @@ const pixglot::metadata& image::metadata() const { return impl_->metadata; }
 
 
 
+std::string_view image::mime_type() const { return impl_->mime_type; }
+pixglot::codec   image::codec()     const { return impl_->codec;     }
+
+
+
 
 
 void image::add_warning(std::string str) {
@@ -100,6 +108,21 @@ frame& image::add_frame(pixglot::frame frame) {
   impl_->frames.emplace_back(std::move(frame));
 
   return impl_->frames.back();
+}
+
+
+
+
+
+void image::codec(pixglot::codec c, std::string mime) {
+  impl_->codec = c;
+
+  if (!mime.empty()) {
+    impl_->mime_type = std::move(mime);
+
+  } else if (auto res = mime_types(c); !res.empty()) {
+    impl_->mime_type = std::string{res.front()};
+  }
 }
 
 

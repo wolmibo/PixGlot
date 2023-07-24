@@ -144,6 +144,8 @@ namespace {
         jxl_    {JxlDecoderMake(nullptr)},
         reader_ {decoder_->input()}
       {
+        decoder_->image().codec(codec::jxl);
+
         reader_.set_input(jxl_.get());
 
         alpha_strategy_  = create_alpha_strategy();  // NOLINT(*initializer)

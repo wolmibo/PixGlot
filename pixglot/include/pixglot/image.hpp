@@ -62,6 +62,13 @@ class image {
 
 
 
+    [[nodiscard]] std::string_view             mime_type()     const;
+    [[nodiscard]] pixglot::codec               codec()         const;
+
+    void codec(pixglot::codec, std::string = {});
+
+
+
     void            add_warning(std::string);
     pixglot::frame& add_frame  (pixglot::frame);
 

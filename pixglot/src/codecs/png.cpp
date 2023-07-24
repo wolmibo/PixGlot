@@ -143,6 +143,8 @@ namespace {
       explicit png_decoder(details::decoder& decoder) :
         decoder_{&decoder}
       {
+        decoder_->image().codec(codec::png);
+
         png_set_error_fn(png.ptr, this, &error_function, &warn_function);
         png_set_read_fn (png.ptr, this, &read);
       }
