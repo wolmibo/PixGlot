@@ -1,5 +1,6 @@
 #include "pixglot/details/exif.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/tiff-orientation.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/metadata.hpp"
 
@@ -144,7 +145,7 @@ namespace {
           for (uint16_t i = 0; i < count; ++i) {
             if (static_cast<attribute>(int_at<uint16_t>(offset)) ==
                 attribute::orientation) {
-              orientation_ = convert_orientation(int_at<uint16_t>(offset + 8));
+              orientation_ = square_isometry_from_tiff(int_at<uint16_t>(offset + 8));
             }
             offset += 12;
           }
@@ -193,26 +194,6 @@ namespace {
           return std::byteswap(value);
         } else {
           return static_cast<T>(buffer_[offset]);
-        }
-      }
-
-
-
-      [[nodiscard]] static square_isometry convert_orientation(uint16_t orientation) {
-        using enum square_isometry;
-
-        switch (orientation) {
-          case 1: return identity;
-          case 2: return flip_x;
-          case 3: return rotate_half;
-          case 4: return flip_y;
-          case 5: return transpose;
-          case 6: return rotate_ccw;
-          case 7: return anti_transpose;
-          case 8: return rotate_cw;
-
-          default:
-            return identity;
         }
       }
   };

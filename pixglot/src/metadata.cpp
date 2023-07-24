@@ -1,4 +1,5 @@
 #include "pixglot/metadata.hpp"
+#include "pixglot/details/tiff-orientation.hpp"
 #include "pixglot/square-isometry.hpp"
 
 #include <algorithm>
@@ -138,16 +139,8 @@ std::optional<pixglot::square_isometry> pixglot::orientation_from_metadata(
     const metadata& md
 ) {
   if (auto tiff = md.find("tiff:Orientation"); tiff->size() == 1) {
-    switch (tiff->front()) {
-      case '1': return pixglot::square_isometry::identity;
-      case '2': return pixglot::square_isometry::flip_x;
-      case '3': return pixglot::square_isometry::rotate_half;
-      case '4': return pixglot::square_isometry::flip_y;
-      case '5': return pixglot::square_isometry::transpose;
-      case '6': return pixglot::square_isometry::rotate_ccw;
-      case '7': return pixglot::square_isometry::anti_transpose;
-      case '8': return pixglot::square_isometry::rotate_cw;
-    }
+    return details::square_isometry_from_tiff(tiff->front());
   }
+
   return {};
 }
