@@ -62,10 +62,12 @@ endif
 
 webpdec = dependency('libwebpdecoder', required: get_option('webp'))
 webpdem = dependency('libwebpdemux',   required: get_option('webp'))
-if webpdec.found() and webpdem.found()
+webpmux = dependency('libwebpmux',     required: get_option('webp'))
+if webpdec.found() and webpdem.found() and webpmux.found()
   sources      += 'src/codecs/webp.cpp'
   dependencies += webpdec
   dependencies += webpdem
+  dependencies += webpmux
   config.set('PIXGLOT_WITH_WEBP', 1)
 endif
 

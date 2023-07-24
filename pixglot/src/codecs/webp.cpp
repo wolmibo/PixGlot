@@ -1,11 +1,15 @@
+#include "config.hpp"
 #include "pixglot/buffer.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <webp/demux.h>
+#include <webp/mux.h>
 
 using namespace pixglot;
 
@@ -70,7 +74,8 @@ namespace {
 
 
       explicit webp_frame_iterator(WebPDemuxer* demux) :
-        iterator_{WebPIterator{}} {
+        iterator_{WebPIterator{}}
+      {
         if (WebPDemuxGetFrame(demux, 1, &*iterator_) == 0) {
           WebPDemuxReleaseIterator(&*iterator_);
           iterator_ = {};
@@ -195,6 +200,8 @@ namespace {
 
 
       void decode() {
+        fill_metadata();
+
         for (auto& webp_frame: webp_frame_iterator{demux_.get()}) {
           decoder_->frame_total(webp_frame.num_frames);
 
@@ -274,6 +281,42 @@ namespace {
           saturating_cast(iter->height),
           format
         };
+      }
+
+
+
+      void fill_metadata() {
+        struct chunk_iterator_deleter {
+          void operator()(WebPChunkIterator* iter) {
+            WebPDemuxReleaseChunkIterator(iter);
+            //NOLINTNEXTLINE(*-owning-memory)
+            delete iter;
+          }
+        };
+
+        std::unique_ptr<WebPChunkIterator, chunk_iterator_deleter>
+          iter{new WebPChunkIterator()};
+
+        auto flags = WebPDemuxGetI(demux_.get(), WEBP_FF_FORMAT_FLAGS);
+
+#ifdef PIXGLOT_WITH_XMP
+        if ((flags & XMP_FLAG) != 0) {
+          if (WebPDemuxGetChunk(demux_.get(), "XMP", 1, iter.get()) != WEBP_MUX_OK) {
+            decoder_->warn("unable to obtain xmp data");
+          }
+
+          //NOLINTNEXTLINE(*-reinterpret-cast)
+          std::string buffer{reinterpret_cast<const char*>(iter->chunk.bytes),
+                             iter->chunk.size};
+
+          if (!details::fill_xmp_metadata(buffer, *decoder_)) {
+            decoder_->warn("unable to parse xmp data");
+          }
+
+          decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(buffer));
+        }
+#endif
+
       }
   };
 }
