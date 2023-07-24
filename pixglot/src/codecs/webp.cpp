@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "pixglot/buffer.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/exif.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -311,6 +312,22 @@ namespace {
               decoder_->image().metadata(),
               *decoder_
           );
+
+          return;
+        }
+#endif
+#ifdef PIXGLOT_WITH_EXIF
+        if ((flags & EXIF_FLAG) != 0) {
+          if (WebPDemuxGetChunk(demux_.get(), "EXIF", 1, iter.get()) != WEBP_MUX_OK) {
+            decoder_->warn("unable to obtain xmp data");
+          }
+
+          std::span buffer{iter->chunk.bytes, iter->chunk.size};
+
+          details::fill_exif_metadata(std::as_bytes(buffer),
+              decoder_->image().metadata(), *decoder_);
+
+          return;
         }
 #endif
 
