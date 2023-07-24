@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
@@ -13,7 +14,6 @@
 using namespace pixglot;
 
 
-bool fill_xmp_metadata(char*, details::decoder&);
 
 
 
@@ -225,9 +225,9 @@ namespace {
           auto value = save_string(png_text.text);
 #ifdef PIXGLOT_WITH_XMP
           if (key.starts_with("XML:") && key.contains("xmp")) {
-            if (fill_xmp_metadata(value.data(), *decoder_)) {
+            if (fill_xmp_metadata(value, *decoder_)) {
               md.emplace("pixglot.xmp.rawKey",   std::move(key));
-              md.emplace("pixglot.xmp.rawValue", save_string(png_text.text));
+              md.emplace("pixglot.xmp.rawValue", std::move(value));
               continue;
             }
           }

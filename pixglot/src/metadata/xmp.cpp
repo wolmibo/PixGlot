@@ -1,4 +1,5 @@
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/metadata.hpp"
 
 #include <string_view>
@@ -118,10 +119,12 @@ namespace {
 
 
 
-bool fill_xmp_metadata(char* str, details::decoder& dec) {
+bool pixglot::details::fill_xmp_metadata(std::string_view str, details::decoder& dec) {
   try {
+    std::string buffer{str};
+
     xml_document<> doc;
-    doc.parse<0>(str);
+    doc.parse<0>(buffer.data());
 
 
     auto* root = doc.first_node();
