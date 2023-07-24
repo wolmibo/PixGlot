@@ -220,14 +220,19 @@ namespace {
           return;
         }
 
+#ifdef PIXGLOT_WITH_XMP
+        size_t xmp{0};
+#endif
+
         for (const auto& png_text: std::span{text, static_cast<size_t>(num_text)}) {
           auto key   = save_string(png_text.key, 79);
           auto value = save_string(png_text.text);
 #ifdef PIXGLOT_WITH_XMP
-          if (key.starts_with("XML:") && key.contains("xmp")) {
+          if (key == "XML:com.adobe.xmp") {
             if (fill_xmp_metadata(value, *decoder_)) {
-              md.emplace("pixglot.xmp.rawKey",   std::move(key));
-              md.emplace("pixglot.xmp.rawValue", std::move(value));
+              md.emplace("pixglot.xmp" + (xmp > 0 ? std::to_string(xmp) : "") + ".raw",
+                         std::move(value));
+              ++xmp;
               continue;
             }
           }

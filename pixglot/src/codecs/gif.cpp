@@ -514,7 +514,9 @@ namespace {
 
         size_t comment  {0};
         size_t plaintext{0};
+#ifdef PIXGLOT_WITH_XMP
         size_t xmp      {0};
+#endif
 
         for (const auto& block: std::span{gif_->ExtensionBlocks,
                                           saturating_cast(gif_->ExtensionBlockCount)}) {
@@ -536,7 +538,7 @@ namespace {
                 if (all.substr(0, 11) == "XMP DataXMP" &&
                     details::fill_xmp_metadata(data, *decoder_)) {
 
-                  out.emplace_back("pixglot." + counted_name("xmp", xmp++) + ".rawValue",
+                  out.emplace_back("pixglot." + counted_name("xmp", xmp++) + ".raw",
                                    data);
                 }
               }

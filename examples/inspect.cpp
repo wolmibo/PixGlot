@@ -17,6 +17,11 @@
 
 
 
+using namespace std::string_view_literals;
+
+
+
+
 
 std::string_view str(bool value) {
   return value ? "yes" : "no";
@@ -112,8 +117,8 @@ void print_image(const pixglot::image& image, bool raw) {
   }
 
   for (const auto& [key, value]: image.metadata()) {
-    if (!raw && key.starts_with("pixglot.") && key.ends_with(".rawValue")) {
-      print_meta_item(key, "<use --raw to include raw data>", width);
+    if (!raw && key.starts_with("pixglot.") && key.ends_with(".raw")) {
+      print_meta_item(key, "<use --raw to include raw data>"sv, width);
     } else {
       print_meta_item(key, value, width);
     }
