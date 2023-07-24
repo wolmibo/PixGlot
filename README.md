@@ -4,7 +4,8 @@ A C++ image decoder collection library for various formats with high-bit and mul
 support.
 
 Features:
-* Support for ppm, png, jpeg, gif, webp, avif, jxl, openexr
+* Image support for ppm, png, jpeg, gif, webp, avif, jxl, openexr
+* Metadata support for xmp
 * Loading progress feedback for ppm, png, jpeg, multi-frame images
 * Animated images
 * 8-bit / 16-bit / 32-bit / float / half-float buffer
@@ -39,15 +40,15 @@ int main(int argc, char** argv) {
 
 # Supported input formats
 
-| Format    | Library    | Notes                                                         |
+| Format    | Library    | Supported features                                            |
 |-----------|------------|---------------------------------------------------------------|
-| ppm       | *built-in* | Supports Pf, PF; 16bit (big endian) for P2, P3, P5, and P6    |
-| png       | libpng     |                                                               |
-| jpeg      | libjpeg    |                                                               |
-| gif       | giflib     | Supports animation                                            |
-| webp      | libwebp    | Supports animation                                            |
-| avif      | libavif    | Supports animation                                            |
-| jxl       | libjxl     | Supports animation                                            |
+| ppm       | *built-in* | Pf, PF; 16bit (big endian) for P2, P3, P5, and P6             |
+| png       | libpng     | XMP                                                           |
+| jpeg      | libjpeg    | XMP, JFIF                                                     |
+| gif       | giflib     | Animation, XMP                                                |
+| webp      | libwebp    | Animation, XMP                                                |
+| avif      | libavif    | Animation, XMP                                                |
+| jxl       | libjxl     | Animation                                                     |
 | exr       | openexr    |                                                               |
 
 
@@ -67,12 +68,13 @@ To build PixGlot you will need:
 * libwebp (Optional)
 * libjxl (Optional)
 * giflib (Optional)
+* rapidxml (Optional for XMP support)
 
 To install all dependencies on Fedora 37 run:
 ```sh
 sudo dnf install gcc-c++ meson mesa-libGL-devel libepoxy-devel \
 libpng-devel libjpeg-turbo-devel giflib-devel libwebp-devel \
-libavif-devel libjxl-devel openexr-devel
+libavif-devel libjxl-devel openexr-devel rapidxml-devel
 ```
 
 
