@@ -1,7 +1,10 @@
+#include "config.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
+#include "pixglot/utils/cast.hpp"
 
 #include <chrono>
 
@@ -345,6 +348,68 @@ namespace {
 
 
 
+
+  [[nodiscard]] std::string counted_name(std::string_view prefix, size_t count) {
+    if (count == 0) {
+      return std::string{prefix};
+    }
+    return std::string{prefix} + std::to_string(count);
+  }
+
+
+
+  [[nodiscard]] std::string string_from_eb(const ExtensionBlock& eb) {
+    if (eb.ByteCount == 0 || eb.Bytes == nullptr) {
+      return "";
+    }
+
+    // NOLINTNEXTLINE(*-reinterpret-cast)
+    return std::string{reinterpret_cast<const char*>(eb.Bytes),
+      saturating_cast(eb.ByteCount)};
+  }
+
+
+
+
+
+  [[nodiscard]] float pixel_aspect_ratio(GifByteType aspect) {
+    if (aspect == 0) {
+      return 1.f;
+    }
+    return (static_cast<float>(aspect) + 15.f) / 64.f;
+  }
+
+
+
+
+  [[nodiscard]] std::vector<metadata::key_value> global_metadata(const GifFileType* gif) {
+    std::vector<metadata::key_value> out {
+      {"gif.par", std::to_string(pixel_aspect_ratio(gif->AspectByte))}
+    };
+
+    size_t comment  {0};
+    size_t plaintext{0};
+
+    for (const auto& block: std::span{gif->ExtensionBlocks,
+                                      saturating_cast(gif->ExtensionBlockCount)}) {
+      switch (block.Function) {
+        case COMMENT_EXT_FUNC_CODE:
+          out.emplace_back(counted_name("comment", comment++), string_from_eb(block));
+          break;
+        case PLAINTEXT_EXT_FUNC_CODE:
+          out.emplace_back(counted_name("plaintext", plaintext++), string_from_eb(block));
+          break;
+      }
+    }
+
+
+    return out;
+  }
+
+
+
+
+
   class gif_decoder {
     public:
       explicit gif_decoder(details::decoder& decoder) :
@@ -362,6 +427,8 @@ namespace {
 
 
       void decode() {
+        decoder_->image().metadata().append_move(global_metadata(gif_.get()));
+
         for (int i = 0; i < gif_->ImageCount; ++i) {
           decode_frame(gif_->SavedImages[i]); //NOLINT(*pointer-arithmetic)
         }
