@@ -92,9 +92,97 @@ std::string_view str(std::endian endian) {
 
 
 template<typename T>
-void print_meta_item(const std::string& key, T&& value, size_t width) {
-  std::cout << "  " << std::left << std::setw(width + 2) << (key + ": ")
+void print_meta_item(const std::string& key, T&& value, size_t width, size_t indent) {
+  std::cout << std::string(indent, ' ')
+    << std::left << std::setw(width + 2) << (key + ": ")
     << std::forward<T>(value) << '\n';
+}
+
+
+
+
+
+[[nodiscard]] size_t column_width(std::span<const pixglot::metadata::key_value> list) {
+  size_t width = 10;
+
+  if (!list.empty()) {
+    width = std::max(width, std::ranges::max(list, {}, [](const auto& arg) {
+      return arg.first.size();
+    }).first.size());
+  }
+
+  return std::min<size_t>(width, 40);
+}
+
+
+
+
+
+void print_key_value(
+    const pixglot::metadata::key_value& kv,
+    size_t                              width,
+    size_t                              indent,
+    bool                                raw
+) {
+  if (!raw && kv.first.starts_with("pixglot.") && kv.first.ends_with(".raw")) {
+    print_meta_item(kv.first, "<use --raw to include raw data>"sv, width, indent);
+  } else {
+    print_meta_item(kv.first, kv.second, width, indent);
+  }
+}
+
+
+
+
+
+void print_frame(const pixglot::frame& f, bool raw) {
+  std::cout << "  • ";
+
+  if (auto name = f.name()) {
+    std::cout << '"' << *name << "\", ";
+  }
+
+  std::cout << f.width() << "×" << f.height() << ", ";
+
+  auto fsf = frame_source_format_to_string(f.source_info());
+  auto fmt = pixglot::to_string(f.format());
+  std::cout << fsf;
+  if (fsf != fmt) {
+    std::cout << "(→" << fmt << ")";
+  }
+  if (f.type() == pixglot::storage_type::pixel_buffer &&
+      pixglot::byte_size(f.format().format) > 1) {
+    std::cout << '(' << str(f.pixels().endian()) << ')';
+  }
+
+  std::cout << ", γ=" << f.gamma();
+
+  if (f.orientation() != pixglot::square_isometry::identity) {
+    std::cout << ", " << pixglot::to_string(f.orientation());
+  }
+
+  if (pixglot::has_alpha(f.format().channels)) {
+    switch (f.alpha_mode()) {
+      case pixglot::alpha_mode::none:          std::cout << ", no alpha"; break;
+      case pixglot::alpha_mode::straight:      std::cout << ", straight"; break;
+      case pixglot::alpha_mode::premultiplied: std::cout << ", premultiplied"; break;
+
+      default: std::cout << ", unknown alpha"; break;
+    }
+  }
+
+  if (f.duration() > std::chrono::microseconds{0}) {
+    std::cout << ", " << f.duration().count() << "µs";
+  }
+
+  std::cout << '\n';
+
+  if (!f.metadata().empty()) {
+    auto width = column_width(f.metadata());
+    for (const auto& kv: f.metadata()) {
+      print_key_value(kv, width, 4, raw);
+    }
+  }
 }
 
 
@@ -106,75 +194,26 @@ void print_image(const pixglot::image& image, bool raw) {
     std::cout << "  ⚠ " << str << '\n';
   }
 
-  size_t width = 10;
+  auto width = column_width(image.metadata());
 
-  if (!image.metadata().empty()) {
-    width = std::max(width, std::ranges::max(image.metadata(), {}, [](const auto& arg) {
-      return arg.first.size();
-    }).first.size());
+  print_meta_item("codec",     pixglot::to_string(image.codec()), width, 2);
+  print_meta_item("mime-type", image.mime_type(), width, 2);
+  print_meta_item("animated",  str(image.animated()), width, 2);
+  print_meta_item("frames",    image.size(), width, 2);
 
-    width = std::min<size_t>(width, 40);
-  }
-
-  print_meta_item("codec",     pixglot::to_string(image.codec()), width);
-  print_meta_item("mime-type", image.mime_type(), width);
-  print_meta_item("animated",  str(image.animated()), width);
-  print_meta_item("frames",    image.size(), width);
-
-  for (const auto& [key, value]: image.metadata()) {
-    if (!raw && key.starts_with("pixglot.") && key.ends_with(".raw")) {
-      print_meta_item(key, "<use --raw to include raw data>"sv, width);
-    } else {
-      print_meta_item(key, value, width);
-    }
+  for (const auto& kv: image.metadata()) {
+    print_key_value(kv, width, 2, raw);
   }
 
   for (const auto& f: image.frames()) {
-    std::cout << "  • ";
-
-    if (auto name = f.name()) {
-      std::cout << '"' << *name << "\", ";
-    }
-
-    std::cout << f.width() << "×" << f.height() << ", ";
-
-    auto fsf = frame_source_format_to_string(f.source_info());
-    auto fmt = pixglot::to_string(f.format());
-    std::cout << fsf;
-    if (fsf != fmt) {
-      std::cout << "(→" << fmt << ")";
-    }
-    if (f.type() == pixglot::storage_type::pixel_buffer &&
-        pixglot::byte_size(f.format().format) > 1) {
-      std::cout << '(' << str(f.pixels().endian()) << ')';
-    }
-
-    std::cout << ", γ=" << f.gamma();
-
-    if (f.orientation() != pixglot::square_isometry::identity) {
-      std::cout << ", " << pixglot::to_string(f.orientation());
-    }
-
-    if (pixglot::has_alpha(f.format().channels)) {
-      switch (f.alpha_mode()) {
-        case pixglot::alpha_mode::none:          std::cout << ", no alpha"; break;
-        case pixglot::alpha_mode::straight:      std::cout << ", straight"; break;
-        case pixglot::alpha_mode::premultiplied: std::cout << ", premultiplied"; break;
-
-        default: std::cout << ", unknown alpha"; break;
-      }
-    }
-
-    if (f.duration() > std::chrono::microseconds{0}) {
-      std::cout << ", " << f.duration().count() << "µs";
-    }
-
-    std::cout << '\n';
+    print_frame(f, raw);
   }
 
 
   std::cout << std::endl;
 }
+
+
 
 
 
