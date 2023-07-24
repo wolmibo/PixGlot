@@ -582,12 +582,12 @@ namespace {
         if (cinfo->unread_marker == JPEG_APP1 && is_xmp(span)) {
           auto str = details::string_from(span.data(), span.size());
 
-          if (details::fill_xmp_metadata(str, self->decoder_->image().metadata(),
-                                         *self->decoder_)) {
-            self->decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(str));
-          } else {
+          if (!details::fill_xmp_metadata(str, self->decoder_->image().metadata(),
+                                          *self->decoder_)) {
             self->decoder_->warn("found invalid xmp data");
           }
+
+          self->decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(str));
 
           return TRUE;
         }

@@ -310,7 +310,7 @@ namespace {
 
           if (!details::fill_xmp_metadata(buffer, decoder_->image().metadata(),
                                           *decoder_)) {
-            decoder_->warn("unable to parse xmp data");
+            decoder_->warn("found invalid xmp data");
           }
 
           decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(buffer));
