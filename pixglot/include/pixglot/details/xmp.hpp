@@ -4,7 +4,6 @@
 #ifndef PIXGLOT_DETAILS_XMP_HPP_INCLUDED
 #define PIXGLOT_DETAILS_XMP_HPP_INCLUDED
 
-#include <functional>
 #include <string_view>
 
 
