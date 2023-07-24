@@ -96,7 +96,7 @@ void print_meta_item(const std::string& key, T&& value, size_t width) {
 
 
 
-void print_image(const pixglot::image& image) {
+void print_image(const pixglot::image& image, bool raw) {
   for (const auto& str: image.warnings()) {
     std::cout << "  ⚠ " << str << '\n';
   }
@@ -112,7 +112,11 @@ void print_image(const pixglot::image& image) {
   }
 
   for (const auto& [key, value]: image.metadata()) {
-    print_meta_item(key, value, width);
+    if (!raw && key.starts_with("pixglot.") && key.ends_with(".rawValue")) {
+      print_meta_item(key, "<use --raw to include raw data>", width);
+    } else {
+      print_meta_item(key, value, width);
+    }
   }
 
   print_meta_item("animated", str(image.animated()), width);
@@ -185,6 +189,7 @@ void print_help(const std::filesystem::path& name) {
     "Available options:\n"
     "  -h, --help              show this help and exit\n"
     "  -d, --decode            fully decode the image(s)\n"
+    "  -r, --raw               include raw metadata\n"
 
     << std::flush;
 }
@@ -194,20 +199,23 @@ void print_help(const std::filesystem::path& name) {
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  static std::array<option, 2> long_options = {
+  static std::array<option, 3> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
     option{"decode",               no_argument,       nullptr, 'd'},
+    option{"raw",                  no_argument,       nullptr, 'r'},
   };
 
   bool help  {false};
   bool decode{false};
+  bool raw   {false};
 
   int c{-1};
-  while ((c = getopt_long(args.size(), args.data(), "hd",
+  while ((c = getopt_long(args.size(), args.data(), "hdr",
                           long_options.data(), nullptr)) != -1) {
     switch (c) {
       case 'h': help   = true; break;
       case 'd': decode = true; break;
+      case 'r': raw    = true; break;
     }
   }
 
@@ -237,7 +245,7 @@ int main(int argc, char** argv) {
       auto image{pixglot::decode(pixglot::reader{file}, {}, output_format)};
 
 
-      print_image(image);
+      print_image(image, raw);
 
     } catch (const pixglot::base_exception& ex) {
       std::cerr << "  ✖ " << ex.message() << '\n';
