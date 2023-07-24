@@ -116,6 +116,11 @@ void print_image(const pixglot::image& image, bool raw) {
     width = std::min<size_t>(width, 40);
   }
 
+  print_meta_item("codec",     pixglot::to_string(image.codec()), width);
+  print_meta_item("mime-type", image.mime_type(), width);
+  print_meta_item("animated",  str(image.animated()), width);
+  print_meta_item("frames",    image.size(), width);
+
   for (const auto& [key, value]: image.metadata()) {
     if (!raw && key.starts_with("pixglot.") && key.ends_with(".raw")) {
       print_meta_item(key, "<use --raw to include raw data>"sv, width);
@@ -123,9 +128,6 @@ void print_image(const pixglot::image& image, bool raw) {
       print_meta_item(key, value, width);
     }
   }
-
-  print_meta_item("animated", str(image.animated()), width);
-  print_meta_item("frames",   image.size(), width);
 
   for (const auto& f: image.frames()) {
     std::cout << "  • ";
