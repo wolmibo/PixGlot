@@ -1,4 +1,5 @@
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/exif.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -363,6 +364,12 @@ namespace {
         if (img.xmp.size > 0) {
           details::fill_xmp_metadata(details::string_from(img.xmp.data, img.xmp.size),
               md, *decoder_);
+        }
+#endif
+#ifdef PIXGLOT_WITH_EXIF
+        if (img.exif.size > 0) {
+          details::fill_exif_metadata(
+              std::as_bytes(std::span{img.exif.data, img.exif.size}), md, *decoder_);
         }
 #endif
       }
