@@ -88,7 +88,7 @@ std::string_view str(std::endian endian) {
 
 template<typename T>
 void print_meta_item(const std::string& key, T&& value, size_t width) {
-  std::cout << "  " << std::left << std::setw(width) << (key + ": ")
+  std::cout << "  " << std::left << std::setw(width + 2) << (key + ": ")
     << std::forward<T>(value) << '\n';
 }
 
