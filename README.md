@@ -5,7 +5,7 @@ support.
 
 Features:
 * Image support for ppm, png, jpeg, gif, webp, avif, jxl, openexr
-* Metadata support for xmp
+* Metadata support for xmp, exif
 * Loading progress feedback for ppm, png, jpeg, multi-frame images
 * Animated images
 * 8-bit / 16-bit / 32-bit / float / half-float buffer
@@ -44,10 +44,10 @@ int main(int argc, char** argv) {
 |-----------|------------|---------------------------------------------------------------|
 | ppm       | *built-in* | Pf, PF; 16bit (big endian) for P2, P3, P5, and P6             |
 | png       | libpng     | XMP                                                           |
-| jpeg      | libjpeg    | XMP, JFIF                                                     |
+| jpeg      | libjpeg    | XMP, JFIF, Exif                                               |
 | gif       | giflib     | Animation, XMP                                                |
-| webp      | libwebp    | Animation, XMP                                                |
-| avif      | libavif    | Animation, XMP                                                |
+| webp      | libwebp    | Animation, XMP, Exif                                          |
+| avif      | libavif    | Animation, XMP, Exif                                          |
 | jxl       | libjxl     | Animation                                                     |
 | exr       | openexr    |                                                               |
 
