@@ -119,7 +119,11 @@ namespace {
 
 
 
-bool pixglot::details::fill_xmp_metadata(std::string_view str, details::decoder& dec) {
+bool pixglot::details::fill_xmp_metadata(
+    std::string_view  str,
+    metadata&         meta,
+    details::decoder& dec
+) {
   try {
     std::string buffer{str};
 
@@ -149,7 +153,7 @@ bool pixglot::details::fill_xmp_metadata(std::string_view str, details::decoder&
       }
     }
 
-    dec.image().metadata().append_move(md);
+    meta.append_move(md);
 
     return true;
 

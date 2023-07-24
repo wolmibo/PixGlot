@@ -213,7 +213,7 @@ namespace {
           auto value = details::string_from(png_text.text);
 #ifdef PIXGLOT_WITH_XMP
           if (key == "XML:com.adobe.xmp") {
-            if (fill_xmp_metadata(value, *decoder_)) {
+            if (fill_xmp_metadata(value, decoder_->image().metadata(), *decoder_)) {
               md.emplace("pixglot.xmp" + (xmp > 0 ? std::to_string(xmp) : "") + ".raw",
                          std::move(value));
               ++xmp;

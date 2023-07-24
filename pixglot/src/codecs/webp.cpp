@@ -308,7 +308,8 @@ namespace {
 
           auto buffer = details::string_from(iter->chunk.bytes, iter->chunk.size);
 
-          if (!details::fill_xmp_metadata(buffer, *decoder_)) {
+          if (!details::fill_xmp_metadata(buffer, decoder_->image().metadata(),
+                                          *decoder_)) {
             decoder_->warn("unable to parse xmp data");
           }
 

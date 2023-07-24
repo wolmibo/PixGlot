@@ -528,7 +528,8 @@ namespace {
                 auto all = details::string_view_from(block.Bytes, block.ByteCount);
                 auto data = all.substr(11);
                 if (all.substr(0, 11) == "XMP DataXMP" &&
-                    details::fill_xmp_metadata(data, *decoder_)) {
+                    details::fill_xmp_metadata(data, decoder_->image().metadata(),
+                                               *decoder_)) {
 
                   out.emplace_back("pixglot." + counted_name("xmp", xmp++) + ".raw",
                                    data);
