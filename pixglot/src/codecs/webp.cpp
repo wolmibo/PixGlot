@@ -312,8 +312,6 @@ namespace {
               decoder_->image().metadata(),
               *decoder_
           );
-
-          return;
         }
 #endif
 #ifdef PIXGLOT_WITH_EXIF
@@ -326,8 +324,6 @@ namespace {
 
           details::fill_exif_metadata(std::as_bytes(buffer),
               decoder_->image().metadata(), *decoder_);
-
-          return;
         }
 #endif
 
