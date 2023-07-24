@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
@@ -358,17 +359,14 @@ namespace {
 
 
 
-  [[nodiscard]] std::string string_from_eb(const ExtensionBlock& eb) {
-    if (eb.ByteCount == 0 || eb.Bytes == nullptr) {
-      return "";
+  [[nodiscard]] std::string_view string_view_from_block(const ExtensionBlock& block) {
+    if (block.ByteCount == 0 || block.Bytes == nullptr) {
+      return {};
     }
 
-    // NOLINTNEXTLINE(*-reinterpret-cast)
-    return std::string{reinterpret_cast<const char*>(eb.Bytes),
-      saturating_cast(eb.ByteCount)};
+    //NOLINTNEXTLINE(*-reinterpret-cast)
+    return {reinterpret_cast<const char*>(block.Bytes), saturating_cast(block.ByteCount)};
   }
-
-
 
 
 
@@ -381,30 +379,6 @@ namespace {
 
 
 
-
-  [[nodiscard]] std::vector<metadata::key_value> global_metadata(const GifFileType* gif) {
-    std::vector<metadata::key_value> out {
-      {"gif.par", std::to_string(pixel_aspect_ratio(gif->AspectByte))}
-    };
-
-    size_t comment  {0};
-    size_t plaintext{0};
-
-    for (const auto& block: std::span{gif->ExtensionBlocks,
-                                      saturating_cast(gif->ExtensionBlockCount)}) {
-      switch (block.Function) {
-        case COMMENT_EXT_FUNC_CODE:
-          out.emplace_back(counted_name("comment", comment++), string_from_eb(block));
-          break;
-        case PLAINTEXT_EXT_FUNC_CODE:
-          out.emplace_back(counted_name("plaintext", plaintext++), string_from_eb(block));
-          break;
-      }
-    }
-
-
-    return out;
-  }
 
 
 
@@ -427,7 +401,7 @@ namespace {
 
 
       void decode() {
-        decoder_->image().metadata().append_move(global_metadata(gif_.get()));
+        fill_global_metadata();
 
         for (int i = 0; i < gif_->ImageCount; ++i) {
           decode_frame(gif_->SavedImages[i]); //NOLINT(*pointer-arithmetic)
@@ -528,6 +502,50 @@ namespace {
           return alpha_mode::premultiplied;
         }
         return alpha_mode::straight;
+      }
+
+
+
+
+      void fill_global_metadata() {
+        std::vector<metadata::key_value> out {
+          {"gif.par", std::to_string(pixel_aspect_ratio(gif_->AspectByte))}
+        };
+
+        size_t comment  {0};
+        size_t plaintext{0};
+        size_t xmp      {0};
+
+        for (const auto& block: std::span{gif_->ExtensionBlocks,
+                                          saturating_cast(gif_->ExtensionBlockCount)}) {
+          switch (block.Function) {
+            case COMMENT_EXT_FUNC_CODE:
+              out.emplace_back(counted_name("comment", comment++),
+                              std::string{string_view_from_block(block)});
+
+              break;
+            case PLAINTEXT_EXT_FUNC_CODE:
+              out.emplace_back(counted_name("plaintext", plaintext++),
+                               std::string{string_view_from_block(block)});
+              break;
+#ifdef PIXGLOT_WITH_XMP
+            case APPLICATION_EXT_FUNC_CODE:
+              if (block.ByteCount >= 11) {
+                auto all = string_view_from_block(block);
+                auto data = all.substr(11);
+                if (all.substr(0, 11) == "XMP DataXMP" &&
+                    details::fill_xmp_metadata(data, *decoder_)) {
+
+                  out.emplace_back("pixglot." + counted_name("xmp", xmp++) + ".rawValue",
+                                   data);
+                }
+              }
+              break;
+#endif
+          }
+        }
+
+        decoder_->image().metadata().append_move(out);
       }
   };
 
