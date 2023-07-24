@@ -3,6 +3,7 @@
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -356,6 +357,40 @@ namespace {
 
 
 
+
+  [[nodiscard]] std::string density_unit(UINT8 du) {
+    switch (du) {
+      case 1:  return "dpi";
+      case 2:  return "dpcm";
+      default: return "unknown";
+    }
+  }
+
+
+  [[nodiscard]] std::vector<metadata::key_value> metadata_from_JFIF(
+      jpeg_decompress_struct* cinfo
+  ) {
+    if (cinfo->saw_JFIF_marker == FALSE) {
+      return {};
+    }
+
+    auto du = density_unit(cinfo->density_unit);
+
+    return {
+      {"jfif.version", std::to_string(cinfo->JFIF_major_version) + "." +
+                       std::to_string(cinfo->JFIF_minor_version)},
+      {"jfif.par",     std::to_string(static_cast<float>(cinfo->X_density) /
+                                      static_cast<float>(cinfo->Y_density))},
+
+      {"jfif.densityX", std::to_string(cinfo->X_density) + du},
+      {"jfif.densityY", std::to_string(cinfo->Y_density) + du},
+    };
+  }
+
+
+
+
+
   struct jds_destroyer {
     void operator()(jpeg_decompress_struct* cinfo) const {
       jpeg_destroy_decompress(cinfo);
@@ -404,6 +439,8 @@ namespace {
         jpeg_read_header(cinfo_.get(), TRUE);
 
         auto pf = make_colorspace_compatible();
+
+        decoder_->image().metadata().append_move(metadata_from_JFIF(cinfo_.get()));
 
         auto& frame = decoder_->begin_frame(cinfo_->image_width, cinfo_->image_height,
                                             pf);
