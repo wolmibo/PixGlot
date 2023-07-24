@@ -11,6 +11,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 
 
@@ -43,6 +44,7 @@ class metadata {
 
     void emplace(std::string, std::string);
     void append_move(std::span<key_value>);
+    void append_move(std::vector<key_value>);
 
 
 

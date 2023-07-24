@@ -126,6 +126,12 @@ void md::append_move(std::span<key_value> list) {
 
 
 
+void md::append_move(std::vector<key_value> list) {
+  append_move(std::span{list});
+}
+
+
+
 
 
 std::optional<pixglot::square_isometry> pixglot::orientation_from_metadata(

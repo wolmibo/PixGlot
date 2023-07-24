@@ -1,6 +1,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
@@ -372,6 +373,123 @@ namespace {
 
 
 
+  [[nodiscard]] std::string compression_name(const Compression& comp) {
+    switch (comp) {
+      case B44A_COMPRESSION:  return "b44a";
+      case B44_COMPRESSION:   return "b44";
+      case DWAA_COMPRESSION:  return "dwaa";
+      case DWAB_COMPRESSION:  return "dwab";
+      case NO_COMPRESSION:    return "none";
+      case PIZ_COMPRESSION:   return "piz";
+      case PXR24_COMPRESSION: return "pxr24";
+      case RLE_COMPRESSION:   return "rle";
+      case ZIPS_COMPRESSION:  return "zips";
+      case ZIP_COMPRESSION:   return "zip";
+      default:                return "unknown";
+    }
+  }
+
+
+
+  [[nodiscard]] std::string to_string(const Box2i& b) {
+    return "(" + std::to_string(b.min.x) + ", " + std::to_string(b.min.y)
+      + ", " + std::to_string(b.max.x - b.min.x + 1)
+      + ", " + std::to_string(b.max.y - b.min.y + 1) + ")";
+  }
+
+
+
+  [[nodiscard]] std::string to_string(LevelMode lm) {
+    switch (lm) {
+      case ONE_LEVEL:     return "single";
+      case MIPMAP_LEVELS: return "mipMap";
+      case RIPMAP_LEVELS: return "ripMap";
+      default:            return "unknown";
+    }
+  }
+
+
+
+  [[nodiscard]] std::string to_string(LevelRoundingMode lm) {
+    switch (lm) {
+      case ROUND_DOWN: return "down";
+      case ROUND_UP:   return "up";
+      default:         return "unknown";
+    }
+  }
+
+
+
+  [[nodiscard]] std::string to_string(LineOrder lo) {
+    switch (lo) {
+      case INCREASING_Y: return "increasingY";
+      case DECREASING_Y: return "decreasingY";
+      default:           return "unknown";
+    }
+  }
+
+
+
+  [[nodiscard]] std::vector<metadata::key_value> list_metadata(const Header& header) {
+    std::vector<metadata::key_value> out;
+
+    if (header.hasVersion()) {
+      out.emplace_back("exr.version", std::to_string(header.version()));
+    }
+
+    if (header.hasName()) {
+      out.emplace_back("exr.name", header.name());
+    }
+
+    out.emplace_back("exr.compression", compression_name(header.compression()));
+
+    if (header.compression() == ZIP_COMPRESSION ||
+        header.compression() == ZIPS_COMPRESSION) {
+
+      out.emplace_back("exr.zip.level", std::to_string(header.zipCompressionLevel()));
+    } else if (header.compression() == DWAA_COMPRESSION ||
+               header.compression() == DWAB_COMPRESSION) {
+
+      out.emplace_back("exr.dwa.level", std::to_string(header.dwaCompressionLevel()));
+    }
+
+    out.emplace_back("exr.displayWindow", to_string(header.displayWindow()));
+    out.emplace_back("exr.dataWindow",    to_string(header.dataWindow()));
+
+    if (header.hasChunkCount()) {
+      out.emplace_back("exr.chunks", std::to_string(header.chunkCount()));
+    }
+
+    if (header.hasTileDescription()) {
+      out.emplace_back("exr.tileDesc.mode", to_string(header.tileDescription().mode));
+      out.emplace_back("exr.tileDesc.xSize",
+          std::to_string(header.tileDescription().xSize));
+      out.emplace_back("exr.tileDesc.ySize",
+          std::to_string(header.tileDescription().ySize));
+      out.emplace_back("exr.tileDesc.rounding",
+          to_string(header.tileDescription().roundingMode));
+    }
+
+    if (header.hasType()) {
+      out.emplace_back("exr.type", header.type());
+    }
+
+    if (header.hasView()) {
+      out.emplace_back("exr.view", header.view());
+    }
+
+    out.emplace_back("exr.lineOrder", to_string(header.lineOrder()));
+
+    out.emplace_back("exr.par", std::to_string(header.pixelAspectRatio()));
+
+
+    return out;
+  }
+
+
+
+
+
   class exr_decoder {
     public:
       explicit exr_decoder(details::decoder& decoder) :
@@ -388,6 +506,8 @@ namespace {
       void decode() {
         auto frame_sources = exr_determine_frames(input_);
         decoder_->frame_total(frame_sources.size());
+
+        decoder_->image().metadata().append_move(list_metadata(input_.header()));
 
         for (const auto& frame_source: frame_sources) {
           decode_frame(frame_source);
