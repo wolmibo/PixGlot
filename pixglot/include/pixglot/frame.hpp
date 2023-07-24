@@ -57,6 +57,7 @@ enum class storage_type {
 
 
 class frame_source_info;
+class metadata;
 
 class frame_view {
   friend class frame;
@@ -86,6 +87,7 @@ class frame_view {
 
 
     [[nodiscard]] const frame_source_info& source_info() const;
+    [[nodiscard]] const pixglot::metadata& metadata()    const;
 
 
 
@@ -158,8 +160,10 @@ class frame : public frame_view  {
 
 
     using frame_view::source_info;
+    using frame_view::metadata;
 
     [[nodiscard]] frame_source_info& source_info();
+    [[nodiscard]] pixglot::metadata& metadata();
 
 
 

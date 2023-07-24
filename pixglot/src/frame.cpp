@@ -1,5 +1,6 @@
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/details/no-pixels.hpp"
 
 using namespace pixglot;
@@ -30,6 +31,7 @@ class frame_view::impl {
     pixel_storage              storage;
 
     frame_source_info          source_info;
+    pixglot::metadata          metadata;
 
     std::optional<std::string> name;
 
@@ -84,6 +86,7 @@ size_t frame_view::height() const {
 
 
 const frame_source_info& frame_view::source_info() const { return impl_->source_info; }
+const pixglot::metadata& frame_view::metadata()    const { return impl_->metadata;    }
 
 square_isometry          frame_view::orientation() const { return impl_->orientation; }
 microseconds             frame_view::duration()    const { return impl_->duration;    }
@@ -153,6 +156,7 @@ gl_texture&        frame::texture()     { return std::get<gl_texture  >(impl_->s
 pixel_buffer&      frame::pixels()      { return std::get<pixel_buffer>(impl_->storage); }
 
 frame_source_info& frame::source_info() { return impl_->source_info; }
+pixglot::metadata& frame::metadata()    { return impl_->metadata;    }
 
 
 
