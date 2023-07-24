@@ -226,7 +226,8 @@ namespace {
 #ifdef PIXGLOT_WITH_XMP
           if (key.starts_with("XML:") && key.contains("xmp")) {
             if (fill_xmp_metadata(value.data(), *decoder_)) {
-              md.emplace(std::move(key), "<parsed xmp data>");
+              md.emplace("pixglot.xmp.rawKey",   std::move(key));
+              md.emplace("pixglot.xmp.rawValue", save_string(png_text.text));
               continue;
             }
           }
