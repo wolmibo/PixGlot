@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
@@ -94,23 +95,6 @@ namespace {
 
   void png_color_type_strip_palette(png_byte& in) {
     in &= ~PNG_COLOR_MASK_PALETTE;
-  }
-
-
-
-
-
-  std::string save_string(png_charp ptr, size_t max = 0) {
-    if (ptr == nullptr) { return ""; }
-
-    if (max == 0) {
-      return ptr;
-    }
-
-    png_charp end = ptr;
-    for (size_t i = 0; i < max && *end != 0; ++i, ++end) {}
-
-    return std::string{ptr, end};
   }
 
 
@@ -225,8 +209,8 @@ namespace {
 #endif
 
         for (const auto& png_text: std::span{text, static_cast<size_t>(num_text)}) {
-          auto key   = save_string(png_text.key, 79);
-          auto value = save_string(png_text.text);
+          auto key   = details::string_view_from(png_text.key, 79);
+          auto value = details::string_from(png_text.text);
 #ifdef PIXGLOT_WITH_XMP
           if (key == "XML:com.adobe.xmp") {
             if (fill_xmp_metadata(value, *decoder_)) {
@@ -237,7 +221,7 @@ namespace {
             }
           }
 #endif
-          md.emplace(std::move(key), std::move(value));
+          md.emplace(std::string{key}, std::move(value));
         }
       }
 

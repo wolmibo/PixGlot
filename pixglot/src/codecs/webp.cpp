@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "pixglot/buffer.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
@@ -305,9 +306,7 @@ namespace {
             decoder_->warn("unable to obtain xmp data");
           }
 
-          //NOLINTNEXTLINE(*-reinterpret-cast)
-          std::string buffer{reinterpret_cast<const char*>(iter->chunk.bytes),
-                             iter->chunk.size};
+          auto buffer = details::string_from(iter->chunk.bytes, iter->chunk.size);
 
           if (!details::fill_xmp_metadata(buffer, *decoder_)) {
             decoder_->warn("unable to parse xmp data");

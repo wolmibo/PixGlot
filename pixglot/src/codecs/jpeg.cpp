@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "pixglot/codecs.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
@@ -579,8 +580,7 @@ namespace {
 
 #ifdef PIXGLOT_WITH_XMP
         if (cinfo->unread_marker == JPEG_APP1 && is_xmp(span)) {
-          //NOLINTNEXTLINE(*-reinterpret-cast)
-          std::string str{reinterpret_cast<const char*>(span.data()), span.size()};
+          auto str = details::string_from(span.data(), span.size());
 
           if (details::fill_xmp_metadata(str, *self->decoder_)) {
             self->decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(str));

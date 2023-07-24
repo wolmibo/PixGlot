@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
@@ -359,15 +360,6 @@ namespace {
 
 
 
-  [[nodiscard]] std::string_view string_view_from_block(const ExtensionBlock& block) {
-    if (block.ByteCount == 0 || block.Bytes == nullptr) {
-      return {};
-    }
-
-    //NOLINTNEXTLINE(*-reinterpret-cast)
-    return {reinterpret_cast<const char*>(block.Bytes), saturating_cast(block.ByteCount)};
-  }
-
 
 
   [[nodiscard]] float pixel_aspect_ratio(GifByteType aspect) {
@@ -523,17 +515,17 @@ namespace {
           switch (block.Function) {
             case COMMENT_EXT_FUNC_CODE:
               out.emplace_back(counted_name("comment", comment++),
-                              std::string{string_view_from_block(block)});
+                               details::string_from(block.Bytes, block.ByteCount));
 
               break;
             case PLAINTEXT_EXT_FUNC_CODE:
               out.emplace_back(counted_name("plaintext", plaintext++),
-                               std::string{string_view_from_block(block)});
+                               details::string_from(block.Bytes, block.ByteCount));
               break;
 #ifdef PIXGLOT_WITH_XMP
             case APPLICATION_EXT_FUNC_CODE:
               if (block.ByteCount >= 11) {
-                auto all = string_view_from_block(block);
+                auto all = details::string_view_from(block.Bytes, block.ByteCount);
                 auto data = all.substr(11);
                 if (all.substr(0, 11) == "XMP DataXMP" &&
                     details::fill_xmp_metadata(data, *decoder_)) {
