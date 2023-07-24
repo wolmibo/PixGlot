@@ -91,6 +91,11 @@ if (cpp.has_header('rapidxml.h', required: get_option('xmp')))
   config.set('PIXGLOT_WITH_XMP', 1)
 endif
 
+if get_option('exif')
+  sources += 'src/metadata/exif.cpp'
+  config.set('PIXGLOT_WITH_EXIF', 1)
+endif
+
 
 
 cfg = configure_file(output: 'config.hpp', configuration: config)

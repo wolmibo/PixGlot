@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "pixglot/codecs.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/exif.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/exception.hpp"
@@ -11,8 +12,6 @@
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
 
-#include <algorithm>
-#include <array>
 #include <bit>
 #include <optional>
 #include <vector>
@@ -25,220 +24,6 @@ using namespace pixglot;
 
 namespace {
   constexpr int JPEG_APP1 = JPEG_APP0 + 1;
-
-
-
-  class exif_decoder {
-    public:
-      [[nodiscard]] static bool is_exif(std::span<const std::byte> buffer) {
-        return buffer.size() > magic.size()
-          && std::ranges::equal(magic, buffer.subspan(0, magic.size()));
-      }
-
-
-
-      explicit exif_decoder(std::span<const std::byte> buffer)
-        : buffer_{buffer}
-      {
-        if (!is_exif(buffer_)) {
-          throw decode_error{codec::jpeg, "exif: invalid file format"};
-        }
-        buffer_ = buffer.subspan(magic.size());
-
-        read_tiff();
-      }
-
-
-
-      [[nodiscard]] square_isometry orientation() const {
-        return orientation_;
-      }
-
-
-
-    private:
-      static constexpr std::array<std::byte, 6> magic {
-        std::byte{'E'}, std::byte{'x'}, std::byte{'i'}, std::byte{'f'},
-        std::byte{0}, std::byte{0}
-      };
-
-      static constexpr std::array<std::byte, 2> little_e{std::byte{'I'}, std::byte{'I'}};
-      static constexpr std::array<std::byte, 2> big_e   {std::byte{'M'}, std::byte{'M'}};
-
-
-
-      std::span<const std::byte> buffer_;
-      std::endian                byte_order_{std::endian::native};
-
-      square_isometry            orientation_{};
-
-
-#if 0
-      enum class value_type : uint16_t {
-        byte      = 1,
-        ascii     = 2,
-        ushort    = 3,
-        ulong     = 4,
-        rational  = 5,
-        undefined = 7,
-        slong     = 8,
-        srational = 10,
-      };
-#endif
-
-
-      enum class attribute : uint16_t {
-        orientation = 0x112,
-      };
-
-
-
-#if 0
-      using ifd_value = std::variant<
-        std::array<uint8_t, 4>,
-        std::array<uint16_t, 2>,
-        uint32_t,
-        int32_t,
-        std::pair<value_type, size_t>
-      >;
-
-      struct ifd_entry {
-        attribute tag;
-        uint32_t  count;
-        ifd_value value;
-      };
-
-
-
-
-
-      [[nodiscard]] ifd_entry read_ifd_entry(size_t offset) {
-        return ifd_entry{
-          .tag   = static_cast<attribute>(int_at<uint16_t>(offset)),
-          .count = int_at<uint32_t>(offset + 4),
-          .value = read_ifd_value(offset + 8, int_at<uint16_t>(offset + 2)),
-        };
-      }
-
-
-
-      [[nodiscard]] ifd_value read_ifd_value(size_t offset, uint16_t type) {
-        switch (static_cast<value_type>(type)) {
-          case value_type::byte:
-            return std::array<uint8_t, 4> {
-              int_at<uint8_t>(offset + 3),
-              int_at<uint8_t>(offset + 2),
-              int_at<uint8_t>(offset + 1),
-              int_at<uint8_t>(offset + 0)
-            };
-
-          case value_type::ushort:
-            return std::array<uint16_t, 2> {
-              int_at<uint16_t>(offset + 2),
-              int_at<uint16_t>(offset + 0)
-            };
-
-          case value_type::ulong:
-            return int_at<uint32_t>(offset);
-          case value_type::slong:
-            return int_at<int32_t>(offset);
-
-          case value_type::ascii:
-          case value_type::rational:
-          case value_type::undefined:
-          case value_type::srational:
-          default: {
-            auto off = int_at<uint32_t>(offset);
-            if (off >= buffer_.size()) {
-              off = 0;
-            }
-            return std::make_pair(static_cast<value_type>(type), off);
-          }
-        }
-      }
-#endif
-
-
-      void load_entries(size_t offset) {
-        while (offset != 0) {
-          auto count = int_at<uint16_t>(offset);
-          offset += 2;
-          for (uint16_t i = 0; i < count; ++i) {
-            if (static_cast<attribute>(int_at<uint16_t>(offset)) ==
-                attribute::orientation) {
-              orientation_ = convert_orientation(int_at<uint16_t>(offset + 8));
-            }
-            offset += 12;
-          }
-          offset = int_at<uint32_t>(offset);
-        }
-      }
-
-
-
-      void read_tiff() {
-        if (buffer_.size() < 8) {
-          throw decode_error{codec::jpeg, "exif: incomplete tiff header"};
-        }
-
-        if (std::ranges::equal(buffer_.subspan(0, little_e.size()), little_e)) {
-          byte_order_ = std::endian::little;
-        } else if (std::ranges::equal(buffer_.subspan(0, big_e.size()), big_e)) {
-          byte_order_ = std::endian::big;
-        }
-
-        if (int_at<uint16_t>(2) != 42) {
-          throw decode_error{codec::jpeg, "exif: tiff: wrong byte order"};
-        }
-
-        load_entries(int_at<uint32_t>(4));
-      }
-
-
-
-
-
-      template<typename T>
-      [[nodiscard]] T int_at(size_t offset) {
-        if (offset > buffer_.size() - sizeof(T)) {
-          throw decode_error{codec::jpeg, "exif: unexpected eof"};
-        }
-
-        if constexpr (sizeof(T) > 1) {
-          T value{};
-          std::ranges::copy(buffer_.subspan(offset, sizeof(T)),
-              std::as_writable_bytes(std::span{&value, 1}).begin());
-
-          if (byte_order_ == std::endian::native) {
-            return value;
-          }
-          return std::byteswap(value);
-        } else {
-          return static_cast<T>(buffer_[offset]);
-        }
-      }
-
-
-
-      [[nodiscard]] static square_isometry convert_orientation(uint16_t orientation) {
-        using enum square_isometry;
-
-        switch (orientation) {
-          case 1: return identity;
-          case 2: return flip_x;
-          case 3: return rotate_half;
-          case 4: return flip_y;
-          case 5: return transpose;
-          case 6: return rotate_ccw;
-          case 7: return anti_transpose;
-          case 8: return rotate_cw;
-
-          default:
-            return identity;
-        }
-      }
-  };
-
 
 
 
@@ -592,18 +377,17 @@ namespace {
           return TRUE;
         }
 #endif
-
-        if (cinfo->unread_marker == JPEG_APP1 && exif_decoder::is_exif(buffer)) {
-          try {
-            exif_decoder exif{buffer};
-            self->orientation_ = exif.orientation();
-          } catch (base_exception& ex) {
-            self->warn(std::string{ex.message()});
-          } catch (std::exception& ex) {
-            self->warn(ex.what());
+#ifdef PIXGLOT_WITH_EXIF
+        if (cinfo->unread_marker == JPEG_APP1 && details::is_exif(buffer)) {
+          if (!details::fill_exif_metadata(buffer, self->decoder_->image().metadata(),
+                                           *self->decoder_, &self->orientation_)) {
+            self->decoder_->warn("found invalid exif data");
           }
-        }
 
+          self->decoder_->image().metadata().emplace("pixglot.exif.rawSize",
+                                                     std::to_string(buffer.size()));
+        }
+#endif
         return TRUE;
       }
 
