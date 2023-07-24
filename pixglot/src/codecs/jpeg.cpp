@@ -1,5 +1,7 @@
+#include "config.hpp"
 #include "pixglot/codecs.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
@@ -358,6 +360,23 @@ namespace {
 
 
 
+  [[nodiscard]] bool is_xmp(std::span<std::byte>& data) {
+    std::string_view header{"http://ns.adobe.com/xap/1.0/"};
+
+    bool xmp = data.size() > header.size() &&
+      data[header.size()] == std::byte{0} &&
+      std::ranges::equal(data.subspan(0, header.size()),
+                         std::as_bytes(std::span{header}));
+
+    data = data.subspan(header.size() + 1);
+
+    return xmp;
+  }
+
+
+
+
+
   [[nodiscard]] std::string density_unit(UINT8 du) {
     switch (du) {
       case 1:  return "dpi";
@@ -555,6 +574,23 @@ namespace {
         source_mgr::get(cinfo).fill(buffer);
 
         auto* self = static_cast<jpeg_decoder*>(cinfo->client_data);
+
+        std::span span{buffer};
+
+#ifdef PIXGLOT_WITH_XMP
+        if (cinfo->unread_marker == JPEG_APP1 && is_xmp(span)) {
+          //NOLINTNEXTLINE(*-reinterpret-cast)
+          std::string str{reinterpret_cast<const char*>(span.data()), span.size()};
+
+          if (details::fill_xmp_metadata(str, *self->decoder_)) {
+            self->decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(str));
+          } else {
+            self->decoder_->warn("found invalid xmp data");
+          }
+
+          return TRUE;
+        }
+#endif
 
         if (cinfo->unread_marker == JPEG_APP1 && exif_decoder::is_exif(buffer)) {
           try {
