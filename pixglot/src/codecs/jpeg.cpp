@@ -381,7 +381,7 @@ namespace {
     switch (du) {
       case 1:  return "dpi";
       case 2:  return "dpcm";
-      default: return "unknown";
+      default: return "u";
     }
   }
 
