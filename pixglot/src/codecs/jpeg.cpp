@@ -367,25 +367,18 @@ namespace {
         if (cinfo->unread_marker == JPEG_APP1 && is_xmp(span)) {
           auto str = details::string_from(span.data(), span.size());
 
-          if (!details::fill_xmp_metadata(str, self->decoder_->image().metadata(),
-                                          *self->decoder_)) {
-            self->decoder_->warn("found invalid xmp data");
-          }
-
-          self->decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(str));
+          details::fill_xmp_metadata(details::string_from(span.data(), span.size()),
+              self->decoder_->image().metadata(), *self->decoder_);
 
           return TRUE;
         }
 #endif
 #ifdef PIXGLOT_WITH_EXIF
         if (cinfo->unread_marker == JPEG_APP1 && details::is_exif(buffer)) {
-          if (!details::fill_exif_metadata(buffer, self->decoder_->image().metadata(),
-                                           *self->decoder_, &self->orientation_)) {
-            self->decoder_->warn("found invalid exif data");
-          }
+          details::fill_exif_metadata(buffer, self->decoder_->image().metadata(),
+                                      *self->decoder_, &self->orientation_);
 
-          self->decoder_->image().metadata().emplace("pixglot.exif.rawSize",
-                                                     std::to_string(buffer.size()));
+          return TRUE;
         }
 #endif
         return TRUE;

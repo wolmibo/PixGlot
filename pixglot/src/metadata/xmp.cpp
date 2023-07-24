@@ -2,6 +2,8 @@
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/metadata.hpp"
 
+#include <algorithm>
+#include <bits/fs_fwd.h>
 #include <string_view>
 
 #include <rapidxml.h>
@@ -119,21 +121,30 @@ namespace {
 
 
 
-bool pixglot::details::fill_xmp_metadata(
-    std::string_view  str,
+std::string pixglot_metadata_find_unique_key(const metadata&,
+    std::string_view, std::string_view);
+
+
+
+
+
+void pixglot::details::fill_xmp_metadata(
+    std::string&&     str,
     metadata&         meta,
     details::decoder& dec
 ) {
   try {
-    std::string buffer{str};
+    meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.xmp", ".raw"), str);
+
 
     xml_document<> doc;
-    doc.parse<0>(buffer.data());
+    doc.parse<0>(str.data());
 
 
     auto* root = doc.first_node();
     if (root == nullptr || root->name() != "x:xmpmeta"sv) {
-      return false;
+      dec.warn("found invalid xmp data");
+      return;
     }
 
     std::vector<metadata::key_value> md;
@@ -155,14 +166,10 @@ bool pixglot::details::fill_xmp_metadata(
 
     meta.append_move(md);
 
-    return true;
-
 
   } catch (std::exception& error) {
     dec.warn(std::string{"unable to parse xmp: "} + error.what());
   } catch (...) {
     dec.warn("unable to parse xmp: unknown error");
   }
-
-  return false;
 }

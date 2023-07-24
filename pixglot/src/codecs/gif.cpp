@@ -523,9 +523,6 @@ namespace {
       void fill_block_metadata(metadata& md, std::span<const ExtensionBlock> blocks) {
         size_t comment  {0};
         size_t plaintext{0};
-#ifdef PIXGLOT_WITH_XMP
-        size_t xmp      {0};
-#endif
 
         std::vector<metadata::key_value> out;
 
@@ -545,11 +542,8 @@ namespace {
               if (block.ByteCount >= 11) {
                 auto all = details::string_view_from(block.Bytes, block.ByteCount);
                 auto data = all.substr(11);
-                if (all.substr(0, 11) == "XMP DataXMP" &&
-                    details::fill_xmp_metadata(data, md, *decoder_)) {
-
-                  out.emplace_back("pixglot." + counted_name("xmp", xmp++) + ".raw",
-                                   data);
+                if (all.substr(0, 11) == "XMP DataXMP") {
+                  details::fill_xmp_metadata(std::string{data}, md, *decoder_);
                 }
               }
               break;

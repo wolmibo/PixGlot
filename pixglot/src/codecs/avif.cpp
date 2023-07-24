@@ -361,13 +361,8 @@ namespace {
       void fill_metadata(metadata& md, const avifImage& img) {
 #ifdef PIXGLOT_WITH_XMP
         if (img.xmp.size > 0) {
-          auto str = details::string_from(img.xmp.data, img.xmp.size);
-
-          if (!details::fill_xmp_metadata(str, md, *decoder_)) {
-            decoder_->warn("found invalid xmp data");
-          }
-
-          md.emplace("pixglot.xmp.raw", std::move(str));
+          details::fill_xmp_metadata(details::string_from(img.xmp.data, img.xmp.size),
+              md, *decoder_);
         }
 #endif
       }

@@ -204,25 +204,17 @@ namespace {
           return;
         }
 
-#ifdef PIXGLOT_WITH_XMP
-        size_t xmp{0};
-#endif
-
         for (const auto& png_text: std::span{text, static_cast<size_t>(num_text)}) {
-          auto key   = details::string_view_from(png_text.key, 79);
-          auto value = details::string_from(png_text.text);
+          auto key = details::string_view_from(png_text.key, 79);
+
 #ifdef PIXGLOT_WITH_XMP
           if (key == "XML:com.adobe.xmp") {
-            if (!fill_xmp_metadata(value, decoder_->image().metadata(), *decoder_)) {
-              decoder_->warn("found invalid xmp data");
-            }
-            md.emplace("pixglot.xmp" + (xmp > 0 ? std::to_string(xmp) : "") + ".raw",
-                       std::move(value));
-              ++xmp;
+            fill_xmp_metadata(details::string_from(png_text.text),
+                decoder_->image().metadata(), *decoder_);
             continue;
           }
 #endif
-          md.emplace(std::string{key}, std::move(value));
+          md.emplace(std::string{key}, details::string_from(png_text.text));
         }
       }
 

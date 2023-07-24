@@ -306,14 +306,11 @@ namespace {
             decoder_->warn("unable to obtain xmp data");
           }
 
-          auto buffer = details::string_from(iter->chunk.bytes, iter->chunk.size);
-
-          if (!details::fill_xmp_metadata(buffer, decoder_->image().metadata(),
-                                          *decoder_)) {
-            decoder_->warn("found invalid xmp data");
-          }
-
-          decoder_->image().metadata().emplace("pixglot.xmp.raw", std::move(buffer));
+          details::fill_xmp_metadata(
+              details::string_from(iter->chunk.bytes, iter->chunk.size),
+              decoder_->image().metadata(),
+              *decoder_
+          );
         }
 #endif
 

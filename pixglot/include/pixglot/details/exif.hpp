@@ -21,8 +21,8 @@ namespace pixglot::details {
 
 class decoder;
 
-[[nodiscard]] bool fill_exif_metadata(std::span<const std::byte>, metadata&,
-    details::decoder&, square_isometry* = nullptr);
+void fill_exif_metadata(std::span<const std::byte>, metadata&, details::decoder&,
+                        square_isometry* = nullptr);
 
 [[nodiscard]] bool is_exif(std::span<const std::byte>);
 

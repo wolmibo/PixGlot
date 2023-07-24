@@ -4,7 +4,7 @@
 #ifndef PIXGLOT_DETAILS_XMP_HPP_INCLUDED
 #define PIXGLOT_DETAILS_XMP_HPP_INCLUDED
 
-#include <string_view>
+#include <string>
 
 
 namespace pixglot {
@@ -17,7 +17,7 @@ namespace pixglot::details {
 
 class decoder;
 
-[[nodiscard]] bool fill_xmp_metadata(std::string_view, metadata&, details::decoder&);
+void fill_xmp_metadata(std::string&&, metadata&, details::decoder&);
 
 }
 

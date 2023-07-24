@@ -203,25 +203,32 @@ namespace {
 
 
 
+std::string pixglot_metadata_find_unique_key(const metadata&,
+    std::string_view, std::string_view);
 
-bool pixglot::details::fill_exif_metadata(
+
+
+
+
+void pixglot::details::fill_exif_metadata(
     std::span<const std::byte> buffer,
-    metadata&                  /*meta*/,
+    metadata&                  meta,
     decoder&                   dec,
     square_isometry*           orientation
 ) {
   try {
+    meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.exif", ".rawSize"),
+                 std::to_string(buffer.size()));
+
     exif_decoder exif{buffer};
 
     *orientation = exif.orientation();
-    return true;
 
   } catch (std::exception& ex) {
     dec.warn(std::string{"unable to parse exif: "} + ex.what());
   } catch (...) {
     dec.warn("unablt to parse exif: unknown error");
   }
-  return false;
 }
 
 

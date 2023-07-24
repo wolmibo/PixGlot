@@ -144,3 +144,33 @@ std::optional<pixglot::square_isometry> pixglot::orientation_from_metadata(
 
   return {};
 }
+
+
+
+
+
+std::string pixglot_metadata_find_unique_key(
+    const pixglot::metadata& metadata,
+    std::string_view         prefix,
+    std::string_view         suffix
+) {
+  std::span<const pixglot::metadata::key_value> all_data{metadata};
+
+  auto ideal = std::string{prefix} + std::string{suffix};
+
+  auto it = std::ranges::lower_bound(all_data, ideal,
+                                     {}, &pixglot::metadata::key_value::first);
+
+  if (it == all_data.end() || it->first != ideal) {
+    return ideal;
+  }
+
+  auto jt = it;
+
+  while (jt != all_data.end() &&
+         jt->first.starts_with(prefix) && jt->first.ends_with(suffix)) {
+    ++jt;
+  }
+
+  return std::string{prefix} + std::to_string(jt - it) + std::string{suffix};
+}
