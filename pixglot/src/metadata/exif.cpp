@@ -67,6 +67,23 @@ namespace {
 
 
 
+  [[nodiscard]] std::string format_byte_array(std::span<const std::byte> data) {
+    std::string out;
+    out.reserve(data.size() * 4 - 1);
+    for (size_t i = 0; i < data.size(); ++i) {
+      if (i != 0) { out.push_back(' '); }
+      auto value = static_cast<int>(data[i]);
+      out.push_back('x');
+      out.push_back(hex_char(value >> 4));
+      out.push_back(hex_char(value & 0xf));
+    }
+    return out;
+  }
+
+
+
+
+
   class exif_decoder {
     public:
       explicit exif_decoder(std::span<const std::byte> buffer)
@@ -150,16 +167,12 @@ namespace {
 
 
       [[nodiscard]] std::string read_byte_array_at(size_t offset, size_t count) {
-        std::string out;
-        out.reserve(count * 4 - 1);
-        for (size_t i = 0; i < count; ++i) {
-          if (i != 0) { out.push_back(' '); }
-          auto value = int_at<uint8_t>(offset++);
-          out.push_back('x');
-          out.push_back(hex_char(value >> 4));
-          out.push_back(hex_char(value & 0xf));
+        if (offset + count > buffer_.size()) {
+          throw decode_error{codec::jpeg, "exif: unexpected eof"};
         }
-        return out;
+
+        return format_byte_array(std::as_bytes(std::span{buffer_}
+                                               .subspan(offset, count)));
       }
 
 
@@ -371,6 +384,8 @@ void pixglot::details::fill_exif_metadata(
   try {
     meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.exif", ".rawSize"),
                  std::to_string(buffer.size()));
+    meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.exif", ".raw"),
+                 format_byte_array(buffer));
 
     exif_decoder exif{buffer};
 
