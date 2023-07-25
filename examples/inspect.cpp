@@ -162,13 +162,45 @@ void print_meta_string(
 
 
 
+[[nodiscard]] bool is_hex(char c) {
+  return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+
+
+[[nodiscard]] bool is_long_raw(std::string_view value) {
+  if (value.size() < 80 || value.size() % 4 != 3) {
+    return false;
+  }
+
+  std::array<char, 4> compare{'x', '0', '0', ' '};
+
+  for (size_t i = 0; i < value.size(); ++i) {
+    //NOLINTNEXTLINE(*-constant-array-index)
+    if (compare[i % 4] == '0') {
+      if (!is_hex(value[i])) {
+        return false;
+      }
+    //NOLINTNEXTLINE(*-constant-array-index)
+    } else if (compare[i % 4] != value[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+
+
+
 void print_key_value(
     const pixglot::metadata::key_value& kv,
     size_t                              width,
     size_t                              indent,
     bool                                raw
 ) {
-  if (!raw && kv.first.starts_with("pixglot.") && kv.first.ends_with(".raw")) {
+  if (!raw && ((kv.first.starts_with("pixglot.") && kv.first.ends_with(".raw")) ||
+               is_long_raw(kv.second))) {
     print_meta_item(kv.first, "<use --raw to include raw data>"sv, width, indent);
   } else {
     print_meta_string(kv.first, kv.second, width, indent);
