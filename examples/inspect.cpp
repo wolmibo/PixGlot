@@ -102,6 +102,50 @@ void print_meta_item(const std::string& key, T&& value, size_t width, size_t ind
 
 
 
+[[nodiscard]] std::vector<std::string_view> split_lines(std::string_view input) {
+  std::vector<std::string_view> lines;
+
+  while (!input.empty()) {
+    auto pos = input.find('\n');
+    if (pos == std::string_view::npos) {
+      lines.emplace_back(input);
+      break;
+    }
+
+    lines.emplace_back(input.substr(0, pos));
+    input.remove_prefix(pos + 1);
+  }
+
+  return lines;
+}
+
+
+
+void print_meta_string(
+    const std::string& key,
+    std::string_view   value,
+    size_t             width,
+    size_t             indent
+) {
+  std::cout << std::string(indent, ' ')
+    << std::left << std::setw(width + 2) << (key + ": ");
+
+  bool first{true};
+  for (const auto& line: split_lines(value)) {
+    if (first) {
+      first = false;
+    } else {
+      std::cout << '\n' << std::string(indent + width + 2, ' ');
+    }
+    std::cout << line;
+  }
+  std::cout << '\n';
+}
+
+
+
+
+
 [[nodiscard]] size_t column_width(std::span<const pixglot::metadata::key_value> list) {
   size_t width = 10;
 
@@ -127,7 +171,7 @@ void print_key_value(
   if (!raw && kv.first.starts_with("pixglot.") && kv.first.ends_with(".raw")) {
     print_meta_item(kv.first, "<use --raw to include raw data>"sv, width, indent);
   } else {
-    print_meta_item(kv.first, kv.second, width, indent);
+    print_meta_string(kv.first, kv.second, width, indent);
   }
 }
 
