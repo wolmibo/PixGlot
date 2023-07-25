@@ -396,7 +396,7 @@ void pixglot::details::fill_exif_metadata(
   } catch (std::exception& ex) {
     dec.warn(std::string{"unable to parse exif: "} + ex.what());
   } catch (...) {
-    dec.warn("unablt to parse exif: unknown error");
+    dec.warn("unable to parse exif: unknown error");
   }
 }
 
