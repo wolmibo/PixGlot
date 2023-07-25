@@ -11,6 +11,14 @@ using namespace pixglot::details;
 
 
 
+namespace pixglot::details {
+  [[nodiscard]] std::optional<std::string_view> exif_tag_name(uint16_t);
+}
+
+
+
+
+
 namespace {
   constexpr std::array<std::byte, 6> magic {
     std::byte{'E'}, std::byte{'x'}, std::byte{'i'}, std::byte{'f'},
@@ -62,6 +70,30 @@ namespace {
     return val - 10 + 'a';
   }
 
+
+
+  enum class attribute : uint16_t {
+    orientation = 0x112,
+    exif_ifd    = 0x8769,
+    gps_ifd     = 0x8825,
+  };
+
+
+
+  [[nodiscard]] std::string to_string(attribute tag_attr) {
+    auto tag = std::to_underlying(tag_attr);
+
+    if (auto name = details::exif_tag_name(tag)) {
+      return std::string{*name};
+    }
+
+    std::string key = "0x0000";
+    key[2] = hex_char((tag >> 12) & 0xf);
+    key[3] = hex_char((tag >>  8) & 0xf);
+    key[4] = hex_char((tag >>  4) & 0xf);
+    key[5] = hex_char((tag >>  0) & 0xf);
+    return key;
+  }
 
 
 
@@ -124,11 +156,6 @@ namespace {
       std::vector<metadata::key_value> entries_;
 
 
-      enum class attribute : uint16_t {
-        orientation = 0x112,
-        exif_ifd    = 0x8769,
-        gps_ifd     = 0x8825,
-      };
 
 
       struct ifd_entry {
@@ -264,15 +291,7 @@ namespace {
 
 
       void handle_entry(const ifd_entry& entry) {
-        auto tag = std::to_underlying(entry.tag);
-
-        std::string key = "exif.0x0000";
-        key[ 7] = hex_char((tag >> 12) & 0xf);
-        key[ 8] = hex_char((tag >>  8) & 0xf);
-        key[ 9] = hex_char((tag >>  4) & 0xf);
-        key[10] = hex_char((tag >>  0) & 0xf);
-
-        entries_.emplace_back(std::move(key), entry_to_string(entry));
+        entries_.emplace_back("exif." + to_string(entry.tag), entry_to_string(entry));
       }
 
 

@@ -93,6 +93,17 @@ endif
 
 if get_option('exif')
   sources += 'src/metadata/exif.cpp'
+
+  exif_string_gen = executable('exif-string-generator',
+                               'src/metadata/exif-string-generator.cpp',
+                               cpp_args: cppargs)
+
+  sources += custom_target(
+    'exif-generate-strings',
+    output:  'exif-strings.cpp',
+    input:   'src/metadata/exif-tag-names.txt',
+    command: [exif_string_gen, '@INPUT@', '@OUTPUT@']
+  )
   config.set('PIXGLOT_WITH_EXIF', 1)
 endif
 

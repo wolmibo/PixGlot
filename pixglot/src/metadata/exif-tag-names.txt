@@ -1,0 +1,3 @@
+112  orientation
+8769 exifIFDOffset
+8825 gpsIFDOffset
