@@ -1,5 +1,9 @@
+#include "config.hpp"
 #include "pixglot/codecs-magic.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/exif.hpp"
+#include "pixglot/details/string-bytes.hpp"
+#include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/pixel-buffer.hpp"
@@ -137,12 +141,32 @@ namespace {
 
 
 
+  enum class metadata_type {
+    none,
+    xmp,
+    exif,
+  };
+
+  [[nodiscard]] metadata_type determine_metadata(std::string_view box_type) {
+#ifdef PIXGLOT_WITH_XMP
+    if (box_type == "xml ") { return metadata_type::xmp; }
+#endif
+#ifdef PIXGLOT_WITH_EXIF
+    if (box_type == "exif") { return metadata_type::exif; }
+#endif
+    return metadata_type::none;
+  }
+
+
+
+
+
   class jxl_decoder {
     public:
       explicit jxl_decoder(details::decoder& decoder) :
-        decoder_{&decoder},
-        jxl_    {JxlDecoderMake(nullptr)},
-        reader_ {decoder_->input()}
+        decoder_   {&decoder},
+        jxl_       {JxlDecoderMake(nullptr)},
+        reader_    {decoder_->input()}
       {
         decoder_->image().codec(codec::jxl);
 
@@ -168,9 +192,14 @@ namespace {
 
         assert_jxl(JxlDecoderSubscribeEvents(jxl_.get(),
           JXL_DEC_BASIC_INFO |
+//          JXL_DEC_BOX        |
           JXL_DEC_FRAME      |
           JXL_DEC_FULL_IMAGE
         ), "unable to subscribe to events");
+
+        assert_jxl(JxlDecoderSetDecompressBoxes(jxl_.get(), JXL_TRUE),
+                    "failed to request box decompressing: "
+                    "some metadata might be missing");
 
         event_loop();
       }
@@ -187,6 +216,9 @@ namespace {
 
       alpha_mode        alpha_strategy_ {alpha_mode::premultiplied};
       std::endian       endian_strategy_{std::endian::native};
+
+      buffer<uint8_t>   box_buffer_     {1024ul * 1024};
+      metadata_type     active_box_type_{metadata_type::none};
 
 
 
@@ -252,6 +284,9 @@ namespace {
       void on_frame() {
         decoder_->frame_total(decoder_->frame_total() + 1);
 
+        assert_jxl(JxlDecoderGetFrameHeader(jxl_.get(), &frame_header_),
+          "unable to obtain frame header");
+
         auto& frame = decoder_->begin_frame(info_.xsize, info_.ysize,
           select_pixel_format(info_), endian_strategy_);
 
@@ -266,9 +301,6 @@ namespace {
 
         auto format = convert_pixel_format(frame.format());
 
-        assert_jxl(JxlDecoderGetFrameHeader(jxl_.get(), &frame_header_),
-          "unable to obtain frame header");
-
         assert_jxl(JxlDecoderSetImageOutCallback(jxl_.get(),
           &format,
           on_pixels,
@@ -278,10 +310,61 @@ namespace {
 
 
 
+      void on_box() {
+        finish_box();
+
+        std::string box_type(sizeof(JxlBoxType), ' ');
+
+        if (soft_assert(JxlDecoderGetBoxType(jxl_.get(), box_type.data(), JXL_TRUE),
+                        "unable to get box type")) {
+          return;
+        }
+
+
+        active_box_type_ = determine_metadata(box_type);
+        if (active_box_type_ != metadata_type::none) {
+          soft_assert(JxlDecoderSetBoxBuffer(jxl_.get(), box_buffer_.data(),
+                                             box_buffer_.size()),
+                      "unable to set box buffer");
+        }
+      }
+
+
+
+      void finish_box() {
+        if (active_box_type_ == metadata_type::none) {
+          return;
+        }
+
+        auto size = box_buffer_.size() - JxlDecoderReleaseBoxBuffer(jxl_.get());
+
+#ifdef PIXGLOT_WITH_XMP
+        if (active_box_type_ == metadata_type::xmp) {
+          details::fill_xmp_metadata(details::string_from(box_buffer_.data(), size),
+                                     decoder_->image().metadata(), *decoder_);
+        }
+#endif
+
+#ifdef PIXGLOT_WITH_EXIF
+        if (active_box_type_ == metadata_type::exif) {
+          details::fill_exif_metadata(std::as_bytes(std::span{box_buffer_.data(), size}),
+                                      decoder_->image().metadata(), *decoder_);
+        }
+#endif
+
+        active_box_type_ = metadata_type::none;
+      }
+
+
+
+
+
+
       void event_loop() {
         while (true) {
           switch (auto v = JxlDecoderProcessInput(jxl_.get())) {
             case JXL_DEC_SUCCESS:
+              finish_box();
               return;
             case JXL_DEC_ERROR:
               throw decode_error{codec::jxl, "unhandled error"};
@@ -295,9 +378,13 @@ namespace {
             case JXL_DEC_FULL_IMAGE:
               on_full_image();
               break;
+            case JXL_DEC_BOX:
+              on_box();
+              break;
 
             default:
-              decoder_->warn("unhandled decoding event: " + std::to_string(v));
+              throw decode_error{codec::jxl,
+                "unhandled decoding event: " + std::to_string(v)};
               break;
           }
         }
@@ -433,6 +520,16 @@ namespace {
         buffer.back() = '0';
 
         f.name(buffer.data());
+      }
+
+
+
+      bool soft_assert(JxlDecoderStatus result, std::string message) {
+        if (result != JXL_DEC_SUCCESS) {
+          decoder_->warn(std::move(message));
+          return false;
+        }
+        return true;
       }
   };
 }
