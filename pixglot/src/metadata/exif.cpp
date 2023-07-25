@@ -1,5 +1,6 @@
 #include "pixglot/details/exif.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/tiff-orientation.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/metadata.hpp"
@@ -16,6 +17,54 @@ namespace {
     std::byte{'E'}, std::byte{'x'}, std::byte{'i'}, std::byte{'f'},
     std::byte{0}, std::byte{0}
   };
+
+
+
+
+
+  enum class value_type : uint16_t {
+    byte      = 1,
+    ascii     = 2,
+    ushort    = 3,
+    ulong     = 4,
+    rational  = 5,
+    undefined = 7,
+    slong     = 8,
+    srational = 10,
+  };
+
+  [[nodiscard]] size_t byte_size(value_type t) {
+    using enum value_type;
+    switch (t) {
+      case byte:
+      case ascii:
+      case undefined:
+        return 1;
+      case ushort:
+        return 2;
+      case ulong:
+      case slong:
+        return 4;
+      case rational:
+      case srational:
+        return 8;
+    }
+    return 0;
+  }
+
+
+
+
+
+  [[nodiscard]] char hex_char(int val) {
+    if (val < 10) {
+      return val + '0';
+    }
+    return val - 10 + 'a';
+  }
+
+
+
 
 
   class exif_decoder {
@@ -39,31 +88,28 @@ namespace {
 
 
 
-    private:
+      [[nodiscard]] std::span<metadata::key_value> entries() {
+        return entries_;
+      }
 
+
+
+    private:
       static constexpr std::array<std::byte, 2> little_e{std::byte{'I'}, std::byte{'I'}};
       static constexpr std::array<std::byte, 2> big_e   {std::byte{'M'}, std::byte{'M'}};
 
 
 
-      std::span<const std::byte> buffer_;
-      std::endian                byte_order_{std::endian::native};
+      std::span<const std::byte>       buffer_;
+      std::endian                      byte_order_{std::endian::native};
 
-      square_isometry            orientation_{};
+      square_isometry                  orientation_{};
+
+      std::vector<metadata::key_value> entries_;
 
 
-#if 0
-      enum class value_type : uint16_t {
-        byte      = 1,
-        ascii     = 2,
-        ushort    = 3,
-        ulong     = 4,
-        rational  = 5,
-        undefined = 7,
-        slong     = 8,
-        srational = 10,
-      };
-#endif
+
+
 
 
       enum class attribute : uint16_t {
@@ -72,86 +118,175 @@ namespace {
 
 
 
-#if 0
-      using ifd_value = std::variant<
-        std::array<uint8_t, 4>,
-        std::array<uint16_t, 2>,
-        uint32_t,
-        int32_t,
-        std::pair<value_type, size_t>
-      >;
+
 
       struct ifd_entry {
-        attribute tag;
-        uint32_t  count;
-        ifd_value value;
+        attribute  tag;
+        value_type type;
+        uint32_t   count;
+        size_t     offset;
+
+        [[nodiscard]] size_t size() const { return byte_size(type) * count; }
       };
 
 
 
 
 
-      [[nodiscard]] ifd_entry read_ifd_entry(size_t offset) {
-        return ifd_entry{
-          .tag   = static_cast<attribute>(int_at<uint16_t>(offset)),
-          .count = int_at<uint32_t>(offset + 4),
-          .value = read_ifd_value(offset + 8, int_at<uint16_t>(offset + 2)),
+      [[nodiscard]] ifd_entry read_ifd_entry(size_t& offset) {
+        offset += 12;
+
+        return ifd_entry {
+          .tag    = static_cast<attribute>(int_at<uint16_t>(offset - 12)),
+          .type   = static_cast<value_type>(int_at<uint16_t>(offset - 10)),
+          .count  = int_at<uint32_t>(offset - 8),
+          .offset = offset - 4
         };
       }
 
 
 
-      [[nodiscard]] ifd_value read_ifd_value(size_t offset, uint16_t type) {
-        switch (static_cast<value_type>(type)) {
+
+
+
+
+      [[nodiscard]] std::string read_byte_array_at(size_t offset, size_t count) {
+        std::string out;
+        out.reserve(count * 4 - 1);
+        for (size_t i = 0; i < count; ++i) {
+          if (i != 0) { out.push_back(' '); }
+          auto value = int_at<uint8_t>(offset++);
+          out.push_back('x');
+          out.push_back(hex_char(value >> 4));
+          out.push_back(hex_char(value & 0xf));
+        }
+        return out;
+      }
+
+
+      template<typename T>
+      [[nodiscard]] std::string read_int_array_at(size_t offset, size_t count) {
+        if (count == 1) {
+          return std::to_string(int_at<T>(offset));
+        }
+        std::string out = "[";
+        for (size_t i = 0; i < count; ++i) {
+          if (i != 0) { out += ", "; }
+          out += std::to_string(int_at<T>(offset));
+          offset += sizeof(T);
+        }
+        out.push_back(']');
+        return out;
+      }
+
+
+
+      template<typename T>
+      [[nodiscard]] std::string read_rational_array_at(size_t offset, size_t count) {
+        if (count == 1) {
+          return std::to_string(int_at<T>(offset));
+        }
+        std::string out = "[";
+        for (size_t i = 0; i < count; ++i) {
+          if (i != 0) { out += ", "; }
+          out += std::to_string(int_at<T>(offset)) + '/'
+               + std::to_string(int_at<T>(offset + sizeof(T)));
+
+          offset += 2 * sizeof(T);
+        }
+        out.push_back(']');
+        return out;
+      }
+
+
+
+      [[nodiscard]] std::string read_string_at(size_t offset, size_t count) {
+        auto data = std::span{buffer_}.subspan(offset);
+        return details::string_from(data.data(), std::min(data.size(), count));
+      }
+
+
+
+
+
+      [[nodiscard]] std::string deref_to_string(const ifd_entry& entry, size_t offset) {
+        switch (entry.type) {
           case value_type::byte:
-            return std::array<uint8_t, 4> {
-              int_at<uint8_t>(offset + 3),
-              int_at<uint8_t>(offset + 2),
-              int_at<uint8_t>(offset + 1),
-              int_at<uint8_t>(offset + 0)
-            };
-
-          case value_type::ushort:
-            return std::array<uint16_t, 2> {
-              int_at<uint16_t>(offset + 2),
-              int_at<uint16_t>(offset + 0)
-            };
-
-          case value_type::ulong:
-            return int_at<uint32_t>(offset);
-          case value_type::slong:
-            return int_at<int32_t>(offset);
-
+            return read_int_array_at<uint8_t>(offset, entry.count);
           case value_type::ascii:
+            return read_string_at(offset, entry.count);
+          case value_type::ushort:
+            return read_int_array_at<uint16_t>(offset, entry.count);
+          case value_type::ulong:
+            return read_int_array_at<uint32_t>(offset, entry.count);
           case value_type::rational:
+            return read_rational_array_at<uint32_t>(offset, entry.count);
           case value_type::undefined:
+            return read_byte_array_at(offset, entry.count);
+          case value_type::slong:
+            return read_int_array_at<int32_t>(offset, entry.count);
           case value_type::srational:
-          default: {
-            auto off = int_at<uint32_t>(offset);
-            if (off >= buffer_.size()) {
-              off = 0;
-            }
-            return std::make_pair(static_cast<value_type>(type), off);
-          }
+            return read_rational_array_at<int32_t>(offset, entry.count);
+          default:
+            return "<value@" + std::to_string(offset) + ">";
         }
       }
-#endif
+
+
+
+      [[nodiscard]] std::string entry_to_string(const ifd_entry& entry) {
+        if (entry.count == 0) {
+          return "[]";
+        }
+
+        if (entry.size() == 0) {
+          return "<unknown value>";
+        }
+
+        if (entry.size() > 4) {
+          return deref_to_string(entry, int_at<uint32_t>(entry.offset));
+        }
+
+        return deref_to_string(entry, entry.offset);
+      }
+
+
+
+      void handle_entry(const ifd_entry& entry) {
+        auto tag = std::to_underlying(entry.tag);
+
+        std::string key = "exif.0x0000";
+        key[ 7] = hex_char((tag >> 12) & 0xf);
+        key[ 8] = hex_char((tag >>  8) & 0xf);
+        key[ 9] = hex_char((tag >>  4) & 0xf);
+        key[10] = hex_char((tag >>  0) & 0xf);
+
+        entries_.emplace_back(std::move(key), entry_to_string(entry));
+      }
+
+
+
 
 
       void load_entries(size_t offset) {
         while (offset != 0) {
           auto count = int_at<uint16_t>(offset);
           offset += 2;
+
           for (uint16_t i = 0; i < count; ++i) {
-            if (static_cast<attribute>(int_at<uint16_t>(offset)) ==
-                attribute::orientation) {
-              orientation_ = square_isometry_from_tiff(int_at<uint16_t>(offset + 8));
+            auto entry = read_ifd_entry(offset);
+
+            if (entry.tag == attribute::orientation) {
+              orientation_ = square_isometry_from_tiff(int_at<uint16_t>(entry.offset));
             }
-            offset += 12;
+
+            handle_entry(entry);
           }
           offset = int_at<uint32_t>(offset);
         }
       }
+
+
 
 
 
@@ -223,6 +358,8 @@ void pixglot::details::fill_exif_metadata(
     exif_decoder exif{buffer};
 
     *orientation = exif.orientation();
+
+    meta.append_move(exif.entries());
 
   } catch (std::exception& ex) {
     dec.warn(std::string{"unable to parse exif: "} + ex.what());
