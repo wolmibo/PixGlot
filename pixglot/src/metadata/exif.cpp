@@ -108,16 +108,11 @@ namespace {
       std::vector<metadata::key_value> entries_;
 
 
-
-
-
-
       enum class attribute : uint16_t {
         orientation = 0x112,
+        exif_ifd    = 0x8769,
+        gps_ifd     = 0x8825,
       };
-
-
-
 
 
       struct ifd_entry {
@@ -128,6 +123,10 @@ namespace {
 
         [[nodiscard]] size_t size() const { return byte_size(type) * count; }
       };
+
+
+      std::optional<ifd_entry>         exif_ifd_;
+      std::optional<ifd_entry>         gps_ifd_;
 
 
 
@@ -268,7 +267,7 @@ namespace {
 
 
 
-      void load_entries(size_t offset) {
+      void load_entries(size_t offset, bool first) {
         while (offset != 0) {
           auto count = int_at<uint16_t>(offset);
           offset += 2;
@@ -276,11 +275,21 @@ namespace {
           for (uint16_t i = 0; i < count; ++i) {
             auto entry = read_ifd_entry(offset);
 
-            if (entry.tag == attribute::orientation) {
-              orientation_ = square_isometry_from_tiff(int_at<uint16_t>(entry.offset));
-            }
-
             handle_entry(entry);
+
+            if (first) {
+              switch (entry.tag) {
+                case attribute::orientation:
+                  orientation_ = square_isometry_from_tiff(int_at<uint16_t>(entry.offset));
+                  break;
+                case attribute::exif_ifd:
+                  exif_ifd_.emplace(entry);
+                  break;
+                case attribute::gps_ifd:
+                  gps_ifd_.emplace(entry);
+                  break;
+              }
+            }
           }
           offset = int_at<uint32_t>(offset);
         }
@@ -305,7 +314,15 @@ namespace {
           throw decode_error{codec::jpeg, "exif: tiff: wrong byte order"};
         }
 
-        load_entries(int_at<uint32_t>(4));
+        load_entries(int_at<uint32_t>(4), true);
+
+        if (exif_ifd_) {
+          load_entries(int_at<uint32_t>(exif_ifd_->offset), false);
+        }
+
+        if (gps_ifd_) {
+          load_entries(int_at<uint32_t>(gps_ifd_->offset), false);
+        }
       }
 
 
