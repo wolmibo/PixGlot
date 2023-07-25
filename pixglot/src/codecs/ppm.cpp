@@ -3,6 +3,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame-source-info.hpp"
+#include "pixglot/metadata.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format-conversion.hpp"
 #include "pixglot/pixel-format.hpp"
@@ -10,6 +11,9 @@
 #include "pixglot/utils/cast.hpp"
 
 #include <cctype>
+#include <cmath>
+#include <iomanip>
+#include <limits>
 #include <variant>
 
 using namespace pixglot;
@@ -119,10 +123,34 @@ namespace {
 
 
 
+      [[nodiscard]] std::optional<std::string> format_comments() {
+        if (comments_.empty()) {
+          return {};
+        }
+
+
+        std::stringstream output;
+
+        auto biggest = std::ranges::max(comments_, {}, &comment_type::first).first;
+        size_t width = std::ceil(std::log10(biggest + 1));
+
+        for (const auto& [pos, content]: comments_) {
+          output << '[' << std::setw(width) << pos << "] " << content << '\n';
+        }
+
+        return output.str();
+      }
+
+
+
+
+
     private:
+      using comment_type = std::pair<size_t, std::string_view>;
+
       buffer<char>                  data_;
       std::span<char>               remainder_;
-      std::vector<std::string_view> comments_;
+      std::vector<comment_type>     comments_;
 
 
 
@@ -146,10 +174,12 @@ namespace {
       void skip_comment() {
         skip_whitespace();
 
+        size_t position = remainder_.data() - data_.data();
+
         auto comment = read_until(std::ranges::find_if(remainder_,
                                   [](char c) { return c == '\n'; }));
         if (!comment.empty()) {
-          comments_.emplace_back(comment);
+          comments_.emplace_back(position, comment);
         }
       }
 
@@ -347,6 +377,7 @@ namespace {
 
 
   struct ppm_header {
+    char         identifier;
     ppm_type     type;
     pixel_format format;
     bool         ascii;
@@ -359,17 +390,15 @@ namespace {
 
 
 
-    explicit ppm_header(ppm_reader& reader) {
-      char identifier{read_header(reader)};
-
-      type   = type_from_header(identifier);
-      format = pixel_format {
+    explicit ppm_header(ppm_reader& reader) :
+      identifier{read_header(reader)},
+      type      {type_from_header(identifier)},
+      format    {
         .format   = data_format_from_header(identifier),
         .channels = color_channels_from_header(identifier)
-      };
-
-      ascii = ascii_from_header(identifier);
-
+      },
+      ascii     {ascii_from_header(identifier)}
+    {
       if (auto w_str = reader.next_word()) {
         width = parse_u32(*w_str, 0xffff);
       } else {
@@ -519,6 +548,8 @@ namespace {
 
 
       void decode() {
+        fill_metadata_front();
+
         auto& frame = decoder_->begin_frame(header_.width, header_.height,
             header_.format, current_endianess());
 
@@ -536,6 +567,10 @@ namespace {
             transfer_binary(decoder_->target());
           }
           decoder_->finish_pixel_transfer();
+        }
+
+        if (auto str = reader_.format_comments()) {
+          decoder_->image().metadata().emplace("ppm.comments", std::move(*str));
         }
 
         decoder_->finish_frame();
@@ -636,6 +671,35 @@ namespace {
           default:
             break;
         }
+      }
+
+
+
+      void fill_metadata_front() {
+        std::vector<metadata::key_value> out;
+
+        bool need_endian{false};
+        std::string range{"1"};
+        if (header_.type != ppm_type::bits) {
+          if (auto* flp = std::get_if<float>(&header_.range)) {
+            range = std::to_string(*flp);
+            need_endian = true;
+          } else if (auto* integer = std::get_if<u16>(&header_.range)) {
+            range = std::to_string(*integer);
+            need_endian = (*integer > std::numeric_limits<u8>::max());
+          }
+        }
+        out.emplace_back("ppm.range", std::move(range));
+
+        out.emplace_back("ppm.ascii", header_.ascii ? "yes" : "no");
+        out.emplace_back("ppm.format", std::string{"P"} + header_.identifier);
+
+        if (need_endian) {
+          out.emplace_back("ppm.endian",
+              header_.endianess == std::endian::little ? "little" : "big");
+        }
+
+        decoder_->image().metadata().append_move(out);
       }
   };
 }
