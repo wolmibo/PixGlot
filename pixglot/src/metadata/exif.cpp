@@ -2,7 +2,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/tiff-orientation.hpp"
-#include "pixglot/exception.hpp"
 #include "pixglot/metadata.hpp"
 
 #include <algorithm>
@@ -90,7 +89,7 @@ namespace {
         : buffer_{buffer}
       {
         if (!is_exif(buffer_)) {
-          throw decode_error{codec::jpeg, "exif: invalid file format"};
+          throw std::runtime_error{"invalid file format"};
         }
         buffer_ = buffer.subspan(magic.size());
 
@@ -168,7 +167,7 @@ namespace {
 
       [[nodiscard]] std::string read_byte_array_at(size_t offset, size_t count) {
         if (offset + count > buffer_.size()) {
-          throw decode_error{codec::jpeg, "exif: unexpected eof"};
+          throw std::runtime_error{"unexpected eof"};
         }
 
         return format_byte_array(std::as_bytes(std::span{buffer_}
@@ -314,7 +313,7 @@ namespace {
 
       void read_tiff() {
         if (buffer_.size() < 8) {
-          throw decode_error{codec::jpeg, "exif: incomplete tiff header"};
+          throw std::runtime_error{"incomplete tiff header"};
         }
 
         if (std::ranges::equal(buffer_.subspan(0, little_e.size()), little_e)) {
@@ -324,7 +323,7 @@ namespace {
         }
 
         if (int_at<uint16_t>(2) != 42) {
-          throw decode_error{codec::jpeg, "exif: tiff: wrong byte order"};
+          throw std::runtime_error{"tiff: wrong byte order"};
         }
 
         load_entries(int_at<uint32_t>(4), true);
@@ -345,7 +344,7 @@ namespace {
       template<typename T>
       [[nodiscard]] T int_at(size_t offset) {
         if (offset > buffer_.size() - sizeof(T)) {
-          throw decode_error{codec::jpeg, "exif: unexpected eof"};
+          throw std::runtime_error{"unexpected eof"};
         }
 
         if constexpr (sizeof(T) > 1) {
