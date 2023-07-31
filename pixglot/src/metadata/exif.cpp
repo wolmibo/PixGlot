@@ -13,6 +13,7 @@ using namespace pixglot::details;
 
 namespace pixglot::details {
   [[nodiscard]] std::optional<std::string_view> exif_tag_name(uint16_t);
+  [[nodiscard]] std::string exif_transform_value(uint16_t, std::string);
 }
 
 
@@ -291,7 +292,8 @@ namespace {
 
 
       void handle_entry(const ifd_entry& entry) {
-        entries_.emplace_back("exif." + to_string(entry.tag), entry_to_string(entry));
+        entries_.emplace_back("exif." + to_string(entry.tag),
+            exif_transform_value(std::to_underlying(entry.tag), entry_to_string(entry)));
       }
 
 

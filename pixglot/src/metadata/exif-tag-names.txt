@@ -1,5 +1,5 @@
 # Source:
-# https://www.cipa.jp/std/documents/e/DC-X008-Translation-2019-E.pdf 
+# https://www.cipa.jp/std/documents/e/DC-X008-Translation-2019-E.pdf
 # Renamed tags to match other formats
 100  width
 101  height
@@ -65,7 +65,7 @@
 9404 acceleration
 9405 elevationAngle
 a000 flashpixVersion
-a001 colorSpace
+a001 colorSpace                    | 1=sRGB; 65535=uncalibrated
 a002 imageWidth
 a003 imageHeight
 a20b flashEnergy
