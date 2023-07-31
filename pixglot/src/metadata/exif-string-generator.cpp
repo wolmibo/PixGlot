@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     }
     auto list = split(line, ' ');
     if (list.size() < 2) {
-      throw std::runtime_error{"missing id or name"};
+      throw std::runtime_error{"missing id or name: " + line};
     }
     out << "      case 0x" << list[0] << ": return \"" << list[1] << "\";\n";
   }
@@ -87,17 +87,17 @@ int main(int argc, char** argv) {
     }
     auto front = split(list[0], ' ');
     if (front.size() <= 1) {
-      throw std::runtime_error{"missing tag id"};
+      throw std::runtime_error{"missing tag id: " + line};
     }
     auto back = split(list[1], ';');
     if (back.empty()) {
-      throw std::runtime_error{"missing key=value pairs"};
+      throw std::runtime_error{"missing key=value pairs: " + line};
     }
     out << "      case 0x" << front[0] << ":\n";
     for (auto item: back) {
       auto sep = split(item, '=');
       if (sep.size() != 2) {
-        throw std::runtime_error{"wrong key=value format"};
+        throw std::runtime_error{"wrong key=value format: " + line};
       }
       out << "        if (input == \"" << sep[0] << "\") { return \""
           << sep[1] << "\"; }\n";

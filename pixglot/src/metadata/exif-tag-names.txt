@@ -4,7 +4,7 @@
 100  width
 101  height
 102  depth
-103  compression
+103  compression                                 | 1=uncompressed; 6=JPEG
 10e  title
 10f  make
 110  model
@@ -12,7 +12,7 @@
 115  channelCount
 11a  densityX
 11b  densityY
-128  densityUnit
+128  densityUnit                                 | 2=in; 3=cm
 12d  transferFunction
 131  software
 132  dateTime
@@ -24,12 +24,12 @@
 829a exposureTime
 829d fNumber
 8769 exifIFDOffset
-8822 exposureProgram
+8822 exposureProgram                             | 0=undefined; 1=manual; 2=normal; 3=aperture priority; 4=shutter priority; 5=creative; 6=action; 7=portrait; 8=landscape
 8824 spectralSensitivity
 8825 gpsIFDOffset
 8827 photographicSensitivity
 8828 oecf
-8830 sensitivityType
+8830 sensitivityType                             | 0=unknown; 1=SOS; 2=REI; 3=ISO; 4=SOS + REI; 5=SOS + ISO; 6=SOS + REI + ISO
 8831 standardOutputSensitivity
 8832 recExposureIndex
 8833 speedISO
@@ -48,8 +48,8 @@
 9204 exposureBias
 9205 maxAperture
 9206 subjectDistance
-9207 meteringMode
-9208 lightSource
+9207 meteringMode                                | 0=unknown; 1=average; 2=center weighted average; 3=spot; 4=multi spot; 5=pattern; 6=partial; 255=other
+9208 lightSource                                 | 0=unknown; 1=daylight; 2=fluorescent; 3=tungsten; 4=flash; 9=fine weather; 10=cloudy weather; 11=shade; 12=dayligh fluorescent; 13=day white fluorescent; 14=cool white fluorescent; 15=white fluorescent; 16=warm white fluorescent; 17=standard A; 18=standard B; 19=standard C; 20=D55; 21=D65; 22=D75; 23=D50; 24=studio tungsten; 255=other
 9209 flash
 920a focalLength
 9214 subjectArea
@@ -65,7 +65,7 @@
 9404 acceleration
 9405 elevationAngle
 a000 flashpixVersion
-a001 colorSpace                    | 1=sRGB; 65535=uncalibrated
+a001 colorSpace                                  | 1=sRGB; 65535=uncalibrated
 a002 imageWidth
 a003 imageHeight
 a20b flashEnergy
@@ -75,22 +75,22 @@ a20f focalPlaneYDensity
 a210 focalPlaneDensityUnit
 a214 subjectLocation
 a215 exposureIndex
-a217 sensingMode
-a300 fileSource
-a301 sceneType
+a217 sensingMode                                 | 1=undefined; 2=one-chip color area; 3=two-chip color area; 4=three-chip color area; 5=color sequential area; 7=trilinear; 8=color sequential linear
+a300 fileSource                                  | 0=others; 1=transparent scanner; 2=reflex scanner; 3=DSC
+a301 sceneType                                   | 1=direct photograph
 a302 cfaPattern
-a401 customRendered
-a402 exposureMode
-a403 whiteBalance
+a401 customRendered                              | 0=normal; 1=custom
+a402 exposureMode                                | 0=auto; 1=manual; 2=auto bracket
+a403 whiteBalance                                | 0=auto; 1=manual
 a404 digitalZoomRatio
 a405 focalLength35mm
-a406 captureType
-a407 gainControl
-a408 contrast
-a409 saturation
-a40a sharpness
+a406 captureType                                 | 0=standard; 1=landscape; 2=portrait; 3=night scene
+a407 gainControl                                 | 0=none; 1=low gain up; 2=high gain up; 3=low gain down; 4=low gain down
+a408 contrast                                    | 0=normal; 1=soft; 2=hard
+a409 saturation                                  | 0=normal; 1=low; 2=high
+a40a sharpness                                   | 0=normal; 1=soft; 2=hard
 a40b deviceSettingDescription
-a40c subjectDistanceRange
+a40c subjectDistanceRange                        | 0=unknown; 1=macro; 2=close; 3=distant
 a420 imageUID
 a430 cameraOwner
 a431 serialNumber
