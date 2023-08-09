@@ -53,6 +53,7 @@ int main(int argc, char** argv) {
   out << "#include <string>\n";
   out << "#include <string_view>\n";
 
+  out << "//NOLINTBEGIN(*-cognitive-complexity)\n";
   out << "namespace pixglot::details {\n";
   out << "  std::optional<std::string_view> exif_tag_name(uint16_t tag) {\n";
   out << "    switch (tag) {\n";
@@ -109,4 +110,5 @@ int main(int argc, char** argv) {
   out << "    return input;\n";
   out << "  }\n";
   out << "}\n";
+  out << "//NOLINTEND(*-cognitive-complexity)\n";
 }
