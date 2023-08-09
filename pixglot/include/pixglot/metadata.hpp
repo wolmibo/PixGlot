@@ -19,7 +19,22 @@ namespace pixglot {
 
 class metadata {
   public:
-    using key_value = std::pair<std::string, std::string>;
+    class key_value {
+      public:
+        [[nodiscard]] std::string_view key()   const { return key_;   }
+        [[nodiscard]] std::string_view value() const { return value_; }
+
+        key_value(std::string key, std::string value) :
+          key_  {std::move(key)},
+          value_{std::move(value)}
+        {}
+
+      private:
+        std::string key_;
+        std::string value_;
+    };
+
+
 
     metadata(const metadata&);
     metadata(metadata&&) noexcept;
@@ -36,9 +51,6 @@ class metadata {
 
 
     [[nodiscard]] std::optional<std::string_view> find(std::string_view) const;
-
-    [[nodiscard]]       std::string& operator[](std::string_view);
-    [[nodiscard]] const std::string& operator[](std::string_view) const;
 
 
 

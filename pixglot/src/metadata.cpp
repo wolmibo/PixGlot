@@ -62,40 +62,18 @@ md::key_value* md::end()   { return begin() + size();       }
 
 
 bool md::contains(std::string_view key) const {
-  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::first);
-  return (it != impl_->entries_.end() && it->first == key);
+  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::key);
+  return (it != impl_->entries_.end() && it->key() == key);
 }
 
 
 
 std::optional<std::string_view> md::find(std::string_view key) const {
-  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::first);
-  if (it != impl_->entries_.end() && it->first == key) {
-    return it->second;
+  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::key);
+  if (it != impl_->entries_.end() && it->key() == key) {
+    return it->value();
   }
   return {};
-}
-
-
-
-std::string& md::operator[](std::string_view key) {
-  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::first);
-  if (it != impl_->entries_.end() && it->first == key) {
-    return it->second;
-  }
-
-  return impl_->entries_.emplace(it, std::string{key}, std::string{})->second;
-}
-
-
-
-const std::string& md::operator[](std::string_view key) const {
-  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::first);
-  if (it != impl_->entries_.end() && it->first == key) {
-    return it->second;
-  }
-
-  throw std::out_of_range{"key not found in metadata"};
 }
 
 
@@ -103,10 +81,10 @@ const std::string& md::operator[](std::string_view key) const {
 
 
 void md::emplace(std::string key, std::string value) {
-  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::first);
+  auto it = std::ranges::lower_bound(impl_->entries_, key, {}, &key_value::key);
 
-  if (it != impl_->entries_.end() && it->first == key) {
-    it->first = std::move(value);
+  if (it != impl_->entries_.end() && it->key() == key) {
+    *it = key_value{key, value};
     return;
   }
 
@@ -122,7 +100,7 @@ void md::append_move(std::span<key_value> list) {
     impl_->entries_.emplace_back(std::move(pair));
   }
 
-  std::ranges::sort(impl_->entries_, {}, &key_value::first);
+  std::ranges::sort(impl_->entries_, {}, &key_value::key);
 }
 
 
@@ -159,16 +137,16 @@ std::string pixglot_metadata_find_unique_key(
   auto ideal = std::string{prefix} + std::string{suffix};
 
   auto it = std::ranges::lower_bound(all_data, ideal,
-                                     {}, &pixglot::metadata::key_value::first);
+                                     {}, &pixglot::metadata::key_value::key);
 
-  if (it == all_data.end() || it->first != ideal) {
+  if (it == all_data.end() || it->key() != ideal) {
     return ideal;
   }
 
   auto jt = it;
 
   while (jt != all_data.end() &&
-         jt->first.starts_with(prefix) && jt->first.ends_with(suffix)) {
+         jt->key().starts_with(prefix) && jt->key().ends_with(suffix)) {
     ++jt;
   }
 

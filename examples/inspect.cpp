@@ -92,9 +92,9 @@ std::string_view str(std::endian endian) {
 
 
 template<typename T>
-void print_meta_item(const std::string& key, T&& value, size_t width, size_t indent) {
+void print_meta_item(std::string_view key, T&& value, size_t width, size_t indent) {
   std::cout << std::string(indent, ' ')
-    << std::left << std::setw(width + 2) << (key + ": ")
+    << std::left << std::setw(width + 2) << (std::string{key} + ": ")
     << std::forward<T>(value) << '\n';
 }
 
@@ -122,13 +122,13 @@ void print_meta_item(const std::string& key, T&& value, size_t width, size_t ind
 
 
 void print_meta_string(
-    const std::string& key,
-    std::string_view   value,
-    size_t             width,
-    size_t             indent
+    std::string_view key,
+    std::string_view value,
+    size_t           width,
+    size_t           indent
 ) {
   std::cout << std::string(indent, ' ')
-    << std::left << std::setw(width + 2) << (key + ": ");
+    << std::left << std::setw(width + 2) << (std::string{key} + ": ");
 
   bool first{true};
   for (const auto& line: split_lines(value)) {
@@ -151,8 +151,8 @@ void print_meta_string(
 
   if (!list.empty()) {
     width = std::max(width, std::ranges::max(list, {}, [](const auto& arg) {
-      return arg.first.size();
-    }).first.size());
+      return arg.key().size();
+    }).key().size());
   }
 
   return std::min<size_t>(width, 40);
@@ -199,11 +199,11 @@ void print_key_value(
     size_t                              indent,
     bool                                raw
 ) {
-  if (!raw && ((kv.first.starts_with("pixglot.") && kv.first.ends_with(".raw")) ||
-               is_long_raw(kv.second))) {
-    print_meta_item(kv.first, "<use --raw to include raw data>"sv, width, indent);
+  if (!raw && ((kv.key().starts_with("pixglot.") && kv.key().ends_with(".raw")) ||
+               is_long_raw(kv.value()))) {
+    print_meta_item(kv.key(), "<use --raw to include raw data>"sv, width, indent);
   } else {
-    print_meta_string(kv.first, kv.second, width, indent);
+    print_meta_string(kv.key(), kv.value(), width, indent);
   }
 }
 
