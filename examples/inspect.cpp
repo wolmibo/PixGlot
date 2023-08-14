@@ -365,7 +365,7 @@ int main(int argc, char** argv) {
 
     try {
       auto image{pixglot::decode(pixglot::reader{file}, {}, output_format)};
-
+      pixglot::validate_file_extension(image, file.extension().native());
 
       print_image(image, raw);
 

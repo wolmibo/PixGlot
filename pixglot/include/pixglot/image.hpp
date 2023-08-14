@@ -82,6 +82,8 @@ class image {
 
 [[nodiscard]] std::string to_string(const image&);
 
+bool validate_file_extension(image&, std::string_view);
+
 }
 
 #endif // PIXGLOT_IMAGE_HPP_INCLUDED

@@ -1,4 +1,5 @@
 #include "pixglot/image.hpp"
+#include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
 
 #include <chrono>
@@ -148,4 +149,137 @@ std::string pixglot::to_string(const image& img) {
   buffer += "}]";
 
   return buffer;
+}
+
+
+
+
+
+namespace {
+  [[nodiscard]] char to_lower(char c) {
+    if ('A' <= c && c <= 'Z') {
+      return c - 'A' + 'a';
+    }
+    return c;
+  }
+
+
+
+  std::array<std::string_view, 13> extensions {
+    "jpg", "jpeg", "jfif",
+    "png",
+    "avif",
+    "exr",
+    "webp",
+    "gif",
+    "jxl",
+    "pbm",
+    "pgm",
+    "ppm",
+    "pfm",
+  };
+
+
+
+  [[nodiscard]] std::span<std::string_view> potential_extensions(const image& img) {
+    std::span all{extensions};
+
+    switch (img.codec()) {
+      case codec::jpeg: return all.subspan(0, 3);
+      case codec::png:  return all.subspan(3, 1);
+      case codec::avif: return all.subspan(4, 1);
+      case codec::exr:  return all.subspan(5, 1);
+      case codec::webp: return all.subspan(6, 1);
+      case codec::gif:  return all.subspan(7, 1);
+      case codec::jxl:  return all.subspan(8, 1);
+      case codec::ppm:
+        if (img.size() != 1) {
+          return {};
+        } else {
+          if (img.frame().source_info().color_model_format()[0] ==
+              pixglot::data_source_format::f32) {
+            return all.subspan(12, 1);
+          }
+
+          auto mime = img.mime_type();
+          if (mime == "image/x-portable-bitmap") {
+            return all.subspan(9, 1);
+          }
+
+          if (mime == "image/x-portable-graymap") {
+            return all.subspan(10, 1);
+          }
+
+          if (mime == "image/x-portable-pixmap") {
+            return all.subspan(11, 1);
+          }
+        }
+    }
+
+    return {};
+  }
+
+
+
+  [[nodiscard]] std::string format_expected(std::span<std::string_view> list) {
+    if (list.empty()) {
+      return "cannot suggest extension";
+    }
+
+    if (list.size() == 1) {
+      return "expected ." + std::string{list.front()};
+    }
+
+    std::string output{"expected ."};
+    for (size_t i = 0; i < list.size(); ++i) {
+      if (i > 0) {
+        if (i < list.size() - 1) {
+          output += ", .";
+        } else {
+          output += ", or .";
+        }
+      }
+      output += list[i];
+    }
+
+    return output;
+  }
+}
+
+
+
+
+
+bool pixglot::validate_file_extension(image& img, std::string_view extension) {
+  while (!extension.empty() && extension.front() == '.') {
+    extension.remove_prefix(1);
+  }
+
+  std::string ext;
+  ext.reserve(extension.size());
+  for (auto c: extension) {
+    ext.push_back(to_lower(c));
+  }
+
+
+
+  auto candidates = potential_extensions(img);
+
+  if (ext.empty()) {
+    img.add_warning("file extension is missing; " + format_expected(candidates));
+    return false;
+  }
+
+  if (std::ranges::contains(candidates, ext)) {
+    return true;
+  }
+
+  if (std::ranges::contains(extensions, ext)) {
+    img.add_warning("file extension ." + ext + " is misleading; "
+        + format_expected(candidates));
+    return false;
+  }
+
+  img.add_warning("unknown file extension ." + ext + "; " + format_expected(candidates));
+  return false;
 }
