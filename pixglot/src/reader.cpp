@@ -71,10 +71,11 @@ size_t reader::peek(std::span<std::byte> buffer) const {
 
 
 
-void reader::skip(size_t count) {
+bool reader::skip(size_t count) {
   if (impl_->fptr != nullptr) {
-    fseek(impl_->fptr, count, SEEK_CUR);
+    return fseek(impl_->fptr, count, SEEK_CUR) == 0;
   }
+  return false;
 }
 
 

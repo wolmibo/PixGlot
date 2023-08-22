@@ -113,7 +113,9 @@ namespace {
         auto& self = get(cinfo);
 
         if (nb >= self.pub.bytes_in_buffer) {
-          self.reader_->skip(nb - self.pub.bytes_in_buffer);
+          if (!self.reader_->skip(nb - self.pub.bytes_in_buffer)) {
+            throw decode_error{codec::jpeg, "unable to skip in source"};
+          }
           if (fill_input_buffer(cinfo) == FALSE) {
             throw decode_error{codec::jpeg, "unable to read from source"};
           }

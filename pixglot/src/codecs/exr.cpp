@@ -69,7 +69,9 @@ namespace {
 
 
       void seekg(uint64_t pos) override {
-        input_->seek(pos);
+        if (!input_->seek(pos)) {
+          throw decode_error{codec::exr, "unable to seek in source"};
+        }
       }
 
 

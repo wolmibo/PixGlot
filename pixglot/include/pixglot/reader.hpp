@@ -32,7 +32,7 @@ class reader {
     [[nodiscard]] size_t peek(std::span<std::byte>) const;
     [[nodiscard]] size_t read(std::span<std::byte>);
 
-    void skip(size_t);
+    [[nodiscard]] bool skip(size_t);
     [[nodiscard]] bool seek(size_t);
 
     [[nodiscard]] bool   eof()      const;
