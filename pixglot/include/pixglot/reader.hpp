@@ -17,88 +17,35 @@ namespace pixglot {
 
 class reader {
   public:
-    explicit reader(const std::filesystem::path& p) :
-      fptr_{fopen(p.string().c_str(), "rb"), &fclose}
-    {
-      if (!fptr_) {
-        throw no_stream_access{p.string()};
-      }
-    }
+    explicit reader(const std::filesystem::path&);
+
+    reader(const reader&) = delete;
+    reader(reader&&) noexcept;
+
+    reader& operator=(const reader&) = delete;
+    reader& operator=(reader&&) noexcept;
+
+    ~reader();
 
 
 
-    [[nodiscard]] size_t read(std::span<std::byte> buffer) {
-      if (fptr_) {
-        return fread(buffer.data(), sizeof(std::byte), buffer.size(), fptr_.get());
-      }
-      return 0;
-    }
+    [[nodiscard]] size_t peek(std::span<std::byte>) const;
+    [[nodiscard]] size_t read(std::span<std::byte>);
+
+    void skip(size_t);
+    [[nodiscard]] bool seek(size_t);
+
+    [[nodiscard]] bool   eof()      const;
+    [[nodiscard]] size_t position() const;
+    [[nodiscard]] size_t size()     const;
 
 
-
-    [[nodiscard]] size_t read(std::span<std::byte> buffer, size_t offset) {
-      if (fptr_ && fseek(fptr_.get(), offset, SEEK_SET) == 0) {
-        return fread(buffer.data(), sizeof(std::byte), buffer.size(), fptr_.get());
-      }
-      return 0;
-    }
-
-
-
-    [[nodiscard]] size_t peek(std::span<std::byte> buffer) const {
-      if (fptr_) {
-        size_t current = ftell(fptr_.get());
-        size_t count
-                 = fread(buffer.data(), sizeof(std::byte), buffer.size(), fptr_.get());
-        fseek(fptr_.get(), current, SEEK_SET);
-        return count;
-      }
-      return 0;
-    }
-
-
-
-    void skip(size_t count) {
-      if (fptr_) {
-        fseek(fptr_.get(), count, SEEK_CUR);
-      }
-    }
-
-
-
-    [[nodiscard]] size_t position() const {
-      return ftell(fptr_.get());
-    }
-
-
-
-    [[nodiscard]] size_t size() const {
-      size_t current = ftell(fptr_.get());
-      fseek(fptr_.get(), 0, SEEK_END);
-      size_t size = ftell(fptr_.get());
-      fseek(fptr_.get(), current, SEEK_SET);
-      return size;
-    }
-
-
-
-    void seek(size_t pos) {
-      if (fptr_) {
-        fseek(fptr_.get(), pos, SEEK_SET);
-      }
-    }
-
-
-
-    [[nodiscard]] bool eof() const {
-      return fptr_ &&
-        feof(fptr_.get()) != 0;
-    }
 
 
 
   private:
-    std::unique_ptr<FILE, decltype(&fclose)> fptr_;
+    class impl;
+    std::unique_ptr<impl> impl_;
 };
 
 }

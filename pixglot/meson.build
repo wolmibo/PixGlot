@@ -16,6 +16,7 @@ sources = [
   'src/pixel-buffer.cpp',
   'src/pixel-format.cpp',
   'src/progress-token.cpp',
+  'src/reader.cpp',
   'src/square-isometry.cpp',
 ]
 

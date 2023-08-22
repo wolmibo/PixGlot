@@ -60,7 +60,10 @@ namespace {
 
         self->buffer_.resize(size);
 
-        out->size = self->input_->read(self->buffer_, offset);
+        if (!self->input_->seek(offset)) {
+          return AVIF_RESULT_IO_ERROR;
+        }
+        out->size = self->input_->read(self->buffer_);
         out->data = utils::byte_pointer_cast<const uint8_t>(self->buffer_.data());
 
         if (out->size == 0) {
