@@ -33,6 +33,58 @@ namespace {
       pix.b = std::pow(pix.b, exp);
     }
   };
+
+
+
+
+  template<typename T, int Pre>
+    requires (std::is_same_v<typename T::component, f32> && -1 <= Pre && Pre <= 1)
+  struct alpha_conversion {};
+
+  template<typename T>
+  struct alpha_conversion<T, 0> {
+    static void apply(T& /*pix*/) {}
+  };
+
+  template<typename T>
+    requires (!has_color(T::format().channels) && has_alpha(T::format().channels))
+  struct alpha_conversion<T, -1> {
+    static void apply(T& pix) {
+      if (pix.a > 0.f) {
+        pix.v /= pix.a;
+      }
+    }
+  };
+
+  template<typename T>
+    requires (!has_color(T::format().channels) && has_alpha(T::format().channels))
+  struct alpha_conversion<T, 1> {
+    static void apply(T& pix) {
+      pix.v *= pix.a;
+    }
+  };
+
+  template<typename T>
+    requires (has_color(T::format().channels) && has_alpha(T::format().channels))
+  struct alpha_conversion<T, -1> {
+    static void apply(T& pix) {
+      if (pix.a > 0.f) {
+        pix.r /= pix.a;
+        pix.g /= pix.a;
+        pix.b /= pix.a;
+      }
+    }
+  };
+
+  template<typename T>
+    requires (has_color(T::format().channels) && has_alpha(T::format().channels))
+  struct alpha_conversion<T, 1> {
+    static void apply(T& pix) {
+      pix.r *= pix.a;
+      pix.g *= pix.a;
+      pix.b *= pix.a;
+    }
+  };
 }
 
 
@@ -48,7 +100,7 @@ namespace pixglot::details {
       pixel_buffer&              pixels,
       std::optional<std::endian> /*target_endian*/,
       pixel_format               target_format,
-      int                        /*premultiply*/,
+      int                        premultiply,
       float                      /*gamma_diff*/,
       square_isometry            transform
   ) {
@@ -56,6 +108,12 @@ namespace pixglot::details {
         && pixels.format().size() < target_format.size()) {
       apply_orientation(pixels, transform);
       transform = square_isometry::identity;
+    }
+
+    if (has_alpha(pixels.format().channels)) {
+      premultiply = std::clamp(premultiply, -1, 1);
+    } else {
+      premultiply = 0;
     }
 
 
