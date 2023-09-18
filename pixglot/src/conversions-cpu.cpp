@@ -7,7 +7,7 @@ namespace pixglot::details {
       pixel_buffer&              /*pixels*/,
       std::optional<std::endian> /*target_endian*/,
       pixel_format               /*target_format*/,
-      int                        /*premutliply*/,
+      int                        /*premultiply*/,
       float                      /*gamma_diff*/,
       square_isometry            /*transform*/
   ) {
