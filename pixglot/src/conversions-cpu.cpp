@@ -85,6 +85,16 @@ namespace {
       pix.b *= pix.a;
     }
   };
+
+
+
+  template<typename T, bool GC, int Pre>
+    requires std::is_same_v<typename T::component, f32>
+  void arithmetic_transforms(T& pix, float exp) {
+    // FIXME: alpha conversion should always be done in linear space
+    gamma_correction<T, GC>::apply(pix, exp);
+    alpha_conversion<T, Pre>::apply(pix);
+  }
 }
 
 
