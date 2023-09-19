@@ -24,6 +24,17 @@ pixglot::color_channels pixglot::add_color(color_channels cc) {
 
 
 
+bool pixglot::color_channels_contained(color_channels c1, color_channels c2) {
+  auto i1 = n_channels(c1) - 1;
+  auto i2 = n_channels(c2) - 1;
+
+  return (i1 & 1) <= (i2 & 1) && (i1 & 2) <= (i2 & 2);
+}
+
+
+
+
+
 std::string_view pixglot::stringify(data_format df) {
   switch (df) {
     case data_format::u8:  return "u8";

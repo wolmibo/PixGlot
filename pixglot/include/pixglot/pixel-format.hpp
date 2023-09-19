@@ -153,6 +153,10 @@ enum class color_channels : unsigned int {
 
 
 
+[[nodiscard]] bool color_channels_contained(color_channels, color_channels);
+
+
+
 
 
 struct pixel_format {
