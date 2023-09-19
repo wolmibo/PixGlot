@@ -30,10 +30,10 @@ namespace pixglot::details {
 
 
 namespace {
-  template<typename T>
-  void convert_image(image& img, void (function)(frame&, T), T value) {
+  template<typename... Args>
+  void convert_image(image& img, void (function)(frame&, Args...), Args... value) {
     for (auto& f: img.frames()) {
-      function(f, value);
+      function(f, value...);
     }
   }
 }
@@ -66,6 +66,30 @@ void pixglot::convert_gamma(pixel_buffer& pb, float current, float target) {
 
 void pixglot::convert_gamma(gl_texture& tex, float current, float target) {
   details::convert(tex, tex.format(), 0, target / current, {});
+}
+
+
+
+
+
+void pixglot::convert_pixel_format(
+    image&                     img,
+    pixel_format               target_format,
+    std::optional<std::endian> target_endian
+) {
+  convert_image(img, convert_pixel_format, target_format, target_endian);
+}
+
+
+
+void pixglot::convert_pixel_format(
+    frame&                     f,
+    pixel_format               target_format,
+    std::optional<std::endian> target_endian
+) {
+  if (f.type() == storage_type::pixel_buffer) {
+    convert_pixel_format(f.pixels(), target_format, target_endian);
+  }
 }
 
 
