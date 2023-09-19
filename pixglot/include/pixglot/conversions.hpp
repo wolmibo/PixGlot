@@ -27,6 +27,8 @@ void convert_orientation(gl_texture&,    square_isometry, square_isometry = {});
 void convert_storage(image&, storage_type);
 void convert_storage(frame&, storage_type);
 
+void convert_pixel_format(pixel_buffer&, pixel_format, std::optional<std::endian>);
+
 }
 
 #endif // PIXGLOT_COVERSIONS_HPP_INCLUDED

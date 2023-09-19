@@ -4,6 +4,7 @@ sources = [
   'src/conversions-cpu.cpp',
   'src/conversions-cpu-endian.cpp',
   'src/conversions-cpu-orientation.cpp',
+  'src/conversions-cpu-pixel-format.cpp',
   'src/conversions-gl.cpp',
   'src/decode.cpp',
   'src/decoder.cpp',
