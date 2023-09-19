@@ -100,6 +100,49 @@ namespace {
     gamma_correction<T, GC>::apply(pix, exp);
     alpha_conversion<T, Pre>::apply(pix);
   }
+
+
+
+  template<size_t Size>
+  struct integral_from_size {};
+
+  template<>
+  struct integral_from_size<2> { using type = u16; };
+  template<>
+  struct integral_from_size<4> { using type = u32; };
+
+  template<size_t Size, typename T>
+    requires (sizeof(T) == Size)
+  void swap_bytes(T& value) {
+    using interim = typename integral_from_size<Size>::type;
+    value = std::bit_cast<T>(std::byteswap(std::bit_cast<interim>(value)));
+  }
+
+
+
+  template<typename T, bool Swap>
+  struct byte_swapper {};
+
+  template<typename T, bool Swap>
+    requires (Swap == false) || (sizeof(T::Component) == 1)
+  struct byte_swapper<T, Swap> {
+    static void apply(T& /*pix*/) {}
+  };
+
+  template<typename T>
+    requires (sizeof(T::Component) == 2) || (sizeof(T::Component) == 4)
+  struct byte_swapper<T, true> {
+    static void apply(T& pix) {
+      static constexpr size_t count = n_channels(T::format().channels);
+
+      static_assert(count * sizeof(typename T::Component) == sizeof(T));
+
+      //NOLINTNEXTLINE(*-reinterpret-cast)
+      for (auto& comp: std::span{reinterpret_cast<typename T::Component*>(&pix), count}) {
+        swap_bytes<sizeof(T::Component)>(comp);
+      }
+    }
+  };
 }
 
 
