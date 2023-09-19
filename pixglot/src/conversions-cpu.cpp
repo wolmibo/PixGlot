@@ -34,6 +34,11 @@ namespace {
     }
   };
 
+  [[nodiscard]] bool needs_gamma_correction(float exp) {
+    return std::abs(exp - 1.f) > 1e-2f;
+  }
+
+
 
 
 
@@ -111,7 +116,7 @@ namespace pixglot::details {
       std::optional<std::endian> /*target_endian*/,
       pixel_format               target_format,
       int                        premultiply,
-      float                      /*gamma_diff*/,
+      float                      gamma_exp,
       square_isometry            transform
   ) {
     if (transform != square_isometry::identity
@@ -125,6 +130,8 @@ namespace pixglot::details {
     } else {
       premultiply = 0;
     }
+
+    bool needs_gc = needs_gamma_correction(gamma_exp);
 
 
 
