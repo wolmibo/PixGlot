@@ -27,6 +27,7 @@ enum class event {
   conversion_storage_type,
   conversion_orientation,
   conversion_endian,
+  conversion_pixel_format,
   conversions_finish,
   save_image_begin,
   save_frame_finish,
@@ -130,6 +131,10 @@ void print_time_tree(std::span<const pixglot::frame> frames) {
       case event::conversion_storage_type:
         std::cout << "  ├─ convert storage_type\n";
         break;
+      case event::conversion_pixel_format:
+        std::cout << "  ├─ convert pixel_format\n";
+        break;
+
 
       case event::save_image_begin:
         std::cout << "save image begin\n";
@@ -162,6 +167,11 @@ void apply_conversion(pixglot::image& img, pixglot::square_isometry ori) {
 void apply_conversion(pixglot::image& img, pixglot::storage_type st) {
   pixglot::convert_storage(img, st);
   emit_event(event::conversion_storage_type);
+}
+
+void apply_conversion(pixglot::image& img, pixglot::pixel_format fmt) {
+  pixglot::convert_pixel_format(img, fmt);
+  emit_event(event::conversion_pixel_format);
 }
 
 
@@ -323,6 +333,15 @@ END_STR_TO_ENUM(data_format)
 
 
 
+BEGIN_STR_TO_ENUM(pixglot, color_channels)
+  STR_TO_ENTRY(gray);
+  STR_TO_ENTRY(gray_a);
+  STR_TO_ENTRY(rgb);
+  STR_TO_ENTRY(rgba);
+END_STR_TO_ENUM(color_channels)
+
+
+
 BEGIN_STR_TO_ENUM(std, endian)
   STR_TO_ENTRY(native);
   STR_TO_ENTRY(little);
@@ -346,12 +365,27 @@ END_STR_TO_ENUM(endian)
 
 
 
+[[nodiscard]] pixglot::pixel_format pixel_format_from_string(std::string_view str) {
+  auto ipos = str.find('_');
+  if (ipos == std::string_view::npos) {
+    throw std::runtime_error{"expected pixel format"};
+  }
+
+  return pixglot::pixel_format {
+    .format   = data_format_from_string(str.substr(ipos + 1)),
+    .channels = color_channels_from_string(str.substr(0, ipos))
+  };
+}
+
+
+
 
 
 using operations = std::variant<
   std::endian,
   pixglot::storage_type,
-  pixglot::square_isometry
+  pixglot::square_isometry,
+  pixglot::pixel_format
 >;
 
 
@@ -394,6 +428,7 @@ void print_help(const std::filesystem::path& name) {
     "  --convert-target=<target>          convert to storage type\n"
     "  --convert-orientation=<ori>        convert to orientaion\n"
     "  --convert-endian=<endian>          convert to endian\n"
+    "  --convert-pixel-format=<cc>_<df>   convert to pixel format\n"
     "\n"
     "Enum values:\n"
     "  <target>:   no_pixels, pixel_buffer, gl_texture\n"
@@ -401,6 +436,7 @@ void print_help(const std::filesystem::path& name) {
     "              transpose, anti_transpose\n"
     "  <am>:       none, straigh, premultiplied\n"
     "  <df>:       u8, u16, u32, f16, f32\n"
+    "  <cc>:       gray, gray_a, rgb, rgba\n"
     "  <endian>:   native, little, big\n"
 
     << std::flush;
@@ -413,7 +449,7 @@ void print_help(const std::filesystem::path& name) {
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  static std::array<option, 24> long_options = {
+  static std::array<option, 25> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
 
     option{"output",               required_argument, nullptr, 'o'},
@@ -442,6 +478,7 @@ int main(int argc, char** argv) {
     option{"convert-target",       required_argument, nullptr, 4000},
     option{"convert-orientation",  required_argument, nullptr, 4001},
     option{"convert-endian",       required_argument, nullptr, 4002},
+    option{"convert-pixel-format", required_argument, nullptr, 4003},
 
     option{nullptr,                0,                 nullptr, 0},
   };
@@ -490,6 +527,7 @@ int main(int argc, char** argv) {
       case 4000: ops.emplace_back(storage_type_from_string(optarg));    break;
       case 4001: ops.emplace_back(square_isometry_from_string(optarg)); break;
       case 4002: ops.emplace_back(endian_from_string(optarg));          break;
+      case 4003: ops.emplace_back(pixel_format_from_string(optarg));    break;
     }
   }
 
