@@ -125,7 +125,7 @@ namespace pixglot::details {
       convert_pixel_format(pixels, pixel_format {
           .format   = data_format::f32,
           .channels = pixels.format().channels
-      }, {});
+      }, std::endian::native);
 
       apply_transforms(pixels, gamma_exp, gamma_correction, premultiply);
     }
