@@ -4,6 +4,7 @@
 #include "pixglot/square-isometry.hpp"
 
 #include <cmath>
+#include <iostream>
 
 using namespace pixglot;
 
@@ -58,6 +59,41 @@ namespace {
       }
     }
   }
+
+
+
+
+
+  template<pixel_type T>
+    requires std::is_same_v<typename T::component, f32>
+  void apply_transforms(pixel_buffer& input, float exp, bool gc, int pre) {
+    for (size_t y = 0; y < input.height(); ++y) {
+      auto row = input.row<T>(y);
+
+      if (gc) {
+        for (auto& pix: row) {
+          apply_gamma_correction(pix, exp);
+        }
+      }
+
+      if (pre < 0) {
+        std::ranges::for_each(row, apply_alpha_conversion<T, -1>);
+      } else if (pre > 0) {
+        std::ranges::for_each(row, apply_alpha_conversion<T, 1>);
+      }
+    }
+  }
+
+
+
+  void apply_transforms(pixel_buffer& in, float exp, bool gc, int pre) {
+    switch (in.format().channels) {
+      case color_channels::gray:   apply_transforms<gray  <f32>>(in, exp, gc, pre); break;
+      case color_channels::gray_a: apply_transforms<gray_a<f32>>(in, exp, gc, pre); break;
+      case color_channels::rgb:    apply_transforms<rgb   <f32>>(in, exp, gc, pre); break;
+      case color_channels::rgba:   apply_transforms<rgba  <f32>>(in, exp, gc, pre); break;
+    }
+  }
 }
 
 
@@ -90,7 +126,10 @@ namespace pixglot::details {
           .format   = data_format::f32,
           .channels = pixels.format().channels
       }, {});
+
+      apply_transforms(pixels, gamma_exp, gamma_correction, premultiply);
     }
+
 
 
     convert_pixel_format(pixels, target_format, target_endian);
