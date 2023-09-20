@@ -35,6 +35,10 @@ namespace {
 
 
   [[nodiscard]] bool is_arithmetic_conversion(data_format df1, data_format df2) {
+    return df1 != df2;
+    /* FIXME: conversions between u8, u16, and u32
+     * can also be done efficiently in non-native endian
+
     if (df1 == df2) {
       return false;
     }
@@ -43,7 +47,7 @@ namespace {
       return true;
     }
 
-    return false;
+    return false;*/
   }
 
 
