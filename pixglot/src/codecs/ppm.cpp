@@ -5,7 +5,6 @@
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
 #include "pixglot/pixel-buffer.hpp"
-#include "pixglot/pixel-format-conversion.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
@@ -354,14 +353,11 @@ namespace {
 
   template<data_format_type DFT, data_format_type UP>
   void adjust_range(pixel_buffer& pixels, DFT range) {
+    static constexpr UP max = std::integral<DFT> ? std::numeric_limits<DFT>::max() : 1.f;
+
     for (size_t y = 0; y < pixels.height(); ++y) {
       for (auto& component: components_of_row<DFT>(pixels, y)) {
-        component = std::clamp<UP>(
-          (static_cast<UP>(component)
-            * static_cast<UP>(conversions::info<DFT>::range_max)) / range,
-          0,
-          static_cast<UP>(conversions::info<DFT>::range_max)
-        );
+        component = std::clamp<UP>((static_cast<UP>(component) * max) / range, 0, max);
       }
     }
   }
