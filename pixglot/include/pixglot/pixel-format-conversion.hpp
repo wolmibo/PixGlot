@@ -7,287 +7,27 @@
 #include "pixglot/pixel-format.hpp"
 
 #include <algorithm>
+#include <limits>
 
 
 
-namespace pixglot::conversions {
-
-template<data_format_type T>
-struct info {};
-
-
-
-template<>
-struct info<u8> {
-  static constexpr u8  range_max{0xff};
-};
-
-
-
-template<>
-struct info<u16> {
-  static constexpr u16 range_max{0xffff};
-};
-
-
-
-template<>
-struct info<u32> {
-  static constexpr u32 range_max{0xffffffff};
-};
-
-
-
-template<>
-struct info<f16> {
-  static constexpr f16 range_min{static_cast<f16>(0.f)};
-  static constexpr f16 range_max{static_cast<f16>(1.f)};
-
-  static constexpr f16 clamp(f16 value) {
-    return std::clamp<f16>(value, range_min, range_max);
+namespace pixglot::details {
+  template<std::integral Src, std::integral Tgt>
+    requires (sizeof(Src) >= sizeof(Tgt))
+  [[nodiscard]] constexpr Tgt upper_bits(Src value) {
+    return (value >> (8 * (sizeof(Src) - sizeof(Tgt)))) & std::numeric_limits<Tgt>::max();
   }
-};
 
 
 
-template<>
-struct info<f32> {
-  static constexpr f32 range_min{0.f};
-  static constexpr f32 range_max{1.f};
-
-  static constexpr f32 clamp(f32 value) {
-    return std::clamp<f32>(value, range_min, range_max);
+  template<data_format_type T>
+  [[nodiscard]] constexpr T full_channel() {
+    if constexpr (std::integral<T>) {
+      return std::numeric_limits<T>::max();
+    } else {
+      return static_cast<T>(1.f);
+    }
   }
-};
-
-
-
-
-
-template<data_format_type SRC, data_format_type TGT>
-struct data_format_converter {
-  static constexpr bool bad{true};
-  static constexpr TGT convert(SRC /*unused*/) { return TGT{}; }
-};
-
-
-
-template<data_format_type SRC>
-struct data_format_converter<SRC, SRC> {
-  static constexpr bool bad{false};
-  static constexpr SRC convert(SRC value) { return value; }
-};
-
-
-
-// conversions from u8
-
-template<>
-struct data_format_converter<u8, u16> {
-  static constexpr bool bad{false};
-  static constexpr u16 convert(u8 value) {
-    return value << 8 | value;
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u8, u32> {
-  static constexpr bool bad{false};
-  static constexpr u32 convert(u8 value) {
-    return value << 24 | value << 16 | value << 8 | value;
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u8, f16> {
-  static constexpr bool bad{false};
-  static constexpr f16 convert(u8 value) {
-    return static_cast<f16>(value) / static_cast<f16>(0xff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u8, f32> {
-  static constexpr bool bad{false};
-  static constexpr f32 convert(u8 value) {
-    return static_cast<f32>(value) / static_cast<f32>(0xff);
-  }
-};
-
-
-
-// conversions from u16
-
-template<>
-struct data_format_converter<u16, u8> {
-  static constexpr bool bad{false};
-  static constexpr u8 convert(u16 value) {
-    return (value >> 8) & 0xff;
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u16, u32> {
-  static constexpr bool bad{false};
-  static constexpr u32 convert(u16 value) {
-    return value << 16 | value;
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u16, f16> {
-  static constexpr bool bad{false};
-  static constexpr f16 convert(u16 value) {
-    return static_cast<f16>(value) / static_cast<f16>(0xffff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u16, f32> {
-  static constexpr bool bad{false};
-  static constexpr f32 convert(u16 value) {
-    return static_cast<f32>(value) / static_cast<f32>(0xffff);
-  }
-};
-
-
-
-// conversions from u32
-
-template<>
-struct data_format_converter<u32, u8> {
-  static constexpr bool bad{false};
-  static constexpr u8 convert(u32 value) {
-    return (value >> 24) & 0xff;
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u32, u16> {
-  static constexpr bool bad{false};
-  static constexpr u32 convert(u32 value) {
-    return (value >> 16) & 0xffff;
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u32, f16> {
-  static constexpr bool bad{false};
-  static constexpr f16 convert(u32 value) {
-    return static_cast<f16>(value) / static_cast<f16>(0xffffffff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<u32, f32> {
-  static constexpr bool bad{false};
-  static constexpr f32 convert(u32 value) {
-    return static_cast<f32>(value) / static_cast<f32>(0xffffffff);
-  }
-};
-
-
-
-// conversions from f16
-
-template<>
-struct data_format_converter<f16, u8> {
-  static constexpr bool bad{false};
-  static constexpr u8 convert(f16 value) {
-    return info<f16>::clamp(value) * static_cast<f16>(0xff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<f16, u16> {
-  static constexpr bool bad{false};
-  static constexpr u16 convert(f16 value) {
-    return info<f16>::clamp(value) * static_cast<f16>(0xffff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<f16, u32> {
-  static constexpr bool bad{false};
-  static constexpr u32 convert(f16 value) {
-    return info<f16>::clamp(value) * static_cast<f16>(0xffffffff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<f16, f32> {
-  static constexpr bool bad{false};
-  static constexpr f32 convert(f16 value) {
-    return static_cast<f32>(value);
-  }
-};
-
-
-
-// conversions from f32
-
-template<>
-struct data_format_converter<f32, u8> {
-  static constexpr bool bad{false};
-  static constexpr u8 convert(f32 value) {
-    return info<f32>::clamp(value) * static_cast<f32>(0xff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<f32, u16> {
-  static constexpr bool bad{false};
-  static constexpr u16 convert(f32 value) {
-    return info<f32>::clamp(value) * static_cast<f32>(0xffff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<f32, u32> {
-  static constexpr bool bad{false};
-  static constexpr u32 convert(f32 value) {
-    return info<f32>::clamp(value) * static_cast<f32>(0xffffffff);
-  }
-};
-
-
-
-template<>
-struct data_format_converter<f32, f16> {
-  static constexpr bool bad{false};
-  static constexpr f16 convert(f32 value) {
-    return static_cast<f16>(value);
-  }
-};
-
 }
 
 
@@ -295,182 +35,168 @@ struct data_format_converter<f32, f16> {
 
 
 namespace pixglot {
+  template<data_format_type Tgt, data_format_type Src>
+  [[nodiscard]] constexpr Tgt data_format_cast(Src value) {
+    static constexpr bool src_is_float = is_float(data_format_from<Src>::value);
+    static constexpr bool tgt_is_float = is_float(data_format_from<Tgt>::value);
 
-template<data_format_type TGT, data_format_type SRC>
-constexpr TGT data_format_cast(SRC value) {
-  static_assert(!conversions::data_format_converter<SRC, TGT>::bad,
-    "no explicit cast defined from SRC to TGT");
+    if constexpr (std::is_same_v<Src, Tgt>) {
+      return value;
+    } else if constexpr (src_is_float && tgt_is_float) {
+      return static_cast<Tgt>(value);
+    } else if constexpr (src_is_float) {
+      return static_cast<Tgt>(std::clamp<f32>(static_cast<f32>(value), 0.f, 1.f));
+    } else if constexpr (tgt_is_float) {
+      return static_cast<Tgt>(static_cast<f32>(value)
+          / static_cast<f32>(std::numeric_limits<Src>::max()));
 
-  return conversions::data_format_converter<SRC, TGT>::convert(value);
+    } else if constexpr (sizeof(Src) > sizeof(Tgt)) {
+      return details::upper_bits<Src, Tgt>(value);
+
+    } else if constexpr (std::is_same_v<Src, u8> && std::is_same_v<Tgt, u16>) {
+      return value << 8 | value;
+    } else if constexpr (std::is_same_v<Src, u8> && std::is_same_v<Tgt, u32>) {
+      return value << 24 | value << 16 | value << 8 | value;
+    } else if constexpr (std::is_same_v<Src, u16> && std::is_same_v<Tgt, u32>) {
+      return value << 16 | value;
+
+    } else {
+      static_assert(!data_format_type<Src>, "no data format conversion defined");
+    }
+  }
+
+
+
+
+
+  template<data_format_type TgtDf, pixel_type Src>
+  [[nodiscard]] constexpr auto channel_data_format_cast(Src value) {
+    using SrcDf = typename Src::component;
+
+    static constexpr color_channels channels = Src::format().channels;
+
+    if constexpr (std::is_same_v<TgtDf, SrcDf>) {
+      return value;
+    } else if constexpr (channels == color_channels::gray) {
+      return gray<TgtDf> {
+        .v = data_format_cast<TgtDf>(value.v)
+      };
+    } else if constexpr (channels == color_channels::gray_a) {
+      return gray_a<TgtDf> {
+        .v = data_format_cast<TgtDf>(value.v)
+        .a = data_format_cast<TgtDf>(value.a)
+      };
+    } else if constexpr (channels == color_channels::rgb) {
+      return rgb<TgtDf> {
+        .r = data_format_cast<TgtDf>(value.r)
+        .g = data_format_cast<TgtDf>(value.g)
+        .b = data_format_cast<TgtDf>(value.b)
+      };
+    } else if constexpr (channels == color_channels::rgba) {
+      return rgb<TgtDf> {
+        .r = data_format_cast<TgtDf>(value.r)
+        .g = data_format_cast<TgtDf>(value.g)
+        .b = data_format_cast<TgtDf>(value.b)
+        .a = data_format_cast<TgtDf>(value.a)
+      };
+    } else {
+      static_assert(!data_format_type<Src>, "no channel data format conversion defined");
+    }
+  }
+
+
+
+
+
+  template<pixel_type Tgt, pixel_type Src>
+  [[nodiscard]] constexpr Tgt pixel_cast(Src pixel) {
+    static constexpr color_channels src_c = Src::format().channels;
+    static constexpr color_channels tgt_c = Tgt::format().channels;
+
+    using Df = typename Tgt::component;
+
+    if constexpr (src_c == color_channels::gray) {
+      if constexpr (tgt_c == color_channels::gray) {
+        return {
+          .v = data_format_cast<Df>(pixel.v)
+        };
+      } else if constexpr (tgt_c == color_channels::gray_a) {
+        return {
+          .v = data_format_cast<Df>(pixel.v),
+          .a = details::full_channel<Df>()
+        };
+      } else if constexpr (tgt_c == color_channels::rgb) {
+        return {
+          .r = data_format_cast<Df>(pixel.v),
+          .g = data_format_cast<Df>(pixel.v),
+          .b = data_format_cast<Df>(pixel.v)
+        };
+      } else if constexpr (tgt_c == color_channels::rgba) {
+        return {
+          .r = data_format_cast<Df>(pixel.v),
+          .g = data_format_cast<Df>(pixel.v),
+          .b = data_format_cast<Df>(pixel.v),
+          .a = details::full_channel<Df>()
+        };
+      } else {
+        static_assert(!pixel_type<Src>, "no pixel conversion defined");
+      }
+
+
+    } else if constexpr (src_c == color_channels::gray_a) {
+      if constexpr (tgt_c == color_channels::gray_a) {
+        return {
+          .v = data_format_cast<Df>(pixel.v),
+          .a = data_format_cast<Df>(pixel.a),
+        };
+      } else if constexpr (tgt_c == color_channels::rgba) {
+        return {
+          .r = data_format_cast<Df>(pixel.v),
+          .g = data_format_cast<Df>(pixel.v),
+          .b = data_format_cast<Df>(pixel.v),
+          .a = data_format_cast<Df>(pixel.a),
+        };
+      } else {
+        static_assert(!pixel_type<Src>, "no pixel conversion defined");
+      }
+
+
+    } else if constexpr (src_c == color_channels::rgb) {
+      if constexpr (tgt_c == color_channels::rgb) {
+        return {
+          .r = data_format_cast<Df>(pixel.r),
+          .g = data_format_cast<Df>(pixel.g),
+          .b = data_format_cast<Df>(pixel.b),
+        };
+      } else if constexpr (tgt_c == color_channels::rgba) {
+        return {
+          .r = data_format_cast<Df>(pixel.r),
+          .g = data_format_cast<Df>(pixel.g),
+          .b = data_format_cast<Df>(pixel.b),
+          .a = details::full_channel<Df>()
+        };
+      } else {
+        static_assert(!pixel_type<Src>, "no pixel conversion defined");
+      }
+
+
+    } else if constexpr (src_c == color_channels::rgba) {
+      if constexpr (tgt_c == color_channels::rgba) {
+        return {
+          .r = data_format_cast<Df>(pixel.r),
+          .g = data_format_cast<Df>(pixel.g),
+          .b = data_format_cast<Df>(pixel.b),
+          .a = data_format_cast<Df>(pixel.a),
+        };
+      } else {
+        static_assert(!pixel_type<Src>, "no pixel conversion defined");
+      }
+
+
+    } else {
+      static_assert(!pixel_type<Src>, "no pixel conversion defined");
+    }
+  }
 }
-
-}
-
-
-
-
-
-namespace pixglot::conversions {
-
-template<pixel_type SRC, pixel_type TGT>
-struct pixel_converter {
-  static constexpr bool bad{true};
-  static constexpr TGT convert(SRC /*unused*/) {
-    return {};
-  }
-};
-
-
-
-// conversions from gray
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<gray<S>, gray<T>> {
-  static constexpr bool bad{false};
-  static constexpr gray<T> convert(gray<S> value) {
-    return {
-      .v = data_format_cast<T>(value.v)
-    };
-  }
-};
-
-
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<gray<S>, gray_a<T>> {
-  static constexpr bool bad{false};
-  static constexpr gray_a<T> convert(gray<S> value) {
-    return {
-      .v = data_format_cast<T>(value.v),
-      .a = info<T>::range_max
-    };
-  }
-};
-
-
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<gray<S>, rgb<T>> {
-  static constexpr bool bad{false};
-  static constexpr rgb<T> convert(gray<S> value) {
-    return {
-      .r = data_format_cast<T>(value.v),
-      .g = data_format_cast<T>(value.v),
-      .b = data_format_cast<T>(value.v)
-    };
-  }
-};
-
-
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<gray<S>, rgba<T>> {
-  static constexpr bool bad{false};
-  static constexpr rgba<T> convert(gray<S> value) {
-    return {
-      .r = data_format_cast<T>(value.v),
-      .g = data_format_cast<T>(value.v),
-      .b = data_format_cast<T>(value.v),
-      .a = info<T>::range_max
-    };
-  }
-};
-
-
-
-// conversions from gray_a
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<gray_a<S>, gray_a<T>> {
-  static constexpr bool bad{false};
-  static constexpr gray_a<T> convert(gray_a<S> value) {
-    return {
-      .v = data_format_cast<T>(value.v),
-      .a = data_format_cast<T>(value.a)
-    };
-  }
-};
-
-
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<gray_a<S>, rgba<T>> {
-  static constexpr bool bad{false};
-  static constexpr rgba<T> convert(gray_a<S> value) {
-    return {
-      .r = data_format_cast<T>(value.v),
-      .g = data_format_cast<T>(value.v),
-      .b = data_format_cast<T>(value.v),
-      .a = data_format_cast<T>(value.a)
-    };
-  }
-};
-
-
-
-// conversions from rgb
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<rgb<S>, rgb<T>> {
-  static constexpr bool bad{false};
-  static constexpr rgb<T> convert(rgb<S> value) {
-    return {
-      .r = data_format_cast<T>(value.r),
-      .g = data_format_cast<T>(value.g),
-      .b = data_format_cast<T>(value.b),
-    };
-  }
-};
-
-
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<rgb<S>, rgba<T>> {
-  static constexpr bool bad{false};
-  static constexpr rgba<T> convert(rgb<S> value) {
-    return {
-      .r = data_format_cast<T>(value.r),
-      .g = data_format_cast<T>(value.g),
-      .b = data_format_cast<T>(value.b),
-      .a = info<T>::range_max
-    };
-  }
-};
-
-
-
-// conversions from rgba
-
-template<data_format_type S, data_format_type T>
-struct pixel_converter<rgba<S>, rgba<T>> {
-  static constexpr bool bad{false};
-  static constexpr rgba<T> convert(rgba<S> value) {
-    return {
-      .r = data_format_cast<T>(value.r),
-      .g = data_format_cast<T>(value.g),
-      .b = data_format_cast<T>(value.b),
-      .a = data_format_cast<T>(value.a)
-    };
-  }
-};
-
-}
-
-
-
-
-namespace pixglot {
-
-template<pixel_type TGT, pixel_type SRC>
-constexpr TGT pixel_cast(SRC pixel) {
-  static_assert(!conversions::pixel_converter<SRC, TGT>::bad,
-    "no explicit non-narrowing conversion from SRC to TGT");
-
-  return conversions::pixel_converter<SRC, TGT>::convert(pixel);
-}
-
-}
-
-
 
 #endif // PIXGLOT_PIXEL_FORMAT_CONVERSION_HPP_INCLUDED
