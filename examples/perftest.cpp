@@ -223,8 +223,8 @@ void save_frame(const pixglot::frame& frame, const std::filesystem::path& outpat
   output << max_brightness << '\n';
 
   for (size_t y = 0; y < frame.height(); ++y) {
-    auto row = frame.pixels().row_bytes(y);
-
+    auto ry = pixglot::is_float(frame.format().format) ? frame.height() - y - 1 : y;
+    auto row = frame.pixels().row_bytes(ry);
     output.write(pixglot::utils::byte_pointer_cast<const char>(row.data()), row.size());
   }
 
