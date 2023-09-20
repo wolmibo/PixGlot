@@ -45,7 +45,8 @@ namespace pixglot {
     } else if constexpr (src_is_float && tgt_is_float) {
       return static_cast<Tgt>(value);
     } else if constexpr (src_is_float) {
-      return static_cast<Tgt>(std::clamp<f32>(static_cast<f32>(value), 0.f, 1.f));
+      return static_cast<Tgt>(std::clamp<f32>(static_cast<f32>(value), 0.f, 1.f)
+          * static_cast<f32>(std::numeric_limits<Tgt>::max()));
     } else if constexpr (tgt_is_float) {
       return static_cast<Tgt>(static_cast<f32>(value)
           / static_cast<f32>(std::numeric_limits<Src>::max()));
