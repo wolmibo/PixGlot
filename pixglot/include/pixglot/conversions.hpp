@@ -32,6 +32,11 @@ void convert_pixel_format(frame&,        pixel_format, std::optional<std::endian
 void convert_pixel_format(pixel_buffer&, pixel_format, std::optional<std::endian> = {});
 void convert_pixel_format(gl_texture&,   pixel_format);
 
+void convert_alpha_mode(image&, alpha_mode);
+void convert_alpha_mode(frame&, alpha_mode);
+void convert_alpha_mode(pixel_buffer&, alpha_mode, alpha_mode);
+void convert_alpha_mode(gl_texture&,   alpha_mode, alpha_mode);
+
 }
 
 #endif // PIXGLOT_COVERSIONS_HPP_INCLUDED

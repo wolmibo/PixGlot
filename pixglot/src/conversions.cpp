@@ -218,3 +218,62 @@ void pixglot::convert_storage(frame& frm, storage_type target) {
     }
   }
 }
+
+
+
+
+
+void pixglot::convert_alpha_mode(image& img, alpha_mode target) {
+  convert_image(img, convert_alpha_mode, target);
+}
+
+
+
+void pixglot::convert_alpha_mode(frame& f, alpha_mode target) {
+  f.visit_storage([src=f.alpha_mode(), target](auto& arg) {
+      convert_alpha_mode(arg, src, target);
+  });
+  f.alpha_mode(target);
+}
+
+
+
+namespace {
+  [[nodiscard]] int get_premultiply(alpha_mode source, alpha_mode target) {
+    if (source == alpha_mode::straight && target == alpha_mode::premultiplied) {
+      return 1;
+    }
+
+    if (source == alpha_mode::premultiplied && target == alpha_mode::straight) {
+      return -1;
+    }
+
+    return 0;
+  }
+}
+
+
+
+void pixglot::convert_alpha_mode(
+    pixel_buffer& pixels,
+    alpha_mode    source,
+    alpha_mode    target
+) {
+  if (source == target) {
+    return;
+  }
+  details::convert(pixels, {}, pixels.format(), get_premultiply(source, target), 1.f, {});
+}
+
+
+
+void pixglot::convert_alpha_mode(
+    gl_texture& texture,
+    alpha_mode  source,
+    alpha_mode  target
+) {
+  if (source == target) {
+    return;
+  }
+  details::convert(texture, texture.format(), get_premultiply(source, target), 1.f, {});
+}
