@@ -28,6 +28,7 @@ enum class event {
   conversion_orientation,
   conversion_endian,
   conversion_pixel_format,
+  conversion_gamma,
   conversions_finish,
   save_image_begin,
   save_frame_finish,
@@ -134,6 +135,9 @@ void print_time_tree(std::span<const pixglot::frame> frames) {
       case event::conversion_pixel_format:
         std::cout << "  ├─ convert pixel_format\n";
         break;
+      case event::conversion_gamma:
+        std::cout << "  ├─ convert gamma\n";
+        break;
 
 
       case event::save_image_begin:
@@ -174,6 +178,10 @@ void apply_conversion(pixglot::image& img, pixglot::pixel_format fmt) {
   emit_event(event::conversion_pixel_format);
 }
 
+void apply_conversion(pixglot::image& img, float exp) {
+  pixglot::convert_gamma(img, exp);
+  emit_event(event::conversion_gamma);
+}
 
 
 
@@ -385,7 +393,8 @@ using operations = std::variant<
   std::endian,
   pixglot::storage_type,
   pixglot::square_isometry,
-  pixglot::pixel_format
+  pixglot::pixel_format,
+  float
 >;
 
 
@@ -429,6 +438,7 @@ void print_help(const std::filesystem::path& name) {
     "  --convert-orientation=<ori>        convert to orientaion\n"
     "  --convert-endian=<endian>          convert to endian\n"
     "  --convert-pixel-format=<cc>_<df>   convert to pixel format\n"
+    "  --convert-gamma=<gamma>            convert to gamma\n"
     "\n"
     "Enum values:\n"
     "  <target>:   no_pixels, pixel_buffer, gl_texture\n"
@@ -449,7 +459,7 @@ void print_help(const std::filesystem::path& name) {
 int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
-  static std::array<option, 25> long_options = {
+  static std::array<option, 26> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
 
     option{"output",               required_argument, nullptr, 'o'},
@@ -479,6 +489,7 @@ int main(int argc, char** argv) {
     option{"convert-orientation",  required_argument, nullptr, 4001},
     option{"convert-endian",       required_argument, nullptr, 4002},
     option{"convert-pixel-format", required_argument, nullptr, 4003},
+    option{"convert-gamma",        required_argument, nullptr, 4004},
 
     option{nullptr,                0,                 nullptr, 0},
   };
@@ -528,6 +539,7 @@ int main(int argc, char** argv) {
       case 4001: ops.emplace_back(square_isometry_from_string(optarg)); break;
       case 4002: ops.emplace_back(endian_from_string(optarg));          break;
       case 4003: ops.emplace_back(pixel_format_from_string(optarg));    break;
+      case 4004: ops.emplace_back(float_from_string(optarg));           break;
     }
   }
 
