@@ -87,9 +87,22 @@ void pixglot::convert_pixel_format(
     pixel_format               target_format,
     std::optional<std::endian> target_endian
 ) {
-  if (f.type() == storage_type::pixel_buffer) {
-    convert_pixel_format(f.pixels(), target_format, target_endian);
+  switch (f.type()) {
+    case storage_type::pixel_buffer:
+      convert_pixel_format(f.pixels(), target_format, target_endian);
+      break;
+    case storage_type::gl_texture:
+      convert_pixel_format(f.texture(), target_format);
+      break;
+    case storage_type::no_pixels:
+      break;
   }
+}
+
+
+
+void pixglot::convert_pixel_format(gl_texture& texture, pixel_format target_format) {
+  details::convert(texture, target_format, 0, 1.f, square_isometry::identity);
 }
 
 

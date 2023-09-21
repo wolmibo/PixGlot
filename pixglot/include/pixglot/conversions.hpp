@@ -30,6 +30,7 @@ void convert_storage(frame&, storage_type);
 void convert_pixel_format(image&,        pixel_format, std::optional<std::endian> = {});
 void convert_pixel_format(frame&,        pixel_format, std::optional<std::endian> = {});
 void convert_pixel_format(pixel_buffer&, pixel_format, std::optional<std::endian> = {});
+void convert_pixel_format(gl_texture&,   pixel_format);
 
 }
 
