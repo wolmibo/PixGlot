@@ -2,6 +2,7 @@
 #include "pixglot/buffer.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/exif.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -60,13 +61,9 @@ namespace {
 
 
 
-  class webp_frame_iterator {
+  //NOLINTNEXTLINE(*-special-member-functions)
+  class webp_frame_iterator : details::hermit {
     public:
-      webp_frame_iterator(const webp_frame_iterator&) = delete;
-      webp_frame_iterator(webp_frame_iterator&&)      = delete;
-      webp_frame_iterator& operator=(const webp_frame_iterator&) = delete;
-      webp_frame_iterator& operator=(webp_frame_iterator&&)      = delete;
-
       ~webp_frame_iterator() {
         if (iterator_) {
           WebPDemuxReleaseIterator(&*iterator_);
@@ -136,13 +133,9 @@ namespace {
 
 
 
-  class webp_decoder_config {
+  //NOLINTNEXTLINE(*-special-member-functions)
+  class webp_decoder_config : details::hermit {
     public:
-      webp_decoder_config(webp_decoder_config&&)      = delete;
-      webp_decoder_config(const webp_decoder_config&) = delete;
-      webp_decoder_config& operator=(const webp_decoder_config&) = delete;
-      webp_decoder_config& operator=(webp_decoder_config&&)      = delete;
-
       ~webp_decoder_config() {
         WebPFreeDecBuffer(&config_.output);
       }
@@ -187,7 +180,7 @@ namespace {
 
 
 
-  class webp_decoder {
+  class webp_decoder : details::hermit {
     public:
       explicit webp_decoder(details::decoder& decoder) :
         decoder_{&decoder},
