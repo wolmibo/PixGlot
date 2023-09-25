@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -45,13 +46,9 @@ namespace {
 
 
 
-  class gif_file {
+  //NOLINTNEXTLINE(*-special-member-functions)
+  class gif_file : details::hermit {
     public:
-      gif_file(const gif_file&) = delete;
-      gif_file(gif_file&&)      = delete;
-      gif_file& operator=(const gif_file&) = delete;
-      gif_file& operator=(gif_file&&)      = delete;
-
       ~gif_file() {
         int error{D_GIF_SUCCEEDED};
         DGifCloseFile(gif_, &error);
@@ -376,7 +373,7 @@ namespace {
 
 
 
-  class gif_decoder {
+  class gif_decoder : details::hermit {
     public:
       explicit gif_decoder(details::decoder& decoder) :
         decoder_{&decoder},
