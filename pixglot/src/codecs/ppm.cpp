@@ -1,6 +1,7 @@
 #include "pixglot/buffer.hpp"
 #include "pixglot/conversions.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
@@ -66,15 +67,8 @@ namespace {
 
 
 
-  class ppm_reader {
+  class ppm_reader : details::hermit {
     public:
-      ppm_reader(const ppm_reader&) = delete;
-      ppm_reader(ppm_reader&&)      = delete;
-      ppm_reader& operator=(const ppm_reader&) = delete;
-      ppm_reader& operator=(ppm_reader&&)      = delete;
-
-      ~ppm_reader() = default;
-
       explicit ppm_reader(reader& input) :
         data_{input.size()},
         remainder_{data_}
@@ -531,7 +525,7 @@ namespace {
 
 
 
-  class ppm_decoder {
+  class ppm_decoder : details::hermit {
     public:
       explicit ppm_decoder(details::decoder& decoder) :
         decoder_{&decoder},
