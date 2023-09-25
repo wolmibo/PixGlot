@@ -2,6 +2,7 @@
 #include "pixglot/codecs.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/exif.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/exception.hpp"
@@ -28,15 +29,9 @@ namespace {
 
 
   // Derived from the implementation of jpeg_stdio_src in libjpeg-turbo
-  class source_mgr {
+  class source_mgr : details::hermit {
     public:
       jpeg_source_mgr pub; //NOLINT(*non-private-member-*)
-
-      ~source_mgr() = default;
-      source_mgr(const source_mgr&) = delete;
-      source_mgr(source_mgr&&)      = delete;
-      source_mgr& operator=(const source_mgr&) = delete;
-      source_mgr& operator=(source_mgr&&)      = delete;
 
       explicit source_mgr(reader& read) :
         pub{.next_input_byte   = nullptr,
@@ -209,7 +204,7 @@ namespace {
 
 
 
-  class jpeg_decoder {
+  class jpeg_decoder : details::hermit {
     public:
       explicit jpeg_decoder(details::decoder& decoder) :
         decoder_{&decoder},
