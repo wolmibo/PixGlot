@@ -1,4 +1,5 @@
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
@@ -28,15 +29,8 @@ namespace {
 
 
 
-  class exr_reader : public IStream {
+  class exr_reader : details::hermit, public IStream {
     public:
-      exr_reader(const exr_reader&) = delete;
-      exr_reader(exr_reader&&)      = delete;
-      exr_reader& operator=(const exr_reader&) = delete;
-      exr_reader& operator=(exr_reader&&)      = delete;
-
-      ~exr_reader() override = default;
-
       explicit exr_reader(reader& input) :
         IStream{"pixglot::reader"},
         input_ {&input}
@@ -492,7 +486,7 @@ namespace {
 
 
 
-  class exr_decoder {
+  class exr_decoder : details::hermit {
     public:
       explicit exr_decoder(details::decoder& decoder) :
         decoder_    {&decoder},
