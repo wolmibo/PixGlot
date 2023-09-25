@@ -1,5 +1,6 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/exif.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -14,16 +15,8 @@ using namespace pixglot;
 
 
 namespace {
-  class avif_reader {
+  class avif_reader : details::hermit {
     public:
-      ~avif_reader() = default;
-
-      avif_reader(const avif_reader&) = delete;
-      avif_reader(avif_reader&&)      = delete;
-
-      avif_reader& operator=(const avif_reader&) = delete;
-      avif_reader& operator=(avif_reader&&)      = delete;
-
       explicit avif_reader(reader& input) :
         input_  {&input},
         avif_io_{
@@ -117,13 +110,9 @@ namespace {
 
 
 
-  class avif_rgb_image {
+  //NOLINTNEXTLINE(*-special-member-functions)
+  class avif_rgb_image : details::hermit {
     public:
-      avif_rgb_image& operator=(const avif_rgb_image&) = delete;
-      avif_rgb_image& operator=(avif_rgb_image&&)      = delete;
-      avif_rgb_image(const avif_rgb_image&) = delete;
-      avif_rgb_image(avif_rgb_image&&)      = delete;
-
       ~avif_rgb_image() {
         rgb_.pixels = nullptr;
         avifRGBImageFreePixels(&rgb_);
@@ -285,7 +274,7 @@ namespace {
 
 
 
-  class avif_decoder {
+  class avif_decoder : details::hermit {
     public:
       explicit avif_decoder(details::decoder& decoder) :
         decoder_{&decoder},
