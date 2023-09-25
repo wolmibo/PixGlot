@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -138,7 +139,7 @@ namespace {
 
 
 
-  class png_decoder {
+  class png_decoder : details::hermit {
     public:
       explicit png_decoder(details::decoder& decoder) :
         decoder_{&decoder}
