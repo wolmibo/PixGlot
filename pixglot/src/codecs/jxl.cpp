@@ -2,6 +2,7 @@
 #include "pixglot/codecs-magic.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/exif.hpp"
+#include "pixglot/details/hermit.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -114,7 +115,7 @@ namespace {
 
 
 
-  class jxl_reader {
+  class jxl_reader : details::hermit {
     public:
       explicit jxl_reader(reader& input) :
         data{input.size()}
@@ -161,7 +162,7 @@ namespace {
 
 
 
-  class jxl_decoder {
+  class jxl_decoder : details::hermit {
     public:
       explicit jxl_decoder(details::decoder& decoder) :
         decoder_   {&decoder},
