@@ -41,6 +41,8 @@ namespace pixglot::utils {
     case GL_RGBA32UI:    return rgba<u32>::format();
     case GL_RGBA16F:     return rgba<f16>::format();
     case GL_RGBA32F:     return rgba<f32>::format();
+
+    default: break;
   }
 
   throw std::invalid_argument{"unsupported internal format"};
