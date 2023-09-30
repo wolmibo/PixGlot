@@ -17,7 +17,7 @@ namespace pixglot::details {
 
 class decoder;
 
-void fill_xmp_metadata(std::string&&, metadata&, details::decoder&);
+void fill_xmp_metadata(std::string, metadata&, details::decoder&);
 
 }
 

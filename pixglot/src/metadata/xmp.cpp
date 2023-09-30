@@ -127,7 +127,7 @@ std::string pixglot_metadata_find_unique_key(const metadata&,
 
 
 void pixglot::details::fill_xmp_metadata(
-    std::string&&     str,
+    std::string       str,
     metadata&         meta,
     details::decoder& dec
 ) {
