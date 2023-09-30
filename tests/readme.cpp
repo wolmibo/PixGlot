@@ -3,6 +3,7 @@
 
 #include <pixglot/decode.hpp>
 
+// NOLINTBEGIN(*-avoid-endl)
 int main(int argc, char** argv) {
   assert(argc == 2);
   try {
@@ -20,3 +21,4 @@ int main(int argc, char** argv) {
     std::cerr << "*ERROR:*" << ex.what() << std::endl;
   }
 }
+// NOLINTEND(*-avoid-endl)

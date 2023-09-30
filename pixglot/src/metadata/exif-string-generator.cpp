@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   auto args = std::span{argv, static_cast<size_t>(argc)};
 
   if (args.size() != 3) {
-    std::cout << "usage: " << args[0] << " <input> <output.cpp>" << std::endl;
+    std::cout << "usage: " << args[0] << " <input> <output.cpp>\n";
     return 0;
   }
   std::ofstream out{args[2]};

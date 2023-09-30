@@ -151,7 +151,7 @@ int main() {
 
 
   for (auto iso: list) {
-    std::cout << "iso: " << to_string(iso) << std::endl;
+    std::cout << "iso: " << to_string(iso) << '\n' << std::flush;
 
     id_assert_eq(inverse(iso), lut_inverse(iso),
         "inverse(iso) == static_inverse(iso)");
@@ -175,7 +175,7 @@ int main() {
 
 
     for (auto jso: list) {
-      std::cout << "jso: " << to_string(jso) << std::endl;
+      std::cout << "jso: " << to_string(jso) << '\n' << std::flush;
 
       auto iso2 = iso;
       auto iso3 = iso;

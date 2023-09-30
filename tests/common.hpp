@@ -48,11 +48,11 @@ inline void id_assert(
   if (!v) {
     std::cout << location << " id_assert failed";
 
-    if (err_msg.empty()) {
-      std::cout << std::endl;
-    } else {
-      std::cout << ":\n  " << err_msg << std::endl;
+    if (!err_msg.empty()) {
+      std::cout << ":\n  " << err_msg;
     }
+
+    std::cout << '\n' << std::flush;
 
     std::exit(1);
   }
@@ -82,11 +82,11 @@ void id_assert_eq(
       std::cout << location << " id_assert_eq failed";
     }
 
-    if (err_msg.empty()) {
-      std::cout << std::endl;
-    } else {
-      std::cout << ":\n  " << err_msg << std::endl;
+    if (!err_msg.empty()) {
+      std::cout << ":\n  " << err_msg;
     }
+
+    std::cout << '\n' << std::flush;
 
     std::exit(1);
   }
