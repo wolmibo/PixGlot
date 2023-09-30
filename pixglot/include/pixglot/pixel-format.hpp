@@ -72,14 +72,14 @@ using f32 = float;
 
 template<typename T>
 concept data_format_type_candidate =
-  std::is_trivially_copyable<T>::value &&
+  std::is_trivially_copyable_v<T> &&
   std::semiregular<T> &&
 
-  (std::is_same<T,  u8>::value ||
-   std::is_same<T, u16>::value ||
-   std::is_same<T, u32>::value ||
-   std::is_same<T, f16>::value ||
-   std::is_same<T, f32>::value);
+  (std::is_same_v<T,  u8> ||
+   std::is_same_v<T, u16> ||
+   std::is_same_v<T, u32> ||
+   std::is_same_v<T, f16> ||
+   std::is_same_v<T, f32>);
 
 
 
@@ -112,7 +112,7 @@ concept data_format_type = requires {
   requires data_format_type_candidate<T>;
 
   byte_size(data_format_from<T>::value) == sizeof(T);
-  std::is_same<T, typename data_format_to<data_format_from<T>::value>::type >::value;
+  std::is_same_v<T, typename data_format_to<data_format_from<T>::value>::type >;
 };
 
 
@@ -289,17 +289,17 @@ struct pixel_format_to {
 
 template<typename T>
 concept pixel_type =
-  std::is_trivially_copyable<T>::value &&
+  std::is_trivially_copyable_v<T> &&
   std::semiregular<T> &&
 
   data_format_type<typename T::component> &&
 
-  (std::is_same<T, gray  <typename T::component>>::value ||
-   std::is_same<T, gray_a<typename T::component>>::value ||
-   std::is_same<T, rgb   <typename T::component>>::value ||
-   std::is_same<T, rgba  <typename T::component>>::value) &&
+  (std::is_same_v<T, gray  <typename T::component>> ||
+   std::is_same_v<T, gray_a<typename T::component>> ||
+   std::is_same_v<T, rgb   <typename T::component>> ||
+   std::is_same_v<T, rgba  <typename T::component>>) &&
 
-  std::is_same<T, typename pixel_format_to<T::format()>::type >::value &&
+  std::is_same_v<T, typename pixel_format_to<T::format()>::type > &&
 
   sizeof(T)  == sizeof(typename T::component) * n_channels(T::format().channels) &&
   alignof(T) == alignof(typename T::component);
