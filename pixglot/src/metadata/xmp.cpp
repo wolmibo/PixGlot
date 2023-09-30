@@ -2,8 +2,6 @@
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/metadata.hpp"
 
-#include <algorithm>
-#include <bits/fs_fwd.h>
 #include <string_view>
 
 #include <rapidxml.h>

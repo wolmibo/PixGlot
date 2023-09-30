@@ -1,6 +1,5 @@
 #include "common.hpp"
 
-#include <iostream>
 #include <tuple>
 
 #include <pixglot/pixel-buffer.hpp>

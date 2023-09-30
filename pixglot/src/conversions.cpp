@@ -2,14 +2,8 @@
 #include "pixglot/frame.hpp"
 #include "pixglot/gl-texture.hpp"
 #include "pixglot/pixel-buffer.hpp"
-#include "pixglot/pixel-format-conversion.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
-#include "pixglot/utils/cast.hpp"
-
-#include <cmath>
-#include <limits>
-#include <span>
 
 using namespace pixglot;
 

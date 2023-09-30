@@ -14,7 +14,6 @@
 #include "pixglot/utils/cast.hpp"
 
 #include <bit>
-#include <optional>
 #include <vector>
 
 #include <jpeglib.h>

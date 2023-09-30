@@ -3,7 +3,6 @@
 #include "pixglot/metadata.hpp"
 
 #include <chrono>
-#include <optional>
 #include <vector>
 
 using namespace pixglot;

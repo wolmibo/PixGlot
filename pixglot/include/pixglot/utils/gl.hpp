@@ -9,7 +9,6 @@
 
 #include <array>
 #include <stdexcept>
-#include <utility>
 
 #include <GL/gl.h>
 

@@ -9,9 +9,7 @@
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 
-#include <exception>
 #include <string>
-#include <utility>
 
 
 

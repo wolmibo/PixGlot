@@ -1,5 +1,6 @@
-#include "pixglot/conversions.hpp"
 #include "pixglot/exception.hpp"
+#include "pixglot/pixel-buffer.hpp"
+#include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <algorithm>

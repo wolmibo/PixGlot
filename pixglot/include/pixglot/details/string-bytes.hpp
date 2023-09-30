@@ -4,7 +4,6 @@
 #ifndef PIXGLOT_DETAILS_STRING_BYTES_HPP_INCLUDED
 #define PIXGLOT_DETAILS_STRING_BYTES_HPP_INCLUDED
 
-#include <concepts>
 #include <limits>
 #include <string>
 #include <string_view>

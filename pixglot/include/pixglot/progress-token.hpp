@@ -4,10 +4,8 @@
 #ifndef PIXGLOT_PROGRESS_TOKEN_HPP_INCLUDED
 #define PIXGLOT_PROGRESS_TOKEN_HPP_INCLUDED
 
-#include <atomic>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <utility>
 
 

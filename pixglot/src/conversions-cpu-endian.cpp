@@ -1,4 +1,5 @@
-#include "pixglot/conversions.hpp"
+#include "pixglot/exception.hpp"
+#include "pixglot/pixel-buffer.hpp"
 #include "pixglot/utils/cast.hpp"
 
 #include <bit>

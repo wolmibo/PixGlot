@@ -4,7 +4,6 @@
 #ifndef PIXGLOT_PIXEL_FORMAT_HPP_INCLUDED
 #define PIXGLOT_PIXEL_FORMAT_HPP_INCLUDED
 
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <string>

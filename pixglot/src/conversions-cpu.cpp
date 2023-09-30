@@ -4,7 +4,6 @@
 #include "pixglot/square-isometry.hpp"
 
 #include <cmath>
-#include <iostream>
 
 using namespace pixglot;
 

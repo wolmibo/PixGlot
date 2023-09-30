@@ -4,8 +4,6 @@
 #ifndef PIXGLOT_READER_HPP_INCLUDED
 #define PIXGLOT_READER_HPP_INCLUDED
 
-#include "pixglot/exception.hpp"
-
 #include <cstdio>
 #include <filesystem>
 #include <memory>

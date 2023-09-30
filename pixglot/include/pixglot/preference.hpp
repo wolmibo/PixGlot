@@ -4,7 +4,6 @@
 #ifndef PIXGLOT_PREFERENCE_HPP_INCLUDED
 #define PIXGLOT_PREFERENCE_HPP_INCLUDED
 
-#include <concepts>
 #include <utility>
 
 

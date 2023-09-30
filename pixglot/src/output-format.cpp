@@ -8,7 +8,6 @@
 #include "pixglot/square-isometry.hpp"
 
 #include <algorithm>
-#include <functional>
 #include <optional>
 
 using namespace pixglot;

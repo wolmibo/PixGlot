@@ -2,7 +2,6 @@
 #define PIXGLOT_TESTS_COMMON_HPP_INCLUDED
 
 #include <algorithm>
-#include <concepts>
 #include <iomanip>
 #include <iostream>
 #include <source_location>
