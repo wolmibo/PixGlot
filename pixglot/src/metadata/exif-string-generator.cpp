@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
     out << "      case 0x" << list[0] << ": return \"" << list[1] << "\";\n";
   }
 
+  out << "      default: break;\n";
   out << "    }\n";
   out << "    return {};\n";
   out << "  }\n";
@@ -106,6 +107,7 @@ int main(int argc, char** argv) {
     out << "        break;\n";
   }
 
+  out << "      default: break;\n";
   out << "    }\n";
   out << "    return input;\n";
   out << "  }\n";

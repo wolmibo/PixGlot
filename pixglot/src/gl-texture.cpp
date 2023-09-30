@@ -224,6 +224,8 @@ namespace {
       case 1: repack_row_sized<1>(format, source, target); break;
       case 2: repack_row_sized<2>(format, source, target); break;
       case 4: repack_row_sized<4>(format, source, target); break;
+
+      default: break;
     }
   }
 }

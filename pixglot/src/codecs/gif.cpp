@@ -547,6 +547,8 @@ namespace {
               }
               break;
 #endif
+            default:
+              break;
           }
         }
 

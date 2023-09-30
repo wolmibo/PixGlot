@@ -285,6 +285,8 @@ namespace {
           case PNG_COLOR_TYPE_GA:   return color_channels::gray_a;
           case PNG_COLOR_TYPE_RGB:  return color_channels::rgb;
           case PNG_COLOR_TYPE_RGBA: return color_channels::rgba;
+
+          default: break;
         }
 
         throw decode_error{codec::png, "unknown color type "
