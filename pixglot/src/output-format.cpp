@@ -331,6 +331,13 @@ namespace {
       convert_storage(f, *fmt.storage_type());
     }
 
+    if (f.format() == target_format &&
+        premultiply == 0 &&
+        gamma == 1.f &&
+        transform == square_isometry::identity) {
+      return;
+    }
+
     if (f.type() == storage_type::gl_texture) {
       details::convert(f.texture(), target_format, premultiply, gamma, transform);
 

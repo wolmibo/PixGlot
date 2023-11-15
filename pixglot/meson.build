@@ -1,10 +1,7 @@
 sources = [
   'src/codecs.cpp',
   'src/conversions.cpp',
-  'src/conversions-cpu.cpp',
   'src/conversions-cpu-endian.cpp',
-  'src/conversions-cpu-orientation.cpp',
-  'src/conversions-cpu-pixel-format.cpp',
   'src/conversions-gl.cpp',
   'src/decode.cpp',
   'src/decoder.cpp',
@@ -28,6 +25,14 @@ dependencies = [
 ]
 
 config = configuration_data()
+
+if get_option('cpu-conversions')
+  sources += 'src/conversions-cpu.cpp'
+  sources += 'src/conversions-cpu-orientation.cpp'
+  sources += 'src/conversions-cpu-pixel-format.cpp'
+else
+  sources += 'src/conversions-no-cpu.cpp'
+endif
 
 jpeg = dependency('libjpeg', required: get_option('jpeg'))
 if jpeg.found()

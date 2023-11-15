@@ -18,3 +18,6 @@ option('tests', type: 'boolean', value: true,
 
 option('examples', type: 'boolean', value: false,
   description: 'Build the examples')
+
+option('cpu-conversions', type: 'boolean', value: true,
+  description: 'Build CPU based conversion algorithms')
