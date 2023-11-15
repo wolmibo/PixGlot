@@ -7,6 +7,8 @@
 #include "pixglot/preference.hpp"
 #include "pixglot/square-isometry.hpp"
 
+#include "config.hpp"
+
 #include <algorithm>
 #include <optional>
 
@@ -337,6 +339,12 @@ namespace {
         transform == square_isometry::identity) {
       return;
     }
+
+#ifndef PIXGLOT_WITH_CPU_CONVERSIONS
+    if (fmt.storage_type().prefers(storage_type::gl_texture)) {
+      convert_storage(f, *fmt.storage_type());
+    }
+#endif
 
     if (f.type() == storage_type::gl_texture) {
       details::convert(f.texture(), target_format, premultiply, gamma, transform);

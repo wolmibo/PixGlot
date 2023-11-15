@@ -30,6 +30,7 @@ if get_option('cpu-conversions')
   sources += 'src/conversions-cpu.cpp'
   sources += 'src/conversions-cpu-orientation.cpp'
   sources += 'src/conversions-cpu-pixel-format.cpp'
+  config.set('PIXGLOT_WITH_CPU_CONVERSIONS')
 else
   sources += 'src/conversions-no-cpu.cpp'
 endif
