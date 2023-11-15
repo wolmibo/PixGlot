@@ -26,7 +26,7 @@ dependencies = [
 
 config = configuration_data()
 
-if get_option('cpu-conversions')
+if get_option('cpu_conversions')
   sources += 'src/conversions-cpu.cpp'
   sources += 'src/conversions-cpu-orientation.cpp'
   sources += 'src/conversions-cpu-pixel-format.cpp'
