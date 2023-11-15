@@ -1,4 +1,5 @@
 #include "pixglot/codecs.hpp"
+
 #include "pixglot/codecs-magic.hpp"
 #include "pixglot/reader.hpp"
 

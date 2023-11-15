@@ -1,4 +1,5 @@
 #include "pixglot/image.hpp"
+
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
 

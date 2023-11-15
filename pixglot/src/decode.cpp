@@ -1,7 +1,9 @@
-#include "config.hpp"
-#include "pixglot/codecs-magic.hpp"
 #include "pixglot/decode.hpp"
+
+#include "pixglot/codecs-magic.hpp"
 #include "pixglot/details/decoder.hpp"
+
+#include "config.hpp"
 
 #include <utility>
 

@@ -1,4 +1,5 @@
 #include "pixglot/details/decoder.hpp"
+
 #include "pixglot/conversions.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame.hpp"

@@ -1,7 +1,8 @@
 #include "pixglot/frame.hpp"
+
+#include "pixglot/details/no-pixels.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
-#include "pixglot/details/no-pixels.hpp"
 
 using namespace pixglot;
 using std::chrono::microseconds;

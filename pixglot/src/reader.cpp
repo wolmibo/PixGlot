@@ -1,5 +1,6 @@
-#include "pixglot/exception.hpp"
 #include "pixglot/reader.hpp"
+
+#include "pixglot/exception.hpp"
 
 using namespace pixglot;
 

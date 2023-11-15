@@ -1,4 +1,5 @@
 #include "pixglot/gl-texture.hpp"
+
 #include "pixglot/exception.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format.hpp"

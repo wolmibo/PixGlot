@@ -1,8 +1,9 @@
+#include "pixglot/output-format.hpp"
+
 #include "pixglot/conversions.hpp"
 #include "pixglot/frame.hpp"
 #include "pixglot/gl-texture.hpp"
 #include "pixglot/image.hpp"
-#include "pixglot/output-format.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/preference.hpp"
 #include "pixglot/square-isometry.hpp"

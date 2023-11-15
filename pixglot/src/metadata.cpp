@@ -1,4 +1,5 @@
 #include "pixglot/metadata.hpp"
+
 #include "pixglot/details/tiff-orientation.hpp"
 #include "pixglot/square-isometry.hpp"
 
