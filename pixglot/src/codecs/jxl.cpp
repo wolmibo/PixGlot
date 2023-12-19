@@ -276,7 +276,10 @@ namespace {
           num_pixels * self->decoder_->target().format().size()
         };
 
-        std::ranges::copy(source, self->decoder_->target().row_bytes(y).begin());
+        auto target = self->decoder_->target().row_bytes(y)
+          .subspan(x * self->decoder_->target().format().size());
+
+        std::ranges::copy(source, target.begin());
         self->decoder_->frame_mark_ready_until_line(y);
       }
 
