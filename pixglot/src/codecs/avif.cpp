@@ -257,7 +257,11 @@ namespace {
 
   [[nodiscard]] square_isometry get_flipping(avifImage* image) {
     if ((image->transformFlags & AVIF_TRANSFORM_IMIR) != 0) {
+#if AVIF_VERSION_MAJOR >= 1
+      if (image->imir.axis % 2 == 0) {
+#else
       if (image->imir.mode % 2 == 0) {
+#endif
         return square_isometry::flip_y;
       }
       return square_isometry::flip_x;
