@@ -582,8 +582,11 @@ namespace {
 
 
       [[nodiscard]] std::endian current_endianess() {
-        return byte_size(header_.format.format) > 1 ? header_.endianess :
-          (decoder_->output_format().endian().prefers(std::endian::big)
+        if (byte_size(header_.format.format) > 1) {
+          return header_.endianess;
+        }
+
+        return (decoder_->output_format().endian().prefers(std::endian::big)
             ? std::endian::big : std::endian::little);
       }
 
