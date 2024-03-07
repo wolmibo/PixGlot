@@ -363,8 +363,6 @@ namespace {
 
 #ifdef PIXGLOT_WITH_XMP
         if (cinfo->unread_marker == JPEG_APP1 && is_xmp(span)) {
-          auto str = details::string_from(span.data(), span.size());
-
           details::fill_xmp_metadata(details::string_from(span.data(), span.size()),
               self->decoder_->image().metadata(), *self->decoder_);
 
