@@ -1,5 +1,6 @@
 #include "pixglot/reader.hpp"
 
+#include "pixglot/details/int_cast.hpp"
 #include "pixglot/exception.hpp"
 
 using namespace pixglot;
@@ -61,7 +62,7 @@ size_t reader::read(std::span<std::byte> buffer) {
 
 size_t reader::peek(std::span<std::byte> buffer) const {
   if (impl_->fptr != nullptr) {
-    size_t current = ftell(impl_->fptr);
+    auto   current = ftell(impl_->fptr);
     size_t count   = fread(buffer.data(), sizeof(std::byte), buffer.size(), impl_->fptr);
     fseek(impl_->fptr, current, SEEK_SET);
     return count;
@@ -75,7 +76,7 @@ size_t reader::peek(std::span<std::byte> buffer) const {
 
 bool reader::skip(size_t count) {
   if (impl_->fptr != nullptr) {
-    return fseek(impl_->fptr, count, SEEK_CUR) == 0;
+    return fseek(impl_->fptr, int_cast<long>(count), SEEK_CUR) == 0;
   }
   return false;
 }
@@ -89,7 +90,7 @@ size_t reader::position() const {
 
 
 size_t reader::size() const {
-  size_t current = ftell(impl_->fptr);
+  auto current = ftell(impl_->fptr);
   fseek(impl_->fptr, 0, SEEK_END);
   size_t size = ftell(impl_->fptr);
   fseek(impl_->fptr, current, SEEK_SET);
@@ -100,7 +101,7 @@ size_t reader::size() const {
 
 bool reader::seek(size_t pos) {
   if (impl_->fptr != nullptr) {
-    return fseek(impl_->fptr, pos, SEEK_SET) == 0;
+    return fseek(impl_->fptr, int_cast<long>(pos), SEEK_SET) == 0;
   }
   return false;
 }

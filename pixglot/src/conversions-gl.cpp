@@ -2,6 +2,7 @@
 #include <epoxy/gl_generated.h>
 
 #include "pixglot/exception.hpp"
+#include "pixglot/details/int_cast.hpp"
 #include "pixglot/gl-texture.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
@@ -65,7 +66,7 @@ namespace {
 
       shader(GLenum type, std::string_view source) :
         shader_{glCreateShader(type)} {
-        GLint length       = source.length();
+        auto length        = int_cast<GLint>(source.size());
         const GLchar* data = source.data();
 
         glShaderSource(shader_, 1, &data, &length);
@@ -272,7 +273,7 @@ namespace pixglot::details {
       program     program{vertex_shader, fragment_shader};
       plane       quad;
 
-      glViewport(0, 0, width, height);
+      glViewport(0, 0, int_cast<GLsizei>(width), int_cast<GLsizei>(height));
       glClearColor(1.f, 0.f, 0.f, 1.f);
       glClear(GL_COLOR_BUFFER_BIT);
 

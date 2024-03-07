@@ -3,6 +3,7 @@
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/exif.hpp"
 #include "pixglot/details/hermit.hpp"
+#include "pixglot/details/int_cast.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -158,7 +159,7 @@ namespace {
         config_.output.is_external_memory = 1;
 
         auto& rgba = config_.output.u.RGBA; //NOLINT(*union*)
-        rgba.stride = buffer.stride();
+        rgba.stride = int_cast<int>(buffer.stride());
         rgba.rgba   = utils::byte_pointer_cast<uint8_t>(buffer.data().data());
         rgba.size   = buffer.data().size();
       }

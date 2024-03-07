@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/hermit.hpp"
+#include "pixglot/details/int_cast.hpp"
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/xmp.hpp"
 #include "pixglot/frame.hpp"
@@ -96,8 +97,8 @@ namespace {
       [[nodiscard]] static int read(GifFileType* file, GifByteType* data, int count) {
         auto* self = static_cast<gif_file*>(file->UserData);
 
-        return self->input_->read(
-            std::as_writable_bytes(std::span{data, saturating_cast(count)}));
+        return int_cast<int>(self->input_->read(
+            std::as_writable_bytes(std::span{data, saturating_cast(count)})));
       }
   };
 
@@ -319,7 +320,7 @@ namespace {
 
       auto it = std::copy_n(old.begin(), rect.x, row.begin());
 
-      auto jt = old.begin() + rect.x;
+      auto jt = old.begin() + int_cast<long>(rect.x);
       for (auto in: source.subspan((y - rect.y) * rect.width, rect.width)) {
         *it = palette.resolve_color(in);
         if (it->a != 0xff) {
