@@ -165,7 +165,7 @@ namespace {
 
 
 
-  std::array<std::string_view, 13> extensions {
+  constexpr std::array<std::string_view, 13> extensions {
     "jpg", "jpeg", "jfif",
     "png",
     "avif",
@@ -181,7 +181,7 @@ namespace {
 
 
 
-  [[nodiscard]] std::span<std::string_view> potential_extensions(const image& img) {
+  [[nodiscard]] std::span<const std::string_view> potential_extensions(const image& img) {
     std::span all{extensions};
 
     switch (img.codec()) {
@@ -221,7 +221,7 @@ namespace {
 
 
 
-  [[nodiscard]] std::string format_expected(std::span<std::string_view> list) {
+  [[nodiscard]] std::string format_expected(std::span<const std::string_view> list) {
     if (list.empty()) {
       return "cannot suggest extension";
     }
