@@ -66,9 +66,9 @@ namespace {
 
   [[nodiscard]] char hex_char(int val) {
     if (val < 10) {
-      return val + '0';
+      return static_cast<char>(val + '0');
     }
-    return val - 10 + 'a';
+    return static_cast<char>(val - 10 + 'a');
   }
 
 

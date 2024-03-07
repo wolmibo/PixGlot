@@ -158,7 +158,7 @@ std::string pixglot::to_string(const image& img) {
 namespace {
   [[nodiscard]] char to_lower(char c) {
     if ('A' <= c && c <= 'Z') {
-      return c - 'A' + 'a';
+      return static_cast<char>(c - 'A' + 'a');
     }
     return c;
   }
