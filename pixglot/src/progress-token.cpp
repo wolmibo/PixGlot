@@ -157,7 +157,7 @@ void progress_token::stop() {
 
 
 progress_access_token progress_token::access_token() {
-  //NOLINTNEXTLINE(*owning-memory)
+  //NOLINTNEXTLINE(*owning-memory,*make-shared) since constructor is private
   state_.reset(new progress_access_token::shared_state(state_->take_away()));
   return progress_access_token{state_};
 }
