@@ -15,9 +15,9 @@ class progress_access_token::shared_state {
     std::atomic<bool>  upload       {false};
     std::atomic<bool>  flush_uploads{false};
 
-    std::move_only_function<void(frame&)>            callback{};
-    std::move_only_function<void(const frame_view&)> callback_begin{};
-    std::mutex                                       callback_mutex{};
+    std::move_only_function<void(frame&)>            callback;
+    std::move_only_function<void(const frame_view&)> callback_begin;
+    std::mutex                                       callback_mutex;
 
 
 
