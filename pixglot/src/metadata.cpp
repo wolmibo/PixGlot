@@ -117,7 +117,7 @@ void md::append_move(std::vector<key_value> list) {
 std::optional<pixglot::square_isometry> pixglot::orientation_from_metadata(
     const metadata& md
 ) {
-  if (auto tiff = md.find("tiff:Orientation"); tiff->size() == 1) {
+  if (auto tiff = md.find("tiff:Orientation"); tiff && tiff->size() == 1) {
     return details::square_isometry_from_tiff(tiff->front());
   }
 

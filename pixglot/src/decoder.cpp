@@ -57,10 +57,10 @@ namespace {
 
 
   [[nodiscard]] bool wants_upload(
-      const std::optional<pixglot::frame>& f,
-      const pixglot::pixel_buffer&         buf
+      const pixglot::frame&        f,
+      const pixglot::pixel_buffer& buf
   ) {
-    return f && f->type() == pixglot::storage_type::gl_texture &&
+    return f.type() == pixglot::storage_type::gl_texture &&
       (buf.endian() == std::endian::native || byte_size(buf.format().format) == 1);
   }
 
@@ -77,8 +77,9 @@ namespace {
 
 
 void decoder::frame_mark_ready_until_line(size_t y) {
-  if (direction_compatible(direction::up, upload_direction_) &&
-      wants_upload(current_frame_, target()) &&
+  if (current_frame_ &&
+      direction_compatible(direction::up, upload_direction_) &&
+      wants_upload(*current_frame_, target()) &&
       token_.upload_requested()) {
     upload_direction_ = std::to_underlying(direction::up);
 
@@ -98,8 +99,9 @@ void decoder::frame_mark_ready_until_line(size_t y) {
 void decoder::frame_mark_ready_from_line(size_t y) {
   auto height = target().height();
 
-  if (direction_compatible(direction::down, upload_direction_) &&
-      wants_upload(current_frame_, target()) &&
+  if (current_frame_ &&
+      direction_compatible(direction::down, upload_direction_) &&
+      wants_upload(*current_frame_, target()) &&
       token_.upload_requested()) {
 
     if (upload_direction_ == std::to_underlying(direction::unset)) {
@@ -277,7 +279,9 @@ pixglot::pixel_buffer& decoder::target() {
 
 
 void decoder::finish_pixel_transfer() {
-  if (current_frame_->type() != storage_type::gl_texture || !pixel_target_) {
+  if (!current_frame_ ||
+      current_frame_->type() != storage_type::gl_texture ||
+      !pixel_target_) {
     return;
   }
 

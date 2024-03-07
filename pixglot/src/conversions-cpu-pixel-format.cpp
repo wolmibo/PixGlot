@@ -16,20 +16,12 @@ namespace pixglot::details {
 
 
 namespace {
-  [[nodiscard]] bool good_endian(
-      data_format                format,
-      std::endian                input,
-      std::optional<std::endian> target
-  ) {
-    if (!target) {
+  [[nodiscard]] bool good_endian(data_format fmt, std::endian input, std::endian target) {
+    if (byte_size(fmt) == 1) {
       return true;
     }
 
-    if (byte_size(format) == 1) {
-      return true;
-    }
-
-    return input == *target;
+    return input == target;
   }
 
 
@@ -325,7 +317,7 @@ void pixglot::convert_pixel_format(
     std::optional<std::endian> target_endian
 ) {
   if (input.format() == target_format) {
-    if (!good_endian(input.format().format, input.endian(), target_endian)) {
+    if (target_endian && !good_endian(input.format().format, input.endian(), *target_endian)) {
       convert_endian(input, target_endian.value());
     }
     return;
@@ -344,7 +336,9 @@ void pixglot::convert_pixel_format(
     track_endian = details::swap_endian(track_endian);
   }
 
-  bool needs_post_swap = !good_endian(target_format.format, track_endian, target_endian);
+  bool needs_post_swap = target_endian &&
+    !good_endian(target_format.format, track_endian, *target_endian);
+
   if (needs_post_swap) {
     track_endian = details::swap_endian(track_endian);
   }
