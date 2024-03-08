@@ -1,11 +1,11 @@
 #include "pixglot/gl-texture.hpp"
 
-#include "pixglot/details/int_cast.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
 #include "pixglot/utils/gl.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 #include <stdexcept>
 
@@ -127,8 +127,8 @@ void pixglot::gl_texture::upload_lines(
   glTexSubImage2D(
     GL_TEXTURE_2D,
     0,
-    0, int_cast<GLint>(y),
-    int_cast<GLsizei>(width()), int_cast<GLsizei>(h),
+    0, utils::int_cast<GLint>(y),
+    utils::int_cast<GLsizei>(width()), utils::int_cast<GLsizei>(h),
     pixglot::utils::gl_format(format()),
     pixglot::utils::gl_type(format()),
     source.data().subspan(y * source.stride(), h * source.stride()).data()

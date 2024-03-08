@@ -20,6 +20,7 @@ headers = [
   'pixglot/square-isometry.hpp',
   'pixglot/utils/cast.hpp',
   'pixglot/utils/gl.hpp',
+  'pixglot/utils/int_cast.hpp',
 ]
 
 

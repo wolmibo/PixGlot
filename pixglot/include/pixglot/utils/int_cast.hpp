@@ -1,14 +1,15 @@
 // Copyright (c) 2024 wolmibo
 // SPDX-License-Identifier: MIT
 
-#ifndef PIXGLOT_DETAILS_INT_CAST_HPP_INCLUDED
-#define PIXGLOT_DETAILS_INT_CAST_HPP_INCLUDED
+#ifndef PIXGLOT_UTILS_INT_CAST_HPP_INCLUDED
+#define PIXGLOT_UTILS_INT_CAST_HPP_INCLUDED
 
 #include <concepts>
 #include <limits>
 #include <stdexcept>
 
 
+namespace pixglot::utils {
 
 template<std::signed_integral Tgt, std::unsigned_integral Src>
 constexpr Tgt int_cast_unsigned_to_signed(Src src) {
@@ -110,4 +111,6 @@ constexpr Tgt int_cast(Src src) {
   throw std::out_of_range("int_cast from floating point");
 }
 
-#endif // PIXGLOT_DETAILS_INT_CAST_HPP_INCLUDED
+}
+
+#endif // PIXGLOT_UTILS_INT_CAST_HPP_INCLUDED

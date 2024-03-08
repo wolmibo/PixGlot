@@ -1,7 +1,7 @@
 #include "pixglot/reader.hpp"
 
-#include "pixglot/details/int_cast.hpp"
 #include "pixglot/exception.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 using namespace pixglot;
 
@@ -76,7 +76,7 @@ size_t reader::peek(std::span<std::byte> buffer) const {
 
 bool reader::skip(size_t count) {
   if (impl_->fptr != nullptr) {
-    return fseek(impl_->fptr, int_cast<long>(count), SEEK_CUR) == 0;
+    return fseek(impl_->fptr, utils::int_cast<long>(count), SEEK_CUR) == 0;
   }
   return false;
 }
@@ -101,7 +101,7 @@ size_t reader::size() const {
 
 bool reader::seek(size_t pos) {
   if (impl_->fptr != nullptr) {
-    return fseek(impl_->fptr, int_cast<long>(pos), SEEK_SET) == 0;
+    return fseek(impl_->fptr, utils::int_cast<long>(pos), SEEK_SET) == 0;
   }
   return false;
 }

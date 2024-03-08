@@ -2,7 +2,6 @@
 #include "pixglot/conversions.hpp"
 #include "pixglot/details/decoder.hpp"
 #include "pixglot/details/hermit.hpp"
-#include "pixglot/details/int_cast.hpp"
 #include "pixglot/exception.hpp"
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
@@ -10,6 +9,7 @@
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 #include <cctype>
 #include <cmath>
@@ -126,7 +126,7 @@ namespace {
         std::stringstream output;
 
         auto biggest = std::ranges::max(comments_, {}, &comment_type::first).first;
-        auto width   = int_cast<int>(std::ceil(std::log10(biggest + 1)));
+        auto width   = utils::int_cast<int>(std::ceil(std::log10(biggest + 1)));
 
         for (const auto& [pos, content]: comments_) {
           output << '[' << std::setw(width) << pos << "] " << content << '\n';
