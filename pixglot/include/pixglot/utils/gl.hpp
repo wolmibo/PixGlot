@@ -6,6 +6,7 @@
 
 #include "pixglot/pixel-buffer.hpp"
 #include "pixglot/pixel-format.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -150,7 +151,7 @@ inline void gl_swizzle_mask(color_channels channels) {
 
 
 [[nodiscard]] inline GLint gl_pixels_per_stride(const pixel_buffer& buffer) {
-  return buffer.stride() / buffer.format().size();
+  return int_cast<GLint>(buffer.stride() / buffer.format().size());
 }
 
 
