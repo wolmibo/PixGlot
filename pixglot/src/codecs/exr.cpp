@@ -5,6 +5,7 @@
 #include "pixglot/metadata.hpp"
 #include "pixglot/pixel-format.hpp"
 #include "pixglot/utils/cast.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 #include <random>
 #include <span>
@@ -46,7 +47,7 @@ namespace {
 
 
       [[nodiscard]] bool read(char buffer[], int n) override { //NOLINT
-        auto data = std::as_writable_bytes(std::span{buffer, static_cast<size_t>(n)});
+        auto data = std::as_writable_bytes(std::span{buffer, utils::int_cast<size_t>(n)});
 
         if (input_->read(data) < data.size()) {
           throw decode_error{codec::exr, "unexpected eof"};
@@ -493,8 +494,8 @@ namespace {
         reader_     {decoder_->input()},
         input_      {reader_},
         data_window_{input_.header().dataWindow()},
-        width_      {static_cast<size_t>(data_window_.max.x - data_window_.min.x + 1)},
-        height_     {static_cast<size_t>(data_window_.max.y - data_window_.min.y + 1)}
+        width_      {utils::int_cast<size_t>(data_window_.max.x - data_window_.min.x + 1)},
+        height_     {utils::int_cast<size_t>(data_window_.max.y - data_window_.min.y + 1)}
       {
         decoder_->image().codec(codec::exr);
       }

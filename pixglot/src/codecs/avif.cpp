@@ -7,6 +7,7 @@
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
 #include "pixglot/utils/cast.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 #include <avif/avif.h>
 
@@ -302,7 +303,7 @@ namespace {
 
 
 
-        uint32_t task_count{static_cast<uint32_t>(dec_->imageCount) * 2};
+        uint32_t task_count{utils::int_cast<uint32_t>(dec_->imageCount) * 2};
         uint32_t prog      {0};
 
         while (avifDecoderNextImage(dec_.get()) == AVIF_RESULT_OK) {
@@ -314,7 +315,7 @@ namespace {
           set_frame_source_info(frame.source_info(), dec_->image);
           frame.orientation(isometry_from(dec_->image));
           frame.duration   (std::chrono::microseconds{
-                              static_cast<long int>(dec_->duration) * time_multi});
+              utils::int_cast<long int>(dec_->duration) * time_multi});
 
           fill_metadata(frame.metadata(), *dec_->image);
 

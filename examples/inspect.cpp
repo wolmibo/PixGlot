@@ -13,6 +13,8 @@
 #include <pixglot/metadata.hpp>
 #include <pixglot/pixel-format.hpp>
 #include <pixglot/square-isometry.hpp>
+#include <pixglot/utils/int_cast.hpp>
+
 
 
 
@@ -94,7 +96,8 @@ std::string_view str(std::endian endian) {
 template<typename T>
 void print_meta_item(std::string_view key, T&& value, size_t width, size_t indent) {
   std::cout << std::string(indent, ' ')
-    << std::left << std::setw(width + 2) << (std::string{key} + ": ")
+    << std::left << std::setw(pixglot::utils::int_cast<int>(width + 2))
+    << (std::string{key} + ": ")
     << std::forward<T>(value) << '\n';
 }
 
@@ -128,7 +131,8 @@ void print_meta_string(
     size_t           indent
 ) {
   std::cout << std::string(indent, ' ')
-    << std::left << std::setw(width + 2) << (std::string{key} + ": ");
+    << std::left << std::setw(pixglot::utils::int_cast<int>(width + 2))
+    << (std::string{key} + ": ");
 
   bool first{true};
   for (const auto& line: split_lines(value)) {
@@ -319,7 +323,7 @@ void print_help(const std::filesystem::path& name) {
 
 
 int main(int argc, char** argv) {
-  auto args = std::span{argv, static_cast<size_t>(argc)};
+  auto args = std::span{argv, pixglot::utils::int_cast<size_t>(argc)};
 
   static std::array<option, 3> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
@@ -332,7 +336,7 @@ int main(int argc, char** argv) {
   bool raw   {false};
 
   int c{-1};
-  while ((c = getopt_long(args.size(), args.data(), "hdr",
+  while ((c = getopt_long(pixglot::utils::int_cast<int>(args.size()), args.data(), "hdr",
                           long_options.data(), nullptr)) != -1) {
     switch (c) {
       case 'h': help   = true; break;

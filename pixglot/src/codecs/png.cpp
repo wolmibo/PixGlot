@@ -8,6 +8,7 @@
 #include "pixglot/metadata.hpp"
 #include "pixglot/square-isometry.hpp"
 #include "pixglot/utils/cast.hpp"
+#include "pixglot/utils/int_cast.hpp"
 
 #include <utility>
 
@@ -207,7 +208,7 @@ namespace {
           return;
         }
 
-        for (const auto& png_text: std::span{text, static_cast<size_t>(num_text)}) {
+        for (const auto& png_text: std::span{text, utils::int_cast<size_t>(num_text)}) {
           auto key = details::string_view_from(png_text.key, 79);
 
 #ifdef PIXGLOT_WITH_XMP

@@ -215,7 +215,7 @@ namespace {
           throw decode_error{codec::gif, "negative color count"};
         }
 
-        auto color_count = static_cast<size_t>(cmap.ColorCount);
+        auto color_count = utils::int_cast<size_t>(cmap.ColorCount);
 
         if (color_count > colors_.size()) {
           throw decode_error{codec::gif, "to many colors in palette"};
@@ -483,8 +483,8 @@ namespace {
 
 
       void assert_frame_size(const SavedImage& img) const {
-        if (img.ImageDesc.Left + img.ImageDesc.Width > static_cast<int>(width_) ||
-          img.ImageDesc.Top + img.ImageDesc.Height > static_cast<int>(height_)) {
+        if (img.ImageDesc.Left + img.ImageDesc.Width > utils::int_cast<int>(width_) ||
+          img.ImageDesc.Top + img.ImageDesc.Height > utils::int_cast<int>(height_)) {
           throw decode_error{codec::gif, "frame exceeds canvas bounds"};
         }
       }

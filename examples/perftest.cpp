@@ -15,6 +15,7 @@
 #include <pixglot/progress-token.hpp>
 #include <pixglot/square-isometry.hpp>
 #include <pixglot/utils/cast.hpp>
+#include <pixglot/utils/int_cast.hpp>
 
 
 
@@ -87,9 +88,9 @@ void print_time_tree(std::span<const pixglot::frame> frames) {
   time_point last = times.front().second;
   size_t frame_index{0};
   for (const auto& [ev, tp]: times) {
-    std::cout << std::setw(col1) << std::right;
+    std::cout << std::setw(pixglot::utils::int_cast<int>(col1)) << std::right;
     write(std::cout, diff(times.front().second, tp));
-    std::cout << "  (+" << std::setw(col2) << std::right;
+    std::cout << "  (+" << std::setw(pixglot::utils::int_cast<int>(col2)) << std::right;
     write(std::cout, diff(last, tp));
     std::cout << ")  ";
 
@@ -242,7 +243,8 @@ void save_frame(const pixglot::frame& frame, const std::filesystem::path& outpat
   for (size_t y = 0; y < frame.height(); ++y) {
     auto ry = pixglot::is_float(frame.format().format) ? frame.height() - y - 1 : y;
     auto row = frame.pixels().row_bytes(ry);
-    output.write(pixglot::utils::byte_pointer_cast<const char>(row.data()), row.size());
+    output.write(pixglot::utils::byte_pointer_cast<const char>(row.data()),
+        pixglot::utils::int_cast<long>(row.size()));
   }
 
 
@@ -468,7 +470,7 @@ void print_help(const std::filesystem::path& name) {
 
 
 int main(int argc, char** argv) {
-  auto args = std::span{argv, static_cast<size_t>(argc)};
+  auto args = std::span{argv, pixglot::utils::int_cast<size_t>(argc)};
 
   static std::array<option, 27> long_options = {
     option{"help",                 no_argument,       nullptr, 'h'},
@@ -519,7 +521,7 @@ int main(int argc, char** argv) {
   std::optional<std::filesystem::path> output_file;
 
   int c{-1};
-  while ((c = getopt_long(args.size(), args.data(), "ho:",
+  while ((c = getopt_long(pixglot::utils::int_cast<int>(args.size()), args.data(), "ho:",
                           long_options.data(), nullptr)) != -1) {
     switch (c) {
       case 'h': help = true; break;

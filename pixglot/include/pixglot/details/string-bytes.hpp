@@ -4,6 +4,8 @@
 #ifndef PIXGLOT_DETAILS_STRING_BYTES_HPP_INCLUDED
 #define PIXGLOT_DETAILS_STRING_BYTES_HPP_INCLUDED
 
+#include "pixglot/utils/int_cast.hpp"
+
 #include <limits>
 #include <string>
 #include <string_view>
@@ -18,7 +20,7 @@ template<typename Byte, std::integral Int> requires (sizeof(Byte) == 1)
     return {};
   }
 
-  auto S = static_cast<size_t>(size);
+  auto S = utils::int_cast<size_t>(size);
 
   size_t s = 0;
   for (const Byte* b{bytes}; s < S && *b != Byte{0}; ++b, ++s) {}
