@@ -70,7 +70,7 @@ To build PixGlot you will need:
 * giflib (Optional)
 * rapidxml (Optional for XMP support)
 
-To install all dependencies on Fedora 37 run:
+To install all dependencies on Fedora run:
 ```sh
 sudo dnf install gcc-c++ meson mesa-libGL-devel libepoxy-devel \
 libpng-devel libjpeg-turbo-devel giflib-devel libwebp-devel \
