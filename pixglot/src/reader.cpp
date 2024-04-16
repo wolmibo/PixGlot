@@ -22,7 +22,9 @@ class reader::impl {
     impl& operator=(impl&&) = delete;
 
     ~impl() {
-      fclose(fptr); //NOLINT(*-owning-memory)
+      if (fptr != nullptr) {
+        fclose(fptr); //NOLINT(*-owning-memory)
+      }
     }
 };
 
