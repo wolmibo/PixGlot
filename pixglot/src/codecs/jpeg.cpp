@@ -150,7 +150,9 @@ namespace {
       std::ranges::equal(data.subspan(0, header.size()),
                          std::as_bytes(std::span{header}));
 
-    data = data.subspan(header.size() + 1);
+    if (xmp) {
+      data = data.subspan(header.size() + 1);
+    }
 
     return xmp;
   }
