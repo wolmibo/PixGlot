@@ -23,6 +23,7 @@ template<typename Byte, std::integral Int> requires (sizeof(Byte) == 1)
   auto S = utils::int_cast<size_t>(size);
 
   size_t s = 0;
+  //NOLINTNEXTLINE(*-pointer-arithmetic)
   for (const Byte* b{bytes}; s < S && *b != Byte{0}; ++b, ++s) {}
 
   //NOLINTNEXTLINE(*-reinterpret-cast)
