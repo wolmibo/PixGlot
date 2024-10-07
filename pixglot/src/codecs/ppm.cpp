@@ -301,7 +301,7 @@ namespace {
         return;
       }
 
-      copy_n(source.begin(), row.size(), row.begin());
+      std::copy_n(source.begin(), row.size(), row.begin());
 
       source = source.subspan(row.size());
     }
