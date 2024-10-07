@@ -11,6 +11,7 @@
 #include "pixglot/utils/cast.hpp"
 #include "pixglot/utils/int_cast.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <iomanip>
@@ -293,7 +294,7 @@ namespace {
       auto row = target.row_bytes(y);
 
       if (source.size() < row.size()) {
-        auto start = copy(source.begin(), source.end(), row.begin());
+        auto start = std::ranges::copy(source, row.begin()).out;
         fill(start, row.end(), std::byte{0x00});
 
         fill_remaining_pixel_buffer(target, y + 1, 0);
