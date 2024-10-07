@@ -6,36 +6,37 @@
 
 
 
-[[nodiscard]] std::string_view trim(std::string_view in) {
-  while (!in.empty() && (isspace(in.front()) != 0)) {
-    in.remove_prefix(1);
+namespace {
+  [[nodiscard]] std::string_view trim(std::string_view in) {
+    while (!in.empty() && (isspace(in.front()) != 0)) {
+      in.remove_prefix(1);
+    }
+
+    while (!in.empty() && (isspace(in.back()) != 0)) {
+      in.remove_suffix(1);
+    }
+
+    return in;
   }
 
-  while (!in.empty() && (isspace(in.back()) != 0)) {
-    in.remove_suffix(1);
-  }
-
-  return in;
-}
 
 
+  [[nodiscard]] std::vector<std::string_view> split(std::string_view in, char delim) {
+    std::vector<std::string_view> out;
 
-[[nodiscard]] std::vector<std::string_view> split(std::string_view in, char delim) {
-  std::vector<std::string_view> out;
+    for (auto pos = in.find(delim); pos != std::string_view::npos; pos = in.find(delim)) {
+      if (auto str = trim(in.substr(0, pos)); !str.empty()) {
+        out.emplace_back(str);
+      }
+      in.remove_prefix(pos + 1);
+    }
 
-  for (auto pos = in.find(delim); pos != std::string_view::npos; pos = in.find(delim)) {
-    if (auto str = trim(in.substr(0, pos)); !str.empty()) {
+    if (auto str = trim(in); !in.empty()) {
       out.emplace_back(str);
     }
-    in.remove_prefix(pos + 1);
+    return out;
   }
-
-  if (auto str = trim(in); !in.empty()) {
-    out.emplace_back(str);
-  }
-  return out;
 }
-
 
 
 int main(int argc, char** argv) {
