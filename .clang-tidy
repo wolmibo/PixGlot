@@ -9,6 +9,7 @@ Checks: >
     -misc-include-cleaner,
     -misc-no-recursion,
     -misc-non-private-member-variables-in-classes,
+    -misc-use-internal-linkage,
   modernize-*,
     -modernize-use-trailing-return-type,
   performance-*,
@@ -16,4 +17,5 @@ Checks: >
   readability-*,
     -readability-identifier-length,
     -readability-magic-numbers,
+    -readability-math-missing-parentheses,
     -readability-uppercase-literal-suffix
