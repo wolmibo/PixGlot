@@ -94,7 +94,7 @@ bool progress_access_token::flush_uploads() const {
 namespace {
   template<typename Fnc, typename... Args>
   void invoke_save(Fnc&& f, Args&& ...args) {
-    if (std::forward<Fnc>(f)) {
+    if (f) {
       std::invoke(std::forward<Fnc>(f), std::forward<Args>(args)...);
     }
   }
