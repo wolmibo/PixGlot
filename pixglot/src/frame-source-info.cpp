@@ -158,7 +158,9 @@ fsi::frame_source_info(const frame_source_info& rhs) :
 fsi::frame_source_info(frame_source_info&&) noexcept = default;
 
 fsi& fsi::operator=(const frame_source_info& rhs) {
-  impl_ = std::make_unique<impl>(*rhs.impl_);
+  if (this != &rhs) {
+    impl_ = std::make_unique<impl>(*rhs.impl_);
+  }
 
   return *this;
 }
