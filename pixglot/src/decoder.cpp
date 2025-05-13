@@ -83,6 +83,7 @@ void decoder::frame_mark_ready_until_line(size_t y) {
       token_.upload_requested()) {
     upload_direction_ = std::to_underlying(direction::up);
 
+    //NOLINTNEXTLINE(*-unchecked-optional-access)
     current_frame_->texture().upload_lines(target(), uploaded_, y - uploaded_);
     if (token_.flush_uploads()) {
       glFlush();
@@ -110,6 +111,7 @@ void decoder::frame_mark_ready_from_line(size_t y) {
     }
 
     if (y < uploaded_) {
+      //NOLINTNEXTLINE(*-unchecked-optional-access)
       current_frame_->texture().upload_lines(target(), y, uploaded_ - y);
       if (token_.flush_uploads()) {
         glFlush();
