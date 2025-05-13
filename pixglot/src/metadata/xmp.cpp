@@ -131,10 +131,9 @@ void pixglot::details::fill_xmp_metadata(
     metadata&         meta,
     details::decoder& dec
 ) {
+  std::vector<metadata::key_value> md;
+
   try {
-    meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.xmp", ".raw"), str);
-
-
     xml_document<> doc;
     doc.parse<0>(str.data());
 
@@ -145,7 +144,6 @@ void pixglot::details::fill_xmp_metadata(
       return;
     }
 
-    std::vector<metadata::key_value> md;
 
     for (auto* node = root->first_node(); node != nullptr; node = node->next_sibling()) {
 
@@ -161,13 +159,12 @@ void pixglot::details::fill_xmp_metadata(
         }
       }
     }
-
-    meta.append_move(md);
-
-
   } catch (std::exception& error) {
     dec.warn(std::string{"unable to parse xmp: "} + error.what());
   } catch (...) {
     dec.warn("unable to parse xmp: unknown error");
   }
+
+  meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.xmp", ".raw"), std::move(str));
+  meta.append_move(md);
 }
