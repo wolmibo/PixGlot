@@ -27,6 +27,10 @@ namespace {
 
 
 
+  constexpr std::string_view XMP_HEADER = "XMP DataXMP";
+
+
+
   void gif_assert(
       int                         error,
       const std::string&          msg,
@@ -537,11 +541,10 @@ namespace {
               break;
 #ifdef PIXGLOT_WITH_XMP
             case APPLICATION_EXT_FUNC_CODE:
-              if (block.ByteCount >= 11) {
-                auto all = details::string_view_from(block.Bytes, block.ByteCount);
-                auto data = all.substr(11);
-                if (all.substr(0, 11) == "XMP DataXMP") {
-                  details::fill_xmp_metadata(std::string{data}, md, *decoder_);
+              if (block.ByteCount >= std::ssize(XMP_HEADER)) {
+                auto data = details::string_view_from(block.Bytes, block.ByteCount);
+                if (data.starts_with(XMP_HEADER)) {
+                  details::fill_xmp_metadata(std::string{data.substr(XMP_HEADER.size())}, md, *decoder_);
                 }
               }
               break;
