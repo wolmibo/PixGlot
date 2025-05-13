@@ -4,6 +4,8 @@
 #include "pixglot/frame-source-info.hpp"
 #include "pixglot/metadata.hpp"
 
+#include <variant>
+
 using namespace pixglot;
 using std::chrono::microseconds;
 
