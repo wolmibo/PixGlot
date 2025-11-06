@@ -100,6 +100,7 @@ image pixglot::decode(reader& r, progress_access_token pat, const output_format&
 
 
 
+//NOLINTNEXTLINE(*-param-not-moved)
 image pixglot::decode(reader&& r, progress_access_token pat, const output_format& fmt) {
   return decode(r, std::move(pat), fmt);
 }
@@ -107,6 +108,7 @@ image pixglot::decode(reader&& r, progress_access_token pat, const output_format
 
 
 image pixglot::decode(
+//NOLINTNEXTLINE(*-param-not-moved)
     reader&&              r,
     codec                 c,
     progress_access_token pat,
