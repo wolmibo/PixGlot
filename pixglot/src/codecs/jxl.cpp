@@ -42,8 +42,8 @@ namespace {
       case JXL_ORIENT_ROTATE_180:      return rotate_half;
       case JXL_ORIENT_TRANSPOSE:       return transpose;
       case JXL_ORIENT_ANTI_TRANSPOSE:  return anti_transpose;
-      case JXL_ORIENT_ROTATE_90_CW:    return rotate_cw;
-      case JXL_ORIENT_ROTATE_90_CCW:   return rotate_ccw;
+      case JXL_ORIENT_ROTATE_90_CW:    return rotate_ccw;
+      case JXL_ORIENT_ROTATE_90_CCW:   return rotate_cw;
 
       default: return {};
     }
