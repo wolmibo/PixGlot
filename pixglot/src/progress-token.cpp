@@ -1,6 +1,7 @@
 #include "pixglot/progress-token.hpp"
 
 #include <atomic>
+#include <mutex>
 
 using namespace pixglot;
 
