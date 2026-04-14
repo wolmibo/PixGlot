@@ -3,6 +3,7 @@
 #include "pixglot/details/string-bytes.hpp"
 #include "pixglot/details/tiff-orientation.hpp"
 #include "pixglot/metadata.hpp"
+#include "pixglot/square-isometry.hpp"
 
 #include <algorithm>
 
@@ -396,10 +397,10 @@ std::string pixglot_metadata_find_unique_key(const metadata&,
 
 
 void pixglot::details::fill_exif_metadata(
-    std::span<const std::byte> buffer,
-    metadata&                  meta,
-    decoder&                   dec,
-    square_isometry*           orientation
+    std::span<const std::byte>                             buffer,
+    metadata&                                              meta,
+    decoder&                                               dec,
+    std::optional<std::reference_wrapper<square_isometry>> orientation
 ) {
   try {
     meta.emplace(pixglot_metadata_find_unique_key(meta, "pixglot.exif", ".rawSize"),
@@ -409,7 +410,9 @@ void pixglot::details::fill_exif_metadata(
 
     exif_decoder exif{buffer};
 
-    *orientation = exif.orientation();
+    if (orientation) {
+      orientation->get() = exif.orientation();
+    }
 
     meta.append_move(exif.entries());
 

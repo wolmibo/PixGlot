@@ -6,6 +6,7 @@
 
 #include "pixglot/square-isometry.hpp"
 
+#include <optional>
 #include <span>
 
 
@@ -21,7 +22,7 @@ namespace pixglot::details {
 class decoder;
 
 void fill_exif_metadata(std::span<const std::byte>, metadata&, details::decoder&,
-                        square_isometry* = nullptr);
+                        std::optional<std::reference_wrapper<square_isometry>> = {});
 
 [[nodiscard]] bool is_exif(std::span<const std::byte>);
 

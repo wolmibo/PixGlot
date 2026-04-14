@@ -374,7 +374,7 @@ namespace {
 #ifdef PIXGLOT_WITH_EXIF
         if (cinfo->unread_marker == JPEG_APP1 && details::is_exif(buffer)) {
           details::fill_exif_metadata(buffer, self->decoder_->image().metadata(),
-                                      *self->decoder_, &self->orientation_);
+                                      *self->decoder_, std::ref(self->orientation_));
 
           return TRUE;
         }
