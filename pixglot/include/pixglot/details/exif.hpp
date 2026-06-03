@@ -6,6 +6,7 @@
 
 #include "pixglot/square-isometry.hpp"
 
+#include <functional>
 #include <optional>
 #include <span>
 
