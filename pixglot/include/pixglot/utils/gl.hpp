@@ -127,11 +127,11 @@ inline void gl_swizzle_mask(color_channels channels) {
   static constexpr std::array<std::array<GLint, 4>, 3> swizzleMask {
     std::array<GLint, 4>{GL_ZERO, GL_ZERO, GL_ZERO, GL_ONE},
     std::array<GLint, 4>{GL_RED,  GL_RED,  GL_RED,  GL_ONE},
-    std::array<GLint, 4>{GL_RED,  GL_RED,  GL_RED,  GL_GREEN}
+    std::array<GLint, 4>{GL_RED,  GL_RED,  GL_RED,  GL_GREEN},
   };
 
   if (auto n = n_channels(channels); n < swizzleMask.size()) {
-    //NOLINTNEXTLINE(*constant-array-index)
+    //NOLINTNEXTLINE(*constant-array-index, *unchecked-container-access)
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask[n].data());
   }
 }
