@@ -7,6 +7,7 @@
 #include "pixglot/utils/gl.hpp"
 #include "pixglot/utils/int_cast.hpp"
 
+#include <format>
 #include <stdexcept>
 
 #include <GL/gl.h>
@@ -57,13 +58,38 @@ namespace {
       data
     );
   }
+
+
+
+  [[nodiscard]] inline size_t gl_texture_limit() {
+    GLint limit{};
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &limit);
+
+    return pixglot::utils::int_cast<size_t>(limit);
+  }
+
+
+
+  [[nodiscard]] size_t assert_texture_limit(std::string_view dim, size_t value) {
+    auto limit = gl_texture_limit();
+
+    if (value > limit) {
+      throw pixglot::base_exception{
+        "frame dimensions are too large",
+        std::format("the requested texture {} of {} exceeds the limit of {}",
+            dim, value, limit)
+      };
+    }
+
+    return value;
+  }
 }
 
 
 
 pixglot::gl_texture::gl_texture(const pixel_buffer& buffer) :
-  width_ {buffer.width()},
-  height_{buffer.height()},
+  width_ {assert_texture_limit("width",  buffer.width())},
+  height_{assert_texture_limit("height", buffer.height())},
   format_{buffer.format()},
 
   id_    {create_texture(format_)}
@@ -84,8 +110,8 @@ pixglot::gl_texture::gl_texture(const pixel_buffer& buffer) :
 
 
 pixglot::gl_texture::gl_texture(size_t width, size_t height, pixel_format format) :
-  width_ {width},
-  height_{height},
+  width_ {assert_texture_limit("width",  width)},
+  height_{assert_texture_limit("height", height)},
   format_{format},
 
   id_    {create_texture(format_)}
